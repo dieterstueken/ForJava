@@ -11,8 +11,8 @@ import java.util.regex.Pattern;
  */
 public class CodeParser extends Parser {
 
-    static final Pattern SUBROUTINE = Pattern.compile("subroutine\\s*(\\w+)\\s*(.*)");
-    static final Pattern FUNCTION = Pattern.compile("(\\w+\\S*)?\\s*function\\s*(\\w+)\\s*(.*)");
+    static final Pattern SUBROUTINE = Pattern.compile("subroutine\\s*(\\w+)\\s*(\\()?(.*)");
+    static final Pattern FUNCTION = Pattern.compile("(\\w+\\S*)?\\s*function\\s*(\\w+)\\s*\\((.*)");
     static final Pattern BLOCKDATA = Pattern.compile("block\\s+data\\s+(\\w+)\\s*");
     static final Pattern DATA = Pattern.compile("data\\s+(\\w+)\\s*");
     static final Pattern DIM = Pattern.compile("((integer|real|character)(\\*\\d+)?)(.*)");
@@ -31,7 +31,7 @@ public class CodeParser extends Parser {
     static final Pattern CONTINUE = Pattern.compile("continue\\s*");
     static final Pattern NAME = Pattern.compile("(\\w+)(.*)");
     static final Pattern FUN = Pattern.compile("(\\w+)\\s*\\((.*)");
-    static final Pattern CALL = Pattern.compile("call\\s+(.*)");
+    static final Pattern CALL = Pattern.compile("call\\s+(\\w+)\\s*(\\()?(.*)");
     static final Pattern GOTO = Pattern.compile("goto\\s+(\\d+)");
     static final Pattern READ = Pattern.compile("read\\s*\\(\\s*(\\d+),\\s*\\*(,\\s*end=(\\d+))?\\)\\s+(.*)");
     static final Pattern RW = Pattern.compile("(read|write)\\s*\\(\\s*(\\d+),\\s*'\\((.*)");
@@ -101,9 +101,13 @@ public class CodeParser extends Parser {
         out.text(m.group(1));
         return parseExpr(m.group(2));
     })).or(parser(CALL, m -> {
-        out.start("call");
-        finish(out::end);
-        return parseExpr(m.group(1));
+        out.start("call")
+                .attribute("name", m.group(1));
+
+        if(m.group(2)==null)
+            out.end(); // don't expect any closing brace
+
+        return parseExpr(m.group(3));
     })).or(parser(OPENF, m -> {
         out.start("open")
                 .attribute("ch", m.group(1))
@@ -183,7 +187,8 @@ public class CodeParser extends Parser {
         return parseExpr(m.group(5));
     })).or(parser(NAME, m -> {
         String name = m.group(1);
-        out.text("var", name);
+        //out.text("var", name);
+        out.start("var").attribute("name", name).end();
         return parseExpr(m.group(2));
     })).or(parser(code -> {
         out.text("code", code);
@@ -197,12 +202,15 @@ public class CodeParser extends Parser {
         out.start("block")
                 .attribute("type", "subroutine")
                 .attribute("name", m.group(1));
-        return parseExpr(m.group(2));
+        if(m.group(2)!=null)
+            out.start("args");
+        return parseExpr(m.group(3));
     })).or(parser(FUNCTION, m -> {
         out.start("block")
                 .attribute("type", "function")
                 .attribute("return", m.group(1))
                 .attribute("name", m.group(2));
+        out.start("args");
         return parseExpr(m.group(3));
     })).or(parser(BLOCKDATA, m -> {
         out.start("block")

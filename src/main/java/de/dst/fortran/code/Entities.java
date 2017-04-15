@@ -1,9 +1,9 @@
 package de.dst.fortran.code;
 
-import java.util.AbstractMap;
+import java.util.AbstractSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 
 /**
@@ -12,7 +12,7 @@ import java.util.function.Function;
  * Date: 14.04.17
  * Time: 13:48
  */
-public class Entities<T extends Entity> extends AbstractMap<String, T> {
+public class Entities<T extends Entity> extends AbstractSet<T> {
 
     final Function<String, T> create;
 
@@ -27,7 +27,30 @@ public class Entities<T extends Entity> extends AbstractMap<String, T> {
     }
 
     @Override
-    public Set<Entry<String, T>> entrySet() {
-        return entities.entrySet();
+    public Iterator<T> iterator() {
+        return entities.values().iterator();
+    }
+
+    @Override
+    public int size() {
+        return entities.size();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Entities)) return false;
+        if (!super.equals(o)) return false;
+
+        Entities<?> entities1 = (Entities<?>) o;
+
+        return entities.equals(entities1.entities);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + entities.hashCode();
+        return result;
     }
 }

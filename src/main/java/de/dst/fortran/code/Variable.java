@@ -3,6 +3,7 @@ package de.dst.fortran.code;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * version:     $Revision$
@@ -11,7 +12,7 @@ import java.util.List;
  * modified by: $Author$
  * modified on: $Date$
  */
-public class Variable extends Entity implements Value {
+public class Variable extends Entity implements Value, Context {
 
     public Type type = null;
 
@@ -84,5 +85,31 @@ public class Variable extends Entity implements Value {
 
     public List<Value> dim() {
         return this.dim==null ? Collections.emptyList() : dim;
+    }
+
+    public String contextName() {
+        return context==null ? "" : context.getName();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Variable)) return false;
+        if (!super.equals(o)) return false;
+
+        Variable variable = (Variable) o;
+
+        return Objects.equals(type, variable.type)
+                && Objects.equals(dim(), variable.dim())
+                && Objects.equals(contextName(), variable.contextName());
+    }
+
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + type.hashCode();
+        result = 31 * result + dim.hashCode();
+        result = 31 * result + context.hashCode();
+        return result;
     }
 }

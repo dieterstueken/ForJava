@@ -18,4 +18,22 @@ public class Common extends Entity implements Context {
 
         members = new Entities<>(name -> newVariable.apply(name).context(this));
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Common)) return false;
+        if (!super.equals(o)) return false;
+
+        Common common = (Common) o;
+
+        return members.equals(common.members);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + members.hashCode();
+        return result;
+    }
 }
