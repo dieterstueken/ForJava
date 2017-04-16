@@ -99,9 +99,11 @@ public class Variable extends Entity implements Value, Context {
 
         Variable variable = (Variable) o;
 
-        return Objects.equals(type, variable.type)
+        boolean eq = Objects.equals(type, variable.type)
                 && Objects.equals(dim(), variable.dim())
                 && Objects.equals(contextName(), variable.contextName());
+
+        return eq;
     }
 
     @Override

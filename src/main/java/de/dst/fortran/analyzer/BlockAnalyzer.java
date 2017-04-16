@@ -169,10 +169,10 @@ public class BlockAnalyzer {
                     return v;
                 };
 
-                childElements(e,"var").findAny()
+                childElements(ce,"var").findAny()
                         .ifPresent(assign::apply);
 
-                childElements(e,"fun").findAny()
+                childElements(ce,"fun").findAny()
                         .ifPresent(fe->{
                             assign.apply(fe);
                             // index variables
@@ -185,10 +185,22 @@ public class BlockAnalyzer {
         });
     }
 
+    boolean assigned(Variable v) {
+        return block.assigned.contains(v.name);
+    }
+
     public void dump() {
 
         System.out.format("%s %s\n", block.name, block.type);
-                block.variables.forEach(System.out::println);
+
+        block.arguments.forEach(v ->
+            System.out.format("%s %s\n", assigned(v) ? "*":" ", v)
+        );
+        
+        block.variables.forEach(v -> {
+            if(v.context==null)
+                System.out.format("%s %s\n", assigned(v) ? "*":" ", v);
+        });
 
         System.out.println();
     }
