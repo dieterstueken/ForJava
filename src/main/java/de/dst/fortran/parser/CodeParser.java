@@ -9,45 +9,47 @@ import java.util.regex.Pattern;
  * Date: 01.04.17
  * Time: 15:27
  */
-public class CodeParser extends Parser {
+public class CodeParser extends OutputParser {
 
-    static final Pattern SUBROUTINE = Pattern.compile("subroutine\\s*(\\w+)\\s*(\\()?(.*)");
-    static final Pattern FUNCTION = Pattern.compile("(\\w+\\S*)?\\s*function\\s*(\\w+)\\s*\\((.*)");
-    static final Pattern BLOCKDATA = Pattern.compile("block\\s+data\\s+(\\w+)\\s*");
-    static final Pattern DATA = Pattern.compile("data\\s+(\\w+)\\s*");
-    static final Pattern DIM = Pattern.compile("((integer|real|character)(\\*\\d+)?)(.*)");
-    static final Pattern COMMON = Pattern.compile("common\\s*/(\\w+)/\\s*(.*)");
-    static final Pattern BOOLEAN = Pattern.compile("\\.(eq|ne|le|lt|ge|gt|and|or)\\.");
-    static final Pattern ASSIGN = Pattern.compile("(\\w+[^⁼]*)=(.*)");
-    static final Pattern BOP = Pattern.compile(":(eq|ne|le|lt|ge|gt|and|or):(.*)");
-    static final Pattern IF = Pattern.compile("if\\s*\\((.*)");
-    static final Pattern THEN = Pattern.compile("then\\s*");
-    static final Pattern ELSE = Pattern.compile("else\\s*");
-    static final Pattern ELSEIF = Pattern.compile("else\\s+if\\s*\\((.*)");
-    static final Pattern ENDIF = Pattern.compile("end\\s*if\\s*");
-    static final Pattern DO = Pattern.compile("do\\s+(\\w+)\\s*=([^,]*),\\s*([^,]*)\\s*(,.*)?");
-    static final Pattern DOWHILE = Pattern.compile("do\\s+while\\s*\\((.*)");
-    static final Pattern ENDDO = Pattern.compile("end\\s*do\\s*");
-    static final Pattern CONTINUE = Pattern.compile("continue\\s*");
-    static final Pattern NAME = Pattern.compile("(\\w+)(.*)");
-    static final Pattern FUN = Pattern.compile("(\\w+)\\s*\\((.*)");
-    static final Pattern CALL = Pattern.compile("call\\s+(\\w+)\\s*(\\()?(.*)");
-    static final Pattern GOTO = Pattern.compile("goto\\s+(\\d+)");
-    static final Pattern READ = Pattern.compile("read\\s*\\(\\s*(\\d+),\\s*\\*(,\\s*end=(\\d+))?\\)\\s+(.*)");
-    static final Pattern RW = Pattern.compile("(read|write)\\s*\\(\\s*(\\d+),\\s*'\\((.*)");
-    static final Pattern BRCLOSE = Pattern.compile("\\)(.*)");
-    static final Pattern BROPEN = Pattern.compile("\\((.*)");
-    static final Pattern OPENF = Pattern.compile("open\\((\\d),\\s*file=\"([^\\)]*)\"\\)\\s*");
-    static final Pattern CLOSE = Pattern.compile("close\\((\\d)\\)\\s*");
+    static final Pattern SUBROUTINE = compile("subroutine\\s*(\\w+)\\s*(\\()?(.*)");
+    static final Pattern FUNCTION = compile("(\\w+\\S*)?\\s*function\\s*(\\w+)\\s*\\((.*)");
+    static final Pattern BLOCKDATA = compile("block\\s+data\\s+(\\w+)\\s*");
+    static final Pattern DATA = compile("data\\s+(\\w+)\\s*");
+    static final Pattern DIM = compile("((integer|real|character)(\\*\\d+)?)(.*)");
+    static final Pattern COMMON = compile("common\\s*/(\\w+)/\\s*(.*)");
+    static final Pattern BOOLEAN = compile("\\.(eq|ne|le|lt|ge|gt|and|or)\\.");
+    static final Pattern ASSIGN = compile("(\\w+[^⁼]*)=(.*)");
+    static final Pattern BOP = compile(":(eq|ne|le|lt|ge|gt|and|or):(.*)");
+    static final Pattern IF = compile("if\\s*\\((.*)");
+    static final Pattern THEN = compile("then\\s*");
+    static final Pattern ELSE = compile("else\\s*");
+    static final Pattern ELSEIF = compile("else\\s+if\\s*\\((.*)");
+    static final Pattern ENDIF = compile("end\\s*if\\s*");
+    static final Pattern DO = compile("do\\s+(\\w+)\\s*=([^,]*),\\s*([^,]*)\\s*(,.*)?");
+    static final Pattern DOWHILE = compile("do\\s+while\\s*\\((.*)");
+    static final Pattern ENDDO = compile("end\\s*do\\s*");
+    static final Pattern CONTINUE = compile("continue\\s*");
+    static final Pattern NAME = compile("(\\w+)(.*)");
+    static final Pattern FUN = compile("(\\w+)\\s*\\((.*)");
+    static final Pattern CALL = compile("call\\s+(\\w+)\\s*(.*)");
+    static final Pattern GOTO = compile("goto\\s+(\\d+)");
+    static final Pattern BRCLOSE = compile("\\)(.*)");
+    static final Pattern BROPEN = compile("\\((.*)");
 
-    //static final Pattern FMOPEN = Pattern.compile("'\\((.*)");
-    static final Pattern FMCLOSE = Pattern.compile("\\)'\\)(.*)");
-    static final Pattern CONST = Pattern.compile("((\\.\\d+)|(\\d+(\\.\\d*)?))(.*)");
-    static final Pattern STRING = Pattern.compile("\"([^\"]*)\"(.*)");
-    static final Pattern SEP = Pattern.compile(",(.*)");
-    static final Pattern END = Pattern.compile("end\\s*");
-    static final Pattern RETURN = Pattern.compile("return\\s*");
-    static final Pattern SPACE = Pattern.compile("(\\s+)(.*)");
+    static final Pattern IO = compile("(open|close|read|write) *\\(([^,)]*)(.*)");
+    static final Pattern PRINT = compile("print *,\\*(.*)");
+    static final Pattern FORMAT = compile("format *\\((.*)");
+    // multi line format strings
+    static final Pattern FMTBEG = compile("['\"]\\((.*)");
+    static final Pattern FMTEND = compile("\\)[\"'](.*)");
+
+    static final Pattern CONST = compile("((\\.\\d+)|(\\d+(\\.\\d*)?))(.*)");
+    static final Pattern STRING1 = compile("'([^\']*)\'(.*)");
+    static final Pattern STRING2 = compile("\"([^\"]*)\"(.*)");
+    static final Pattern SEP = compile(",(.*)");
+    static final Pattern END = compile("end\\s*");
+    static final Pattern RETURN = compile("return\\s*");
+    static final Pattern SPACE = compile("(\\s+)(.*)");
 
     static String op(char op) {
         switch(op) {
@@ -68,21 +70,24 @@ public class CodeParser extends Parser {
     // a THEN occurred, no shortcut endif
     boolean then=false;
 
+    // any label assigned
+    String label = null;
+
     private void fi() {
         // terminate pending if
         if(!then)
             out.end();
     }
 
-    void finish(Runnable finish) {
+    void finish(Runnable newfinish) {
         if(this.finish==null)
-            this.finish = finish;
+            this.finish = newfinish;
         else {
             // cascade
-            Runnable other = this.finish;
+            Runnable oldfinish = this.finish;
             this.finish = () -> {
-                finish.run();
-                other.run();
+                newfinish.run();
+                oldfinish.run();
             };
         }
     }
@@ -93,43 +98,32 @@ public class CodeParser extends Parser {
         this.finish = null;
         if(f!=null)
             f.run();
+
+        if(label!=null) {
+            // notify a missed label
+            out.text("xlabel", label);
+            label = null;
+        }
         out.nl();
     }
 
-    Parser expr = parser(line -> (line == null || line.isEmpty())
-    ).or(parser(SPACE, m -> {
+    // open an auto closed tag for this line
+    Writer enclose(String name) {
+        finish(out::end);
+        return out.start(name);
+    }
+
+    final Parser expr = parser(SPACE, m -> {
         out.text(m.group(1));
         return parseExpr(m.group(2));
-    })).or(parser(CALL, m -> {
-        out.start("call")
-                .attribute("name", m.group(1));
-
-        if(m.group(2)==null)
-            out.end(); // don't expect any closing brace
-
-        return parseExpr(m.group(3));
-    })).or(parser(OPENF, m -> {
-        out.start("open")
-                .attribute("ch", m.group(1))
-                .attribute("file", m.group(2))
-                .end();
-        return true;
-    })).or(parser(CLOSE, m -> {
-        out.start("close")
-                .attribute("ch", m.group(1))
-                .end();
-        return true;
-    })).or(parser(READ, m -> {
-        out.start("read")
-                .attribute("ch", m.group(1))
-                .attribute("end", m.group(3));
-        finish(out::end);
-        return parseExpr(m.group(4));
-    })).or(parser(RW, m -> {
-        out.start(m.group(1))
-                .attribute("ch", m.group(2))
-                .start("fmt");
-        finish(out::end);
+    }).or(parser(CALL, m -> {
+        enclose("call").lattribute("name", m.group(1));
+        return parseExpr(m.group(2));
+    })).or(parser(PRINT, m->{
+        enclose("print");
+        return parseExpr(m.group(1));
+    })).or(parser(IO, m -> {
+        out.start(m.group(1).toLowerCase()).lattribute("ch", m.group(2));
         return parseExpr(m.group(3));
     })).or(parser(ASSIGN, m -> {
         out.start("assign");
@@ -142,99 +136,102 @@ public class CodeParser extends Parser {
     })).or(parser(BROPEN, m -> {
         out.start("b");
         return parseExpr(m.group(1));
-    })).or(parser(FMCLOSE, m -> {
-        out.end();
-        return parseExpr(m.group(1));
     })).or(parser(BRCLOSE, m -> {
         out.end();
         return parseExpr(m.group(1));
-    })).or(parser(STRING, m -> {
+    })).or(parser(STRING1, m -> {
         out.text("str", m.group(1));
         return parseExpr(m.group(2));
-    })).or(parser(BOP, m -> {
-        out.empty(m.group(1));
+    })).or(parser(STRING2, m -> {
+        out.text("str", m.group(1));
         return parseExpr(m.group(2));
-    })).or(parser(line -> {
+    })).or(parser(FMTBEG, m->{
+        out.start("fmt");
+        return parseExpr(m.group(1));
+    })).or(parser(FMTEND, m->{
+        out.close();
+        return parseExpr(m.group(1));
+    })).or(parser(BOP, m -> {
+        out.empty(m.group(1).toLowerCase());
+        return parseExpr(m.group(2));
+    })).or(line -> {
         String op = op(line.charAt(0));
         if (op != null) {
             out.empty(op);
             return parseExpr(line.substring(1));
         }
-        return false;
-    })).or(parser(SEP, m -> {
+        return line;
+    }).or(parser(SEP, m -> {
         out.empty("sep");
         return parseExpr(m.group(1));
     })).or(parser(GOTO, m -> {
         out.text("goto", m.group(1));
-        return true;
+        return null;
     })).or(parser(RETURN, m -> {
         out.empty("return");
-        return true;
+        return null;
     })).or(parser(THEN, m -> {
         if (!then) {
             out.start("then");
             then = true;
         }
-        return true;
+        return null;
     })).or(parser(FUN, m -> {
         String name = m.group(1);
         out.start("fun")
-                .attribute("name", name);
+                .lattribute("name", name);
         return parseExpr(m.group(2));
     })).or(parser(CONST, m -> {
         String name = m.group(1);
-        out.text("val", name);
+        out.ltext("val", name);
         return parseExpr(m.group(5));
     })).or(parser(NAME, m -> {
         String name = m.group(1);
         //out.text("var", name);
-        out.start("var").attribute("name", name).end();
+        out.start("var").lattribute("name", name).end();
         return parseExpr(m.group(2));
-    })).or(parser(code -> {
-        out.text("code", code);
-        return true;
     }));
 
     Parser main = parser(SPACE, m->{
         out.text(m.group(1));
-        return parseLine(m.group(2));
+        // continue with remaining part
+        return m.group(2);
     }).or(parser(SUBROUTINE, m -> {
         out.start("block")
                 .attribute("type", "subroutine")
-                .attribute("name", m.group(1));
+                .lattribute("name", m.group(1));
         if(m.group(2)!=null)
             out.start("args");
         return parseExpr(m.group(3));
     })).or(parser(FUNCTION, m -> {
         out.start("block")
                 .attribute("type", "function")
-                .attribute("return", m.group(1))
-                .attribute("name", m.group(2));
+                .lattribute("return", m.group(1))
+                .lattribute("name", m.group(2));
         out.start("args");
         return parseExpr(m.group(3));
     })).or(parser(BLOCKDATA, m -> {
         out.start("block")
                 .attribute("type", "data")
-                .attribute("name", m.group(1));
-        return true;
+                .lattribute("name", m.group(1));
+        return null;
     })).or(parser(DATA, m -> {
         out.start("data")
-                .attribute("name", m.group(1));
+                .lattribute("name", m.group(1));
         finish(out::end);
-        return true;
+        return null;
     })).or(parser(COMMON, m -> {
         out.start("common")
-                .attribute("name", m.group(1));
+                .lattribute("name", m.group(1));
         finish(out::end);
-        parseExpr(m.group(2));
-        return true;
+        return parseExpr(m.group(2));
     })).or(parser(DIM, m -> {
-        out.start("dim").attribute("type", m.group(1));
+        out.start("dim").lattribute("type", m.group(1));
         finish(out::end);
         return parseExpr(m.group(4));
     })).or(parser(END, m -> {
         out.end();
-        return true;
+        return null;
     })).or(parser(IF, m -> {
         out.start("if").start("cond");
         then = false;
@@ -243,7 +240,7 @@ public class CodeParser extends Parser {
     })).or(parser(ELSE, m -> {
         out.end().start("else");
         then = false;
-        return true;
+        return null;
     })).or(parser(ELSEIF, m -> {
         out.end().start("elif").start("cond");
         then = true; // don't open a then
@@ -251,10 +248,10 @@ public class CodeParser extends Parser {
     })).or(parser(ENDIF, m -> {
         // (then|else|elif) endif
         out.end().end();
-        return true;
+        return null;
     })).or(parser(DO, m -> {
         out.start("do")
-                .attribute("var", m.group(1))
+                .lattribute("var", m.group(1))
                 .start("start");
         parseExpr(m.group(2));
         out.end().start("end");
@@ -267,32 +264,48 @@ public class CodeParser extends Parser {
             parseExpr(step);
             out.end();
         }
-        return true;
+        return null;
     })).or(parser(DOWHILE, m -> {
         out.start("do").start("while");
-        parseExpr(m.group(1));
-        return true;
+        return parseExpr(m.group(1));
     })).or(parser(ENDDO, m -> {
         out.end();
-        return true;
+        return null;
     })).or(parser(CONTINUE, m -> {
         out.empty("continue");
-        return true;
+        return null;
     })).or(expr);
+
+    final Parser format = parser(FORMAT, m->{
+        out.start("fmt");
+        if(label!=null) {
+            out.attribute("label", label);
+            label = null;
+        }
+        return parseExpr(m.group(1));
+    });
 
     public CodeParser(Writer out) {
         super(out);
     }
 
-    boolean parseExpr(String line) {
+    String parseExpr(String line) {
         return expr.parse(line);
     }
 
-    boolean parseLine(String line) {
+    String parseLine(String line) {
+
+        line = format.parse(line);
+
+        if(label!=null) {
+            out.text("l", label);
+            label = null;
+        }
+
         return main.parse(line);
     }
 
-    public boolean parse(String line) {
+    public String parse(String line) {
 
         Matcher m = BOOLEAN.matcher(line);
 

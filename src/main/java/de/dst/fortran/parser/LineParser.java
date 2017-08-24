@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
  * Date: 01.04.17
  * Time: 15:42
  */
-public class LineParser extends Parser {
+public class LineParser extends OutputParser {
 
     CodeParser code;
 
@@ -20,57 +20,65 @@ public class LineParser extends Parser {
         code = new CodeParser(out);
     }
 
-    final Pattern LINE = Pattern.compile("(\\s{6}|\\t)(.*)");
-    final Pattern CONT = Pattern.compile("(\\s{5}\\S)(.*)");
-    final Pattern LABEL = Pattern.compile("(\\d[\\d\\s]{5})(.*)");
-    final Pattern COMMENT = Pattern.compile("\\S(.*)");
-    final Pattern EMPTY = Pattern.compile("\\s{0,5}");
+    final Pattern LINE = compile("(\\s{6}|\\t)(.*)");
+    final Pattern CONT = compile("(\\s{5}\\S)(.*)");
+    final Pattern LABEL = compile("(\\d[\\d\\s]{5})(.*)");
+    final Pattern COMMENT = compile("\\S(.*)");
+    final Pattern EMPTY = compile("\\s{0,5}");
 
     Parser parser =
-            parser(EMPTY, m->{code.nl(); return true;})
+            parser(EMPTY, m->{code.nl(); return null;})
             .or(parser(LINE, m->{
-                code.nl();
+                code.nl(); // terminate code line
                 out.text("\t");
-                parseCode(m.group(2));
-                return true;
+                return parseCode(m.group(2));
             })).or(parser(CONT, m->{
-                out.nl().text("\t\t");
-                parseCode(m.group(2));
-                return true;
+                out.nl().text("\t\t");  // just print nl
+                return parseCode(m.group(2));
             })).or(parser(LABEL, m->{
                 code.nl();
-                out.text("l", m.group(1).trim());
-                parseCode(m.group(2));
-                return true;
+                out.text("\t");
+                code.label = m.group(1).trim();
+                return parseCode(m.group(2));
             })).or(parser(COMMENT, m->{
                 code.nl();
                 String c = m.group(1);
                 if(!c.trim().isEmpty())
                     out.text("c", c);
-                return true;
+                return null;
             }));
 
 
-    public boolean parse(String line) {
+    public String parse(String line) {
 
         ++linum;
 
-        if(!parser.parse(line)) {
+        line = parser.parse(line);
+
+        if(line!=null && line.isEmpty()) {
             out.text("x", line);
         }
 
-        return true;
+        return null;
     }
 
 
-    void parseCode(String line) {
+    String parseCode(String line) {
 
         int c = line.lastIndexOf('!');
+        String comment = c>=0 ? line.substring(c+1) : null;
 
-        code.parse(c<0 ? line.toLowerCase() : line.substring(0, c).toLowerCase());
+        line = code.parse(c<0 ? line : line.substring(0, c));
 
-        if(c>=0)
-            out.text("c", line.substring(c+1));
+
+        if(line!=null && line.isEmpty()) {
+            out.text("x", line);
+        }
+
+        if(comment!=null)
+            out.text("c", comment);
+        
+        return null;
     }
 
     public void close() {

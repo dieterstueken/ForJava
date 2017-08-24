@@ -85,6 +85,10 @@ public class Writer implements AutoCloseable {
         }
     }
 
+    public Writer lattribute(String name, String value) {
+        return attribute(name, value==null ? null : value.toLowerCase());
+    }
+
     public Writer attribute(String name, String value) {
         try {
             if(value!=null)
@@ -93,6 +97,10 @@ public class Writer implements AutoCloseable {
         } catch (XMLStreamException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public Writer ltext(String name, String text) {
+        return text(name, text==null ? null : text.toLowerCase());
     }
 
     public Writer text(String name, String text) {
