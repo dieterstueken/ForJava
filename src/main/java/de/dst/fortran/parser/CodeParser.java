@@ -1,6 +1,5 @@
 package de.dst.fortran.parser;
 
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -16,8 +15,9 @@ public class CodeParser extends OutputParser {
     static final Pattern BLOCKDATA = compile("block\\s+data\\s+(\\w+)\\s*");
     static final Pattern DATA = compile("data\\s+(\\w+)\\s*");
     static final Pattern DIM = compile("((integer|real|character)(\\*\\d+)?)(.*)");
+    static final Pattern ALLOCATE = compile("allocate\\s*\\((.*)");
+    static final Pattern DEALLOCATE = compile("deallocate\\s*\\((.*)");
     static final Pattern COMMON = compile("common\\s*/(\\w+)/\\s*(.*)");
-    static final Pattern BOOLEAN = compile("\\.(eq|ne|le|lt|ge|gt|and|or)\\.");
     static final Pattern ASSIGN = compile("(\\w+[^⁼]*)=(.*)");
     static final Pattern BOP = compile(":(eq|ne|le|lt|ge|gt|and|or):(.*)");
     static final Pattern IF = compile("if\\s*\\((.*)");
@@ -36,12 +36,16 @@ public class CodeParser extends OutputParser {
     static final Pattern BRCLOSE = compile("\\)(.*)");
     static final Pattern BROPEN = compile("\\((.*)");
 
-    static final Pattern IO = compile("(open|close|read|write) *\\(([^,)]*)(.*)");
+    static final Pattern IO = compile("(open|close|read|write) *\\(([^,)]*),(.*)");
+    static final Pattern ATTRIBUTE = compile("(\\w+)%(.*)");
     static final Pattern PRINT = compile("print *,\\*(.*)");
     static final Pattern FORMAT = compile("format *\\((.*)");
     // multi line format strings
     static final Pattern FMTBEG = compile("['\"]\\((.*)");
     static final Pattern FMTEND = compile("\\)[\"'](.*)");
+    static final Pattern STAR = compile("\\*(.*)");
+    static final Pattern FMP = compile("([\\d\\.\\w]+) *(.*)");
+    static final Pattern FMREP = compile("(\\d+) *\\( *(.*)");
 
     static final Pattern CONST = compile("((\\.\\d+)|(\\d+(\\.\\d*)?))(.*)");
     static final Pattern STRING1 = compile("'([^\']*)\'(.*)");
@@ -105,11 +109,16 @@ public class CodeParser extends OutputParser {
             label = null;
         }
         out.nl();
+
+        current = main;
     }
 
     // open an auto closed tag for this line
     Writer enclose(String name) {
-        finish(out::end);
+        finish(() -> {
+            name.length();
+            out.end();
+        });
         return out.start(name);
     }
 
@@ -123,8 +132,12 @@ public class CodeParser extends OutputParser {
         enclose("print");
         return parseExpr(m.group(1));
     })).or(parser(IO, m -> {
-        out.start(m.group(1).toLowerCase()).lattribute("ch", m.group(2));
-        return parseExpr(m.group(3));
+        enclose(m.group(1).toLowerCase()).lattribute("ch", m.group(2));
+        out.start("args");
+        return startFmt(m.group(3));
+    })).or(parser(ATTRIBUTE, m->{
+        out.start("attrib").lattribute("key", m.group(1));
+        return parseExpr(m.group(2));
     })).or(parser(ASSIGN, m -> {
         out.start("assign");
         finish(out::end);
@@ -145,12 +158,6 @@ public class CodeParser extends OutputParser {
     })).or(parser(STRING2, m -> {
         out.text("str", m.group(1));
         return parseExpr(m.group(2));
-    })).or(parser(FMTBEG, m->{
-        out.start("fmt");
-        return parseExpr(m.group(1));
-    })).or(parser(FMTEND, m->{
-        out.close();
-        return parseExpr(m.group(1));
     })).or(parser(BOP, m -> {
         out.empty(m.group(1).toLowerCase());
         return parseExpr(m.group(2));
@@ -192,7 +199,7 @@ public class CodeParser extends OutputParser {
         return parseExpr(m.group(2));
     }));
 
-    Parser main = parser(SPACE, m->{
+    final Parser main = parser(SPACE, m->{
         out.text(m.group(1));
         // continue with remaining part
         return m.group(2);
@@ -229,6 +236,19 @@ public class CodeParser extends OutputParser {
         out.start("dim").lattribute("type", m.group(1));
         finish(out::end);
         return parseExpr(m.group(4));
+    })).or(parser(ALLOCATE, m -> {
+        out.start("allocate");
+        return parseExpr(m.group(1));
+    })).or(parser(DEALLOCATE, m -> {
+        out.start("deallocate");
+        return parseExpr(m.group(1));
+    })).or(parser(FORMAT, m -> {
+        out.start("fmt");
+        if (label != null) {
+            out.attribute("label", label);
+            label = null;
+        }
+        return startFmt(m.group(1));
     })).or(parser(END, m -> {
         out.end();
         return null;
@@ -276,42 +296,74 @@ public class CodeParser extends OutputParser {
         return null;
     })).or(expr);
 
-    final Parser format = parser(FORMAT, m->{
-        out.start("fmt");
-        if(label!=null) {
-            out.attribute("label", label);
-            label = null;
-        }
+    // start parsing format
+    final Parser fmStart = parser(STAR, m->{
+        out.empty("fmt");
         return parseExpr(m.group(1));
-    });
+    }).or(parser(CONST, m->{
+        out.start("fmt").attribute("label",m.group(1)).end();
+        return parseExpr(m.group(5));
+    })).or(parser(FMTBEG, m->{
+        out.start("fmt");
+        return fmp(m.group(1));
+    })).or(expr);
+
+    final Parser fmp = parser(SPACE, m -> {
+        out.text(m.group(1));
+        return m.group(2);              // continue
+    }).or(parser(SEP, m -> {
+        out.empty("sep");
+        return m.group(1);              // continue
+    })).or(line-> {
+        if (line.charAt(0) == '/') {
+            out.empty("nl");
+            return fmp(line.substring(1));
+        }
+        return line;
+    }).or(parser(FMREP, m->{
+        out.start("fmt").attribute("rep", m.group(1));
+        return fmp(m.group(2));
+    })).or(parser(FMP, m -> {
+        out.ltext("fmp", m.group(1));
+        return fmp(m.group(2));
+    })).or(parser(STRING1, m -> {
+        out.text("string", m.group(1));
+        return fmp(m.group(2));
+    })).or(parser(STRING2, m -> {
+        out.text("string", m.group(1));
+        return fmp(m.group(2));
+    })).or(parser(FMTEND, m->{
+        out.end();
+        return parseExpr(m.group(1)); // stop parsing patterns
+    })).or(parser(BRCLOSE, m -> {
+        out.end();
+        return fmp(m.group(1));
+    }));
+
+    // parse format patterns
+    private String fmp(String line) {
+        current = fmp;
+        return fmp.parse(line);
+    }
+
+    // current parser to continue
+    Parser current = main;
+
+    String startFmt(String line)  {
+        // to continue with
+        return fmStart.parse(line);
+    }
+
+    String parseExpr(String line) {
+        current = expr;
+        return expr.parse(line);
+    }
+
+    public String parse(String line) {
+        return current.parse(line);
+    }
 
     public CodeParser(Writer out) {
         super(out);
     }
-
-    String parseExpr(String line) {
-        return expr.parse(line);
-    }
-
-    String parseLine(String line) {
-
-        line = format.parse(line);
-
-        if(label!=null) {
-            out.text("l", label);
-            label = null;
-        }
-
-        return main.parse(line);
-    }
-
-    public String parse(String line) {
-
-        Matcher m = BOOLEAN.matcher(line);
-
-        line = m.replaceAll(":$1:");
-
-        return parseLine(line);
-    }
-
 }

@@ -1,5 +1,6 @@
 package de.dst.fortran.parser;
 
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -25,8 +26,10 @@ public class LineParser extends OutputParser {
     final Pattern LABEL = compile("(\\d[\\d\\s]{5})(.*)");
     final Pattern COMMENT = compile("\\S(.*)");
     final Pattern EMPTY = compile("\\s{0,5}");
+    static final Pattern BOOLEAN = compile("\\.(eq|ne|le|lt|ge|gt|and|or)\\.");
+    static final Pattern KEYWORDS = compile("(ierr|stat|file|access|recl|form)\\s*=");
 
-    Parser parser =
+    final Parser parser =
             parser(EMPTY, m->{code.nl(); return null;})
             .or(parser(LINE, m->{
                 code.nl(); // terminate code line
@@ -68,8 +71,17 @@ public class LineParser extends OutputParser {
         int c = line.lastIndexOf('!');
         String comment = c>=0 ? line.substring(c+1) : null;
 
-        line = code.parse(c<0 ? line : line.substring(0, c));
+        if(c>=0)
+            line = line.substring(0, c);
 
+        Matcher m = BOOLEAN.matcher(line);
+        line = m.replaceAll(":$1:");
+
+        // hide from assignment
+        m = KEYWORDS.matcher(line);
+        line = m.replaceAll("$1%");
+
+        line = code.parse(line);
 
         if(line!=null && line.isEmpty()) {
             out.text("x", line);
