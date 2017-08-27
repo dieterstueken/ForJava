@@ -23,18 +23,26 @@ public class Type {
 
     public static Type stringOf(int dim) {
         String name = String.format("character*%d", dim);
-        return new Type(name.substring(9), name);
+        return new Type(name, "CH");
     }
 
     public static final Type CH = new Type("character*1", "CH");
 
+    public static final Type I = new Type("integer", "I");
     public static final Type I2 = new Type("integer*2", "I2");
     public static final Type I4 = new Type("integer*4", "I4");
 
+    public static final Type L4 = new Type("logical*4", "L4");
+
+    public static final Type R = new Type("real", "R");
     public static final Type R4 = new Type("real*4", "R4");
     public static final Type R8 = new Type("real*8", "R8");
 
     public static final Type CX = new Type("complex", "CX");
+
+    public static Type intrinsic(String name) {
+        return "ijklmn".indexOf(Character.toLowerCase(name.charAt(0)))>=0 ? I : R;
+    }
 
     public static Type parse(final String token) {
         if(token==null)

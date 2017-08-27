@@ -15,6 +15,10 @@ public class Constant implements Value {
         this.value = value;
     }
 
+    public String toString() {
+        return value.toString();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

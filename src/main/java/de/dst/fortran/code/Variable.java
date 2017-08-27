@@ -26,20 +26,25 @@ public class Variable extends Entity implements Value, Context {
         this(name, null);
     }
 
+    public Type type() {
+        return type != null ? type : Type.intrinsic(name);
+    }
+
     public String toString() {
+        if(context == null && dim == null)
+            return name;
+
         if(toString==null) {
             StringBuffer buffer = new StringBuffer();
 
-            if (type != null)
-                buffer.append(type);
-            else
-                buffer.append(isInteger() ? "I" : "R");
+            buffer.append(type());
             buffer.append(" ");
 
             if (context != null)
                 buffer.append(context.getName()).append(".");
 
             buffer.append(name);
+
             if (dim != null) {
                 buffer.append("(");
                 for (int i = 0; i < dim.size() - 1; ++i)
@@ -51,10 +56,6 @@ public class Variable extends Entity implements Value, Context {
         }
 
         return toString;
-    }
-
-    public boolean isInteger() {
-        return "ijklmn".indexOf(name.charAt(0))>=0;
     }
 
     public Variable context(Context context) {

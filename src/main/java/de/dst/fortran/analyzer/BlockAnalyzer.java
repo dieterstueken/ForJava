@@ -88,7 +88,62 @@ public class BlockAnalyzer {
         });
 
         // finally refresh arguments again
-        childElements(be, "args").findFirst().ifPresent(args -> variables(args, define(block.arguments::get)));
+        childElements(be, "args").findFirst().ifPresent(this::prepareArgs);
+    }
+
+    void prepareArgs(Element args) {
+
+        variables(args, define(block.arguments::get));
+        
+        Document o = args.getOwnerDocument();
+        Node p = args.getParentNode();
+        Node at = args;
+
+        String indent = "\n    ";
+
+        Node nl = o.createTextNode(indent);
+        at = p.insertBefore(nl, at);
+
+        for (String name : block.functions) {
+            Element f = o.createElement("fun");
+            f.setAttribute("name", name);
+            at = p.insertBefore(f, at);
+
+            nl = o.createTextNode(indent);
+            at=p.insertBefore(nl, at);
+        }
+
+        for (Common common : block.commons) {
+            Element c = o.createElement("com");
+            c.setAttribute("name", common.name);
+            at = p.insertBefore(c, at);
+
+            nl = o.createTextNode(indent);
+            at=p.insertBefore(nl, at);
+        }
+
+        at = args.getNextSibling();
+
+        for (Variable var : block.variables) {
+            if(var.context==null) {
+                Element v = o.createElement("lvar");
+                v.setAttribute("name", var.name);
+                v.setAttribute("type", var.type().id);
+                if(!assigned(var))
+                    v.setAttribute("const", "true");
+
+                for (Value dim : var.dim()) {
+                    Element d = o.createElement("d");
+                    d.setTextContent(dim.toString());
+                    v.appendChild(d);
+                }
+
+                at = p.insertBefore(v, at);
+
+                nl = o.createTextNode(indent);
+                at=p.insertBefore(nl, at);
+            }
+        }
     }
 
     public static List<Node> childNodes(Element e) {
@@ -138,7 +193,7 @@ public class BlockAnalyzer {
         }
 
         if(context==block)
-            if(block.assigned.contains(v.name))
+            if(assigned(v))
                 e.setAttribute("assigned", "true");
 
         return v;
@@ -174,12 +229,23 @@ public class BlockAnalyzer {
 
                 childElements(ce,"fun").findAny()
                         .ifPresent(fe->{
+
                             assign.apply(fe);
                             // index variables
                             childElements(fe,"var").forEach(define::apply);
                         });
 
             } else if(!"c".equals(ce.getNodeName())) {
+
+                // log all rhs functions
+                if("fun".equals(ce.getNodeName())) {
+                    final String name = ce.getAttribute("name");
+
+                    // if it is not a defined variable
+                    if(!block.variables.exists(name))
+                        block.functions.add(name);
+                }
+
                 parseVariables(ce, define);
             }
         });
@@ -202,7 +268,7 @@ public class BlockAnalyzer {
                 System.out.format("%s %s\n", assigned(v) ? "*":" ", v);
         });
 
-        System.out.println();
+        System.out.println("--");
     }
 
     public static void main(String ... args) throws Exception {
@@ -217,16 +283,18 @@ public class BlockAnalyzer {
         Map<String, Common> commons = new HashMap<>();
 
         childElements(document.getDocumentElement(), "file")
+                .peek(fe -> System.out.format("file: %s\n", fe.getAttribute("name")))
                 .flatMap(ce -> BlockAnalyzer.childElements(ce, "block"))
                 .map(BlockAnalyzer::new)
                 .peek(BlockAnalyzer::dump)
                 .flatMap(a -> a.block.commons.stream())
                 .forEach(c -> {
-                     Common cx = commons.put(c.getName(), c);
-                     if(cx!=null && !cx.equals(c)) {
-                         cx.equals(c);
-                         System.out.format("different common definitions for %s\n", c.getName());
-                     }
+                    System.out.format("common: %s\n", c.getName());
+                    Common cx = commons.put(c.getName(), c);
+                    if(cx!=null && !cx.equals(c)) {
+                        cx.equals(c);
+                        System.out.format("different common definitions for %s\n", c.getName());
+                    }
                 });
 
 

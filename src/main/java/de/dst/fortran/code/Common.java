@@ -19,6 +19,18 @@ public class Common extends Entity implements Context {
         members = new Entities<>(name -> newVariable.apply(name).context(this));
     }
 
+    public String toString() {
+        StringBuilder buffer = new StringBuilder();
+        buffer.append('/').append(name).append(' ');
+        char sep='/';
+        for (Variable m : members) {
+            buffer.append(sep).append(m.name);
+            sep = ',';
+        }
+
+        return buffer.toString();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

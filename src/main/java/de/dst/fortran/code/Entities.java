@@ -1,8 +1,8 @@
 package de.dst.fortran.code;
 
 import java.util.AbstractSet;
-import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -16,7 +16,7 @@ public class Entities<T extends Entity> extends AbstractSet<T> {
 
     final Function<String, T> create;
 
-    public final Map<String, T> entities = new HashMap<>();
+    public final Map<String, T> entities = new LinkedHashMap<>();
 
     public Entities(Function<String, T> create) {
         this.create = create;
@@ -24,6 +24,10 @@ public class Entities<T extends Entity> extends AbstractSet<T> {
 
     public T get(String name) {
         return entities.computeIfAbsent(name, create);
+    }
+
+    public boolean exists(String name) {
+        return entities.containsKey(name);
     }
 
     @Override

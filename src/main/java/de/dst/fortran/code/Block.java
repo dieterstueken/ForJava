@@ -21,6 +21,8 @@ public class Block extends Entity implements Context {
 
     public final Set<String> assigned = new HashSet<>();
 
+    public final Set<String> functions = new HashSet<>();
+
     public final Entities<Common> commons = new Entities<>(this::newCommon);
 
     public Block(String name) {
