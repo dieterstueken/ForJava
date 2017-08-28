@@ -36,7 +36,10 @@ abstract public class OutputParser implements Parser, AutoCloseable {
                     return line;
 
                 Matcher m = pattern.matcher(line);
-                return m.matches() ? match.apply(m) : line;
+                if(m.matches())
+                    return match.apply(m);
+                else
+                    return line;
             }
 
             public String toString() {

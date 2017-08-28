@@ -73,6 +73,8 @@ public class BlockAnalyzer {
                                 } else if ("val".equals(name)) {
                                     Integer n = Integer.decode(dimel.getTextContent());
                                     var.dim(new Constant(n));
+                                } else if("to".equals(name)) {
+                                    var.dim(Value.UNDEF);
                                 }
                             });
 

@@ -8,4 +8,12 @@ package de.dst.fortran.code;
  * modified on: $Date$
  */
 public interface Value {
+
+    Value UNDEF = new Value() {
+
+        @Override
+        public String toString() {
+            return "UNDEF";
+        }
+    };
 }

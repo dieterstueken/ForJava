@@ -15,6 +15,7 @@ public class CodeParser extends OutputParser {
     static final Pattern BLOCKDATA = compile("block\\s+data\\s+(\\w+)\\s*");
     static final Pattern DATA = compile("data\\s+(\\w+)\\s*");
     static final Pattern DIM = compile("((integer|real|character)(\\*\\d+)?)(.*)");
+    static final Pattern ALLOCATABLE = compile("allocatable\\s*::\\s(.*)");
     static final Pattern ALLOCATE = compile("allocate\\s*\\((.*)");
     static final Pattern DEALLOCATE = compile("deallocate\\s*\\((.*)");
     static final Pattern COMMON = compile("common\\s*/(\\w+)/\\s*(.*)");
@@ -37,7 +38,7 @@ public class CodeParser extends OutputParser {
     static final Pattern BROPEN = compile("\\((.*)");
 
     static final Pattern IO = compile("(open|close|read|write) *\\(([^,)]*),(.*)");
-    static final Pattern ATTRIBUTE = compile("(\\w+)%(.*)");
+    static final Pattern ATTRIBUTE = compile("(\\w+)%(\\w+)(.*)");
     static final Pattern PRINT = compile("print *,\\*(.*)");
     static final Pattern FORMAT = compile("format *\\((.*)");
     // multi line format strings
@@ -54,6 +55,7 @@ public class CodeParser extends OutputParser {
     static final Pattern END = compile("end\\s*");
     static final Pattern RETURN = compile("return\\s*");
     static final Pattern SPACE = compile("(\\s+)(.*)");
+    static final Pattern RANGE = compile(":(.*)");
 
     static String op(char op) {
         switch(op) {
@@ -131,13 +133,16 @@ public class CodeParser extends OutputParser {
     })).or(parser(PRINT, m->{
         enclose("print");
         return parseExpr(m.group(1));
+    })).or(parser(ALLOCATABLE, m->{
+        out.empty("allocatable");
+        return parseExpr(m.group(1));
     })).or(parser(IO, m -> {
         enclose(m.group(1).toLowerCase()).lattribute("ch", m.group(2));
         out.start("args");
         return startFmt(m.group(3));
     })).or(parser(ATTRIBUTE, m->{
-        out.start("attrib").lattribute("key", m.group(1));
-        return parseExpr(m.group(2));
+        out.start("attrib").lattribute(m.group(1).toLowerCase(), m.group(2)).end();
+        return parseExpr(m.group(3));
     })).or(parser(ASSIGN, m -> {
         out.start("assign");
         finish(out::end);
@@ -169,7 +174,10 @@ public class CodeParser extends OutputParser {
         }
         return line;
     }).or(parser(SEP, m -> {
-        out.empty("sep");
+            out.empty("sep");
+            return parseExpr(m.group(1));
+    })).or(parser(RANGE, m -> {
+        out.empty("to");
         return parseExpr(m.group(1));
     })).or(parser(GOTO, m -> {
         out.text("goto", m.group(1));

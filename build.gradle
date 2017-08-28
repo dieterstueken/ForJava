@@ -10,3 +10,7 @@ repositories {
 dependencies {
   compile 'com.helger:jcodemodel:2.8.6'
 }
+
+subprojects {
+    
+}

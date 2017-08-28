@@ -83,7 +83,7 @@ public class LineParser extends OutputParser {
 
         line = code.parse(line);
 
-        if(line!=null && line.isEmpty()) {
+        if(line!=null && !line.isEmpty()) {
             out.text("x", line);
         }
 
