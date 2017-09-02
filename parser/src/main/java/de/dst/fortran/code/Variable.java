@@ -46,9 +46,12 @@ public class Variable extends Entity implements Value, Context {
             buffer.append(name);
 
             if (dim != null) {
-                buffer.append("(");
-                for (int i = 0; i < dim.size() - 1; ++i)
-                    buffer.append(",");
+                char sep = '(';
+                for (Value iv : dim) {
+                    String name = iv instanceof Entity ? ((Entity)iv).getName() : iv.toString();
+                    buffer.append(sep).append(name);
+                    sep = ',';
+                }
                 buffer.append(")");
             }
 
@@ -64,6 +67,7 @@ public class Variable extends Entity implements Value, Context {
             throw new RuntimeException("duplicate context");
 
         this.context = context;
+        this.toString = null;
         return this;
     }
 
@@ -76,11 +80,15 @@ public class Variable extends Entity implements Value, Context {
         if(this.dim==null)
             this.dim=new ArrayList<>();
         this.dim.add(dim);
+        this.toString = null;
+
         return this;
     }
 
     public Variable type(Type type) {
         this.type = type;
+        this.toString = null;
+
         return this;
     }
 

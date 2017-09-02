@@ -32,7 +32,7 @@ abstract public class OutputParser implements Parser, AutoCloseable {
             @Override
             public String parse(String line) {
 
-                if(line==null || line.isEmpty())
+                if(Parser.isEmpty(line))
                     return line;
 
                 Matcher m = pattern.matcher(line);

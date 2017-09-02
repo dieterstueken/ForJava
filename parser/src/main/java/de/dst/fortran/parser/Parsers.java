@@ -31,7 +31,7 @@ public class Parsers implements Parser {
     @Override
     public String parse(String line) {
         for (Parser parser : parsers) {
-            if(line==null || line.isEmpty())
+            if(Parser.isEmpty(line))
                 return null;
             line = parser.parse(line);
         }

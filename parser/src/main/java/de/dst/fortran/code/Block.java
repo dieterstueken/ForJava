@@ -32,4 +32,30 @@ public class Block extends Entity implements Context {
     private Common newCommon(String name) {
         return new Common(name, variables::get);
     }
+
+    public Variable assign(Variable v) {
+        assigned.add(v.name);
+        return v;
+    }
+
+    public boolean assigned(Variable v) {
+        return assigned.contains(v.name);
+    }
+
+    public void dump() {
+
+        System.out.format("%s %s\n", name, type);
+
+        arguments.forEach(v ->
+                System.out.format("%s %s\n", assigned(v) ? "*":" ", v)
+        );
+
+        variables.forEach(v -> {
+            if(v.context==null)
+                System.out.format("%s %s\n", assigned(v) ? "*":" ", v);
+        });
+
+        System.out.println("--");
+    }
+
 }

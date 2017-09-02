@@ -19,4 +19,8 @@ interface Parser  {
     default Parser or(Parser other) {
         return new Parsers(this, other);
     }
+
+    static boolean isEmpty(String s) {
+        return s==null || s.isEmpty();
+    }
 }

@@ -25,32 +25,42 @@ public class LineParser extends OutputParser {
     final Pattern CONT = compile("(\\s{5}\\S)(.*)");
     final Pattern LABEL = compile("(\\d[\\d\\s]{5})(.*)");
     final Pattern COMMENT = compile("\\S(.*)");
-    final Pattern EMPTY = compile("\\s{0,5}");
+    final Pattern EMPTY = compile("\\s*");
     static final Pattern BOOLEAN = compile("\\.(eq|ne|le|lt|ge|gt|and|or)\\.");
     static final Pattern KEYWORDS = compile("(ierr|stat|file|access|recl|form)\\s*=");
 
     final Parser parser =
-            parser(EMPTY, m->{code.nl(); return null;})
+            parser(EMPTY, m->{code.endl(); return null;})
             .or(parser(LINE, m->{
-                code.nl(); // terminate code line
+                endl(); // terminate code line
                 out.text("\t");
                 return parseCode(m.group(2));
             })).or(parser(CONT, m->{
-                out.nl().text("\t\t");  // just print nl
+                nl().text("\t\t");  // just print nl
                 return parseCode(m.group(2));
             })).or(parser(LABEL, m->{
-                code.nl();
+                endl();
                 out.text("\t");
                 code.label = m.group(1).trim();
                 return parseCode(m.group(2));
             })).or(parser(COMMENT, m->{
-                code.nl();
+                endl();
                 String c = m.group(1);
                 if(!c.trim().isEmpty())
                     out.text("c", c);
                 return null;
             }));
 
+    Writer endl() {
+        code.endl();
+        return nl();
+    }
+
+    Writer nl() {
+        out.nl();
+        out.text("l", Integer.toString(linum));
+        return out;
+    }
 
     public String parse(String line) {
 
@@ -58,7 +68,7 @@ public class LineParser extends OutputParser {
 
         line = parser.parse(line);
 
-        if(line!=null && line.isEmpty()) {
+        if(!Parser.isEmpty(line)) {
             out.text("x", line);
         }
 
@@ -83,7 +93,7 @@ public class LineParser extends OutputParser {
 
         line = code.parse(line);
 
-        if(line!=null && !line.isEmpty()) {
+        if(!Parser.isEmpty(line)) {
             out.text("x", line);
         }
 

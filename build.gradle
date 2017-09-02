@@ -3,14 +3,12 @@ apply plugin: 'java'
 sourceCompatibility = 1.8
 version = '1.0'
 
-repositories {
-    mavenCentral()
-}
-
 dependencies {
   compile 'com.helger:jcodemodel:2.8.6'
 }
 
-subprojects {
-    
+allprojects {
+  repositories {
+    mavenCentral()
+  }
 }

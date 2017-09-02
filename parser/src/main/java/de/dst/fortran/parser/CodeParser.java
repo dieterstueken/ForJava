@@ -45,7 +45,7 @@ public class CodeParser extends OutputParser {
     static final Pattern FMTBEG = compile("['\"]\\((.*)");
     static final Pattern FMTEND = compile("\\)[\"'](.*)");
     static final Pattern STAR = compile("\\*(.*)");
-    static final Pattern FMP = compile("([\\d\\.\\w]+) *(.*)");
+    static final Pattern FMP = compile("(\\d*\\w(\\d*\\.\\d*)?) *(.*)");
     static final Pattern FMREP = compile("(\\d+) *\\( *(.*)");
 
     static final Pattern CONST = compile("((\\.\\d+)|(\\d+(\\.\\d*)?))(.*)");
@@ -99,7 +99,7 @@ public class CodeParser extends OutputParser {
     }
 
     // start a new code line
-    public void nl() {
+    public void endl() {
         Runnable f = this.finish;
         this.finish = null;
         if(f!=null)
@@ -110,7 +110,6 @@ public class CodeParser extends OutputParser {
             out.text("xlabel", label);
             label = null;
         }
-        out.nl();
 
         current = main;
     }
@@ -124,67 +123,48 @@ public class CodeParser extends OutputParser {
         return out.start(name);
     }
 
-    final Parser expr = parser(SPACE, m -> {
+    final Parser space = parser(SPACE, m -> {
         out.text(m.group(1));
-        return parseExpr(m.group(2));
-    }).or(parser(CALL, m -> {
+        return m.group(2);
+    });
+
+    final Parser expr = space.or(parser(CALL, m -> {
         enclose("call").lattribute("name", m.group(1));
-        return parseExpr(m.group(2));
-    })).or(parser(PRINT, m->{
-        enclose("print");
-        return parseExpr(m.group(1));
+        return expr(m.group(2));
     })).or(parser(ALLOCATABLE, m->{
         out.empty("allocatable");
-        return parseExpr(m.group(1));
-    })).or(parser(IO, m -> {
-        enclose(m.group(1).toLowerCase()).lattribute("ch", m.group(2));
-        out.start("args");
-        return startFmt(m.group(3));
+        return expr(m.group(1));
     })).or(parser(ATTRIBUTE, m->{
         out.start("attrib").lattribute(m.group(1).toLowerCase(), m.group(2)).end();
-        return parseExpr(m.group(3));
-    })).or(parser(ASSIGN, m -> {
-        out.start("assign");
-        finish(out::end);
-        finish(out::end);
-        out.start("lhs");
-        parseExpr(m.group(1));
-        out.end().start("rhs");
-        return parseExpr(m.group(2));
+        return expr(m.group(3));
     })).or(parser(BROPEN, m -> {
         out.start("b");
-        return parseExpr(m.group(1));
+        return expr(m.group(1));
     })).or(parser(BRCLOSE, m -> {
         out.end();
-        return parseExpr(m.group(1));
+        return expr(m.group(1));
     })).or(parser(STRING1, m -> {
         out.text("str", m.group(1));
-        return parseExpr(m.group(2));
+        return expr(m.group(2));
     })).or(parser(STRING2, m -> {
         out.text("str", m.group(1));
-        return parseExpr(m.group(2));
+        return expr(m.group(2));
     })).or(parser(BOP, m -> {
         out.empty(m.group(1).toLowerCase());
-        return parseExpr(m.group(2));
+        return expr(m.group(2));
     })).or(line -> {
         String op = op(line.charAt(0));
         if (op != null) {
             out.empty(op);
-            return parseExpr(line.substring(1));
+            return expr(line.substring(1));
         }
         return line;
     }).or(parser(SEP, m -> {
             out.empty("sep");
-            return parseExpr(m.group(1));
+            return expr(m.group(1));
     })).or(parser(RANGE, m -> {
         out.empty("to");
-        return parseExpr(m.group(1));
-    })).or(parser(GOTO, m -> {
-        out.text("goto", m.group(1));
-        return null;
-    })).or(parser(RETURN, m -> {
-        out.empty("return");
-        return null;
+        return expr(m.group(1));
     })).or(parser(THEN, m -> {
         if (!then) {
             out.start("then");
@@ -195,36 +175,58 @@ public class CodeParser extends OutputParser {
         String name = m.group(1);
         out.start("fun")
                 .lattribute("name", name);
-        return parseExpr(m.group(2));
+        return expr(m.group(2));
     })).or(parser(CONST, m -> {
         String name = m.group(1);
         out.ltext("val", name);
-        return parseExpr(m.group(5));
+        return expr(m.group(5));
     })).or(parser(NAME, m -> {
         String name = m.group(1);
         //out.text("var", name);
         out.start("var").lattribute("name", name).end();
-        return parseExpr(m.group(2));
+        return expr(m.group(2));
     }));
 
-    final Parser main = parser(SPACE, m->{
-        out.text(m.group(1));
-        // continue with remaining part
-        return m.group(2);
-    }).or(parser(SUBROUTINE, m -> {
+    final Parser stmt = space.or(parser(PRINT, m->{
+        enclose("print");
+        return expr(m.group(1));
+    })).or(parser(IO, m -> {
+        enclose(m.group(1).toLowerCase()).lattribute("ch", m.group(2));
+        out.start("args");
+        return startFmt(m.group(3));
+    })).or(parser(ASSIGN, m -> {
+        out.start("assign");
+        finish(out::end);
+        finish(out::end);
+        out.start("lhs");
+        expr(m.group(1));
+        out.end().start("rhs");
+        return expr(m.group(2));
+    })).or(parser(GOTO, m -> {
+        out.text("goto", m.group(1));
+        return null;
+    })).or(parser(CONTINUE, m -> {
+        out.empty("continue");
+        return null;
+    })).or(parser(RETURN, m -> {
+        out.empty("return");
+        return null;
+    })).or(expr);
+
+    final Parser main = space.or(parser(SUBROUTINE, m -> {
         out.start("block")
                 .attribute("type", "subroutine")
                 .lattribute("name", m.group(1));
         if(m.group(2)!=null)
             out.start("args");
-        return parseExpr(m.group(3));
+        return expr(m.group(3));
     })).or(parser(FUNCTION, m -> {
         out.start("block")
                 .attribute("type", "function")
                 .lattribute("return", m.group(1))
                 .lattribute("name", m.group(2));
         out.start("args");
-        return parseExpr(m.group(3));
+        return expr(m.group(3));
     })).or(parser(BLOCKDATA, m -> {
         out.start("block")
                 .attribute("type", "data")
@@ -239,17 +241,17 @@ public class CodeParser extends OutputParser {
         out.start("common")
                 .lattribute("name", m.group(1));
         finish(out::end);
-        return parseExpr(m.group(2));
+        return expr(m.group(2));
     })).or(parser(DIM, m -> {
         out.start("dim").lattribute("type", m.group(1));
         finish(out::end);
-        return parseExpr(m.group(4));
+        return expr(m.group(4));
     })).or(parser(ALLOCATE, m -> {
         out.start("allocate");
-        return parseExpr(m.group(1));
+        return expr(m.group(1));
     })).or(parser(DEALLOCATE, m -> {
         out.start("deallocate");
-        return parseExpr(m.group(1));
+        return expr(m.group(1));
     })).or(parser(FORMAT, m -> {
         out.start("fmt");
         if (label != null) {
@@ -264,7 +266,8 @@ public class CodeParser extends OutputParser {
         out.start("if").start("cond");
         then = false;
         finish(this::fi); // close if inline if
-        return parseExpr(m.group(1));
+        String line = expr(m.group(1));
+        return stmt(line);
     })).or(parser(ELSE, m -> {
         out.end().start("else");
         then = false;
@@ -272,7 +275,7 @@ public class CodeParser extends OutputParser {
     })).or(parser(ELSEIF, m -> {
         out.end().start("elif").start("cond");
         then = true; // don't open a then
-        return parseExpr(m.group(1));
+        return stmt(m.group(1));
     })).or(parser(ENDIF, m -> {
         // (then|else|elif) endif
         out.end().end();
@@ -281,36 +284,33 @@ public class CodeParser extends OutputParser {
         out.start("do")
                 .lattribute("var", m.group(1))
                 .start("start");
-        parseExpr(m.group(2));
+        expr(m.group(2));
         out.end().start("end");
-        parseExpr(m.group(3));
+        expr(m.group(3));
         out.end();
 
         String step = m.group(4);
         if(step!=null) {
             out.start("step");
-            parseExpr(step);
+            expr(step);
             out.end();
         }
         return null;
     })).or(parser(DOWHILE, m -> {
         out.start("do").start("while");
-        return parseExpr(m.group(1));
+        return expr(m.group(1));
     })).or(parser(ENDDO, m -> {
         out.end();
         return null;
-    })).or(parser(CONTINUE, m -> {
-        out.empty("continue");
-        return null;
-    })).or(expr);
+    })).or(stmt);
 
     // start parsing format
     final Parser fmStart = parser(STAR, m->{
         out.empty("fmt");
-        return parseExpr(m.group(1));
+        return expr(m.group(1));
     }).or(parser(CONST, m->{
         out.start("fmt").attribute("label",m.group(1)).end();
-        return parseExpr(m.group(5));
+        return expr(m.group(5));
     })).or(parser(FMTBEG, m->{
         out.start("fmt");
         return fmp(m.group(1));
@@ -333,7 +333,7 @@ public class CodeParser extends OutputParser {
         return fmp(m.group(2));
     })).or(parser(FMP, m -> {
         out.ltext("fmp", m.group(1));
-        return fmp(m.group(2));
+        return fmp(m.group(3));
     })).or(parser(STRING1, m -> {
         out.text("string", m.group(1));
         return fmp(m.group(2));
@@ -342,7 +342,7 @@ public class CodeParser extends OutputParser {
         return fmp(m.group(2));
     })).or(parser(FMTEND, m->{
         out.end();
-        return parseExpr(m.group(1)); // stop parsing patterns
+        return expr(m.group(1)); // stop parsing patterns
     })).or(parser(BRCLOSE, m -> {
         out.end();
         return fmp(m.group(1));
@@ -362,9 +362,14 @@ public class CodeParser extends OutputParser {
         return fmStart.parse(line);
     }
 
-    String parseExpr(String line) {
+    String expr(String line) {
         current = expr;
         return expr.parse(line);
+    }
+
+    String stmt(String line) {
+        current = stmt;
+        return stmt.parse(line);
     }
 
     public String parse(String line) {
