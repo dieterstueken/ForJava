@@ -24,6 +24,7 @@ public interface Toker<T extends Token> {
             BlockData.toker,
             Return.toker,
 
+            Logical.toker,
             Sep.toker,
             Range.toker,
             
@@ -35,7 +36,6 @@ public interface Toker<T extends Token> {
             Dim.toker,
             Data.toker,
             
-            Logical.toker,
             If.toker,
             Then.toker,
             ElseIf.toker,

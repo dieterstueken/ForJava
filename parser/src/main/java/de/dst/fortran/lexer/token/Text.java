@@ -11,6 +11,10 @@ class Text extends Valued {
     static final Toker toker = toker("'([^\']*)\'|\"([^\"]*)\"", m -> new Text(m.group()));
 
     Text(String value) {
-        super(value);
+        super(text(value));
+    }
+
+    static String text(String line) {
+        return line.substring(1, line.length()-1);
     }
 }

@@ -6,11 +6,11 @@ package de.dst.fortran.lexer.token;
  * Date: 24.09.17
  * Time: 14:56
  */
-public class Goto extends Named {
+public class Goto extends Valued {
 
     static final Toker toker = toker("goto\\s+(\\d+)", m -> new Goto(m.group(1)));
 
-    Goto(String name) {
-        super(name);
+    Goto(String value) {
+        super(value);
     }
 }

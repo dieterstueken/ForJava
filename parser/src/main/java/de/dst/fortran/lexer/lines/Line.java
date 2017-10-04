@@ -2,7 +2,6 @@ package de.dst.fortran.lexer.lines;
 
 import de.dst.fortran.lexer.token.Token;
 
-import java.io.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
@@ -47,15 +46,4 @@ public class Line extends Token {
         throw new RuntimeException("unexpected line: " + line);
     }
 
-    public static Stream<String> lines(File file) {
-        try {
-            return new BufferedReader(new FileReader(file)).lines();
-        } catch (FileNotFoundException error) {
-            throw new UncheckedIOException(error);
-        }
-    }
-
-    public static void main(String ... args) {
-        Stream.of(args).map(File::new).flatMap(Line::lines).map(Line::matchLine).forEach(System.out::println);
-    }
 }
