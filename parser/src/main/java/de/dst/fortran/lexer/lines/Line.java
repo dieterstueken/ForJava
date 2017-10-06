@@ -1,11 +1,8 @@
 package de.dst.fortran.lexer.lines;
 
-import de.dst.fortran.lexer.token.Token;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Stream;
 
 /**
  * Created by IntelliJ IDEA.
@@ -13,7 +10,7 @@ import java.util.stream.Stream;
  * Date: 01.10.17
  * Time: 11:47
  */
-public class Line extends Token {
+public class Line {
 
     final String line;
 
@@ -23,10 +20,6 @@ public class Line extends Token {
 
     public String toString() {
         return line;
-    }
-
-    public Stream<Token> stream() {
-        return Stream.of(this);
     }
 
     static final List<Function<String, ? extends Line>> LINES = Arrays.asList(

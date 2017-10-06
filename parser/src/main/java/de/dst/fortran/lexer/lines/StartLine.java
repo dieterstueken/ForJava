@@ -1,11 +1,7 @@
 package de.dst.fortran.lexer.lines;
 
-import de.dst.fortran.lexer.token.Label;
-import de.dst.fortran.lexer.token.Token;
-
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 /**
  * Created by IntelliJ IDEA.
@@ -19,14 +15,18 @@ public class StartLine extends CodeLine {
         super(line, lead, code);
     }
 
-    Integer label() {
-        if(!lead.isEmpty() && Character.isDigit(lead.charAt(0)))
-            return Integer.parseInt(lead);
-        else
+    public String label() {
+        if(!lead.isEmpty() && Character.isDigit(lead.charAt(0))) {
+            int i = lead.length();
+            while(i>0 && lead.charAt(i-1)==' ')
+                ++i;
+
+            return lead.substring(0, i);
+        } else
             return null;
     }
     
-    static final Pattern pattern = Pattern.compile("\\s{6}|\\t|\\d+", Pattern.CASE_INSENSITIVE);
+    static final Pattern pattern = Pattern.compile("\\s{6}|\\t|\\d[\\d\\s]{5}", Pattern.CASE_INSENSITIVE);
 
     static CodeLine match(String line) {
         Matcher m = pattern.matcher(line);
@@ -37,17 +37,5 @@ public class StartLine extends CodeLine {
         }
 
         return null;
-    }
-
-    @Override
-    public Stream<Token> stream() {
-        Stream<Token> tokens = super.stream();
-
-        Integer label = label();
-        if(label!=null) {
-            tokens = Stream.concat(Stream.of(new Label(label)), tokens);
-        }
-
-        return tokens;
     }
 }

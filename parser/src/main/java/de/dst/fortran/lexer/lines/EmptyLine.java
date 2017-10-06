@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
  * Date: 01.10.17
  * Time: 14:57
  */
-public class EmptyLine extends Line {
+public class EmptyLine extends CommentLine {
 
     static final Pattern pattern = Pattern.compile("\\s*", Pattern.CASE_INSENSITIVE);
 

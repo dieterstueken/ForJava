@@ -1,5 +1,7 @@
 package de.dst.fortran.lexer;
 
+import java.util.regex.Matcher;
+
 /**
  * Created by IntelliJ IDEA.
  * User: stueken
@@ -50,5 +52,29 @@ public class LineBuffer implements CharSequence {
     public LineBuffer eat(int len) {
         line = line.substring(len);
         return this;
+    }
+
+    public boolean matches(String item) {
+        int len = item.length();
+
+        if(line.length()<len)
+            return false;
+
+        if(!line.substring(0, item.length()).equalsIgnoreCase(item))
+            return false;
+
+        eat(item.length());
+        return true;
+    }
+
+    public boolean matches(Matcher m) {
+        m.reset(line);
+
+        if(!m.lookingAt())
+            return false;
+
+        eat(m.group(0).length());
+
+        return true;
     }
 }
