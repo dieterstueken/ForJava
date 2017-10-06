@@ -12,7 +12,7 @@ public class Token extends AbstractList<String> {
 
     public final Item item;
 
-    protected Token(Item item) {
+    public Token(Item item) {
         this.item = item;
     }
 
