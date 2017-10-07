@@ -21,7 +21,7 @@ import java.io.OutputStream;
  */
 public class Writer implements AutoCloseable {
 
-    public static Writer open(OutputStream stream) {
+    public static Writer _open(OutputStream stream) {
         try {
             SAXTransformerFactory stf = ((SAXTransformerFactory) TransformerFactory.newInstance());
             TransformerHandler th = stf.newTransformerHandler();
@@ -34,6 +34,16 @@ public class Writer implements AutoCloseable {
 
             return open(new SAXResult(th));
         } catch (TransformerException ex){
+            throw new RuntimeException(ex);
+        }
+    }
+
+    public static Writer open(OutputStream os) {
+        try {
+            final XMLOutputFactory xmlOutputFactory = XMLOutputFactory.newInstance();
+            XMLStreamWriter out = xmlOutputFactory.createXMLStreamWriter(os);
+            return new Writer(out);
+        } catch (XMLStreamException ex){
             throw new RuntimeException(ex);
         }
     }
@@ -108,6 +118,15 @@ public class Writer implements AutoCloseable {
         text(text);
         end();
         return this;
+    }
+
+    public Writer comment(String comment) {
+        try {
+            output.writeComment(comment);
+            return this;
+        } catch (XMLStreamException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public Writer text(String text) {

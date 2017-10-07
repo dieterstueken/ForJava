@@ -25,13 +25,13 @@ public class Tokenizer {
 
             Tokenizer tokenizer = new Tokenizer(writer::println);
 
-            Stream.of(args).map(File::new).forEach(tokenizer::file);
+            Stream.of(args).map(File::new).forEach(tokenizer::tokenize);
         }
     }
 
     final Consumer<? super Token> tokens;
 
-    final List<Item> items = Arrays.asList(Item.values());
+    static final List<Item> items = Arrays.asList(Item.values());
 
     boolean pending = false;
     int linum=0;
@@ -50,25 +50,26 @@ public class Tokenizer {
         this.tokens = tokens;
     }
 
-    public void file(File file) {
+    public void tokenize(File file) {
         try {
             tokens.accept(Item.FILE.token(file.getName()));
-            lines(new BufferedReader(new FileReader(file)));
-            endline();
+            tokenize(new BufferedReader(new FileReader(file)));
             tokens.accept(ENDFILE);
         } catch (FileNotFoundException error) {
             throw new UncheckedIOException(error);
         }
     }
 
-    public void lines(BufferedReader reader) {
+    public void tokenize(BufferedReader reader) {
         linum=0;
         reader.lines()
                 .map(Line::matchLine)
-                .forEach(this::line);
+                .forEach(this::tokenize);
+
+        endline();
     }
 
-    public Token token(LineBuffer line) {
+    Token token(LineBuffer line) {
         for (Item item : items) {
             if(item.tokenizer!=null) {
                 Token token = item.tokenizer.apply(line);
@@ -80,7 +81,7 @@ public class Tokenizer {
         return null;
     }
 
-    void line(Line line) {
+    void tokenize(Line line) {
         ++linum;
 
         if(line instanceof CodeLine) {
