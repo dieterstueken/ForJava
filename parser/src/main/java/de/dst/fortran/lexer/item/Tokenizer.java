@@ -34,6 +34,7 @@ public class Tokenizer {
     static final List<Item> items = Arrays.asList(Item.values());
 
     boolean pending = false;
+    boolean format = false;
     int linum=0;
 
     static final Token ENDFILE = Item.ENDFILE.token();
@@ -44,6 +45,8 @@ public class Tokenizer {
             tokens.accept(ENDLINE);
             pending = false;
         }
+
+        format = false;
     }
 
     public Tokenizer(Consumer<? super Token> tokens) {
@@ -71,10 +74,24 @@ public class Tokenizer {
 
     Token token(LineBuffer line) {
         for (Item item : items) {
+            if(item==Item.FMT || item==Item.FMTREP)
+                if(!format)
+                    continue;
+
             if(item.tokenizer!=null) {
                 Token token = item.tokenizer.apply(line);
-                if(token!=null)
+                if(token!=null) {
+                    switch(item) {
+                        case FORMAT:
+                        case FMTOPEN:
+                            format=true;
+                            break;
+                        case FMTCLOSE:
+                            format = false;
+                            break;
+                    }
                     return token;
+                }
             }
         }
 

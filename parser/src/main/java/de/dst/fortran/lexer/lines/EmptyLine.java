@@ -21,9 +21,7 @@ public class EmptyLine extends CommentLine {
 
     static EmptyLine match(String line) {
            Matcher m = pattern.matcher(line);
-           if(m.lookingAt()) {
-               String cont = m.group();
-               String code = line.substring(m.end());
+           if(m.matches()) {
                return EMPTY;
            }
            return null;

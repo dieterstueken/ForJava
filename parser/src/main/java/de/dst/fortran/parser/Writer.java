@@ -114,9 +114,11 @@ public class Writer implements AutoCloseable {
     }
 
     public Writer text(String name, String text) {
-        start(name);
-        text(text);
-        end();
+        if(text!=null) {
+            start(name);
+            text(text);
+            end();
+        }
         return this;
     }
 

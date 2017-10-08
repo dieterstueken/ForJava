@@ -23,10 +23,10 @@ public class Line {
     }
 
     static final List<Function<String, ? extends Line>> LINES = Arrays.asList(
-            CommentLine::match,
+            EmptyLine::match,
             StartLine::match,
             ContLine::match,
-            EmptyLine::match
+            CommentLine::match
     );
 
     public static Line matchLine(String line) {

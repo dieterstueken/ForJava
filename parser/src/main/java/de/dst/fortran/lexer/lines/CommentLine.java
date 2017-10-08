@@ -15,12 +15,12 @@ public class CommentLine extends Line {
         super(line);
     }
 
-    static final Pattern pattern = Pattern.compile("\\S(.*)", Pattern.CASE_INSENSITIVE);
+    static final Pattern pattern = Pattern.compile("\\S(?:\\t|\\s{5})?(.*)", Pattern.CASE_INSENSITIVE);
 
     static Line match(String line) {
         Matcher m = pattern.matcher(line);
         if(m.lookingAt()) {
-            return new CommentLine(line);
+            return new CommentLine(m.group(1));
         }
         return null;
     }

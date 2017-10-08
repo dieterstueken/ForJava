@@ -19,7 +19,7 @@ public class StartLine extends CodeLine {
         if(!lead.isEmpty() && Character.isDigit(lead.charAt(0))) {
             int i = lead.length();
             while(i>0 && lead.charAt(i-1)==' ')
-                ++i;
+                --i;
 
             return lead.substring(0, i);
         } else
