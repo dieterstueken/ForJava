@@ -86,6 +86,12 @@ public class Writer implements AutoCloseable {
         }
     }
 
+    public Writer end(int count) {
+        while(count-->0)
+            end();
+        return this;
+    }
+
     public Writer end() {
         try {
             output.writeEndElement();
@@ -143,6 +149,7 @@ public class Writer implements AutoCloseable {
     public Writer nl()  {
         try {
             output.writeCharacters("\n");
+            output.flush();
             return this;
         } catch (XMLStreamException e) {
             throw new RuntimeException(e);
@@ -151,6 +158,8 @@ public class Writer implements AutoCloseable {
 
     public void close() {
         try {
+            nl();
+            output.writeEndDocument();
             output.close();
         } catch (XMLStreamException e) {
             throw new RuntimeException(e);

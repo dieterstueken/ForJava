@@ -26,7 +26,7 @@ public class StartLine extends CodeLine {
             return null;
     }
     
-    static final Pattern pattern = Pattern.compile("\\s{6}|\\t|\\d[\\d\\s]{5}", Pattern.CASE_INSENSITIVE);
+    static final Pattern pattern = Pattern.compile("\\s{6}|(\\s{0,5}\\t)|(\\d[\\d\\s]{5})", Pattern.CASE_INSENSITIVE);
 
     static CodeLine match(String line) {
         Matcher m = pattern.matcher(line);

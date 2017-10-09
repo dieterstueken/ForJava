@@ -66,10 +66,15 @@ public class Tokenizer {
     public void tokenize(BufferedReader reader) {
         linum=0;
         reader.lines()
-                .map(Line::matchLine)
+                .map(this::matchLine)
                 .forEach(this::tokenize);
 
         endline();
+    }
+
+    Line matchLine(String line) {
+        ++linum;
+        return Line.matchLine(line);
     }
 
     Token token(LineBuffer line) {
@@ -99,7 +104,6 @@ public class Tokenizer {
     }
 
     void tokenize(Line line) {
-        ++linum;
 
         if(line instanceof CodeLine) {
             tokenize((CodeLine) line);

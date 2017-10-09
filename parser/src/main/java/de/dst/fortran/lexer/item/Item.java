@@ -21,11 +21,14 @@ public enum Item {
     FUNCTION(expr("(?:(integer|real|complex|character|logical)(?:\\*(\\d+))?\\s)?\\s*function\\s*(\\w+)\\s*")),
     SUBROUTINE(expr("subroutine\\s*(\\w+)\\s*")),
     BLOCKDATA(expr("block\\s+data\\s+(\\w+)\\s*")),
+    PROGRAM(expr("program\\s+(\\w+)\\s*")),
     RETURN("return"),
+    STOP("stop"),
 
     LOGICAL(expr(":(eq|ne|le|lt|ge|gt|and|or):")),
     SEP(","),
     RANGE(":"),
+    WILDCARD("(*)"),
 
     FORMAT(expr("format\\s*\\(\\s*")),
     FMTOPEN(expr("['\"]\\(")),
@@ -38,24 +41,25 @@ public enum Item {
 
     IF(expr("if\\s*\\(")),
     THEN("then"),
-    ELSEIF(expr("else\\s+if\\s*\\(")),
+    ELSEIF(expr("else\\s*if\\s*\\(")),
     ELSE("else"),
     ENDIF(expr("end\\s*if\\s*")),
 
     DO(expr("do\\s*(\\w+)\\s*=")),
-    DOWHILE(expr("do\\s+while\\s*\\((.*)")),
+    DOWHILE(expr("do\\s+while\\s*\\(")),
     ENDDO(expr("end\\s*do\\s*")),
 
     GOTO(expr("goto\\s+(\\d+)")),
     CALL(expr("call\\s*(\\w*)\\s*")),
     CONTINUE("continue"),
 
+    USE(expr("use\\s*(.*)")),
     ALLOCATE(expr("(allocate)\\s*\\(")),
     DEALLOCATE(expr("(deallocate)\\s*\\(")),
-    FIO(expr("(open|close|read|write)\\s*\\(")),
+    FIO(expr("(open|close|read|write|rewind)\\s*\\(")),
     FPRINT(expr("print\\s*\\*,")),
     FMT(expr("((?:\\d*f\\d+\\.\\d+)|(?:\\d*a\\d+))")),
-    FSTAT(expr("(iostat|status|err|file|form|access|recl)=")),
+    FSTAT(expr("(iostat|stat|status|err|file|form|access|rec|recl|end)=")),
     FMTREP(expr("(\\d+)\\s*\\(\\s*")),
 
     TEXT(expr("((?:'[^\']*')|(?:\"[^\"]*\"))")) {
@@ -73,7 +77,7 @@ public enum Item {
     END("end"),
     APPLY(expr("(\\w+)\\s*\\(")),
     NAME(expr("(\\w+)")),
-    BINOP(expr("(\\+|-|\\*\\*?|/)")),
+    BINOP(expr("(\\+|-|\\*\\*?|//?)")),
 
     OPEN("("),
     CLOSE(")"),
