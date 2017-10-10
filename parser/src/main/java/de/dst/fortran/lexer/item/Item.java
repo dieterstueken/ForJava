@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
 public enum Item {
     SPACE(expr("(\\s+)")),
 
-    FUNCTION(expr("(?:(integer|real|complex|character|logical)(?:\\*(\\d+))?\\s)?\\s*function\\s*(\\w+)\\s*")),
+    FUNCTION(expr("((?:integer|real|complex|character|logical)(?:\\*(:?\\d+))?\\s)?\\s*function\\s*(\\w+)\\s*")),
     SUBROUTINE(expr("subroutine\\s*(\\w+)\\s*")),
     BLOCKDATA(expr("block\\s+data\\s+(\\w+)\\s*")),
     PROGRAM(expr("program\\s+(\\w+)\\s*")),
@@ -35,7 +35,7 @@ public enum Item {
     FMTCLOSE(expr("\\)[\"']")),
 
     COMMON(expr("common\\s*/(\\w+)/\\s*")),
-    DIM(expr("(integer|real|complex|character|logical)(?:\\*(\\d+|(?:\\(\\*\\))))?")),
+    DIM(expr("((?:integer|real|complex|character|logical)(?:\\*(:?(:?\\(\\*\\)|\\d+)?))?)")),
     ALLOCATABLE(expr("allocatable\\s*::")),
     DATA("data "),
 
@@ -54,13 +54,14 @@ public enum Item {
     CONTINUE("continue"),
 
     USE(expr("use\\s*(.*)")),
-    ALLOCATE(expr("(allocate)\\s*\\(")),
-    DEALLOCATE(expr("(deallocate)\\s*\\(")),
+    ALLOCATE(expr("allocate\\s*\\(\\s*(\\w+)\\(")),
+    DEALLOCATE(expr("deallocate\\s*\\(\\s*(\\w+)")),
     FIO(expr("(open|close|read|write|rewind)\\s*\\(")),
     FPRINT(expr("print\\s*\\*,")),
-    FMT(expr("((?:\\d*f\\d+\\.\\d+)|(?:\\d*a\\d+))")),
-    FSTAT(expr("(iostat|stat|status|err|file|form|access|rec|recl|end)=")),
+    FMT(expr("(\\d*[ailtfx](?:\\d+(?:\\.\\d+)?)?)")),
+    //FMT(expr("((?:\\d*f\\d+\\.\\d+)|(?:\\d*a\\d+))")),
     FMTREP(expr("(\\d+)\\s*\\(\\s*")),
+    FSTAT(expr("(iostat|stat|status|err|file|form|access|rec|recl|end)\\s*=")),
 
     TEXT(expr("((?:'[^\']*')|(?:\"[^\"]*\"))")) {
         @Override
@@ -70,7 +71,7 @@ public enum Item {
             return token(text.substring(1, text.length()-1));
         }
     },
-    CONST(expr("(-?(?:(?:\\.\\d+)|(?:\\d+(?:\\.\\d*)?))([de]\\-?\\d+)?)")),
+    CONST(expr("((?:\\.\\d+)|(?:\\d+(?:\\.\\d*)?))([de]-?\\d+)?")),
     BOOLEAN(expr("\\.(true|false)\\.")),
     ASSIGN("="),
 

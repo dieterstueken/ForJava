@@ -9,17 +9,21 @@ import org.w3c.dom.NodeList;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMResult;
 import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.sax.SAXTransformerFactory;
 import javax.xml.transform.stream.StreamResult;
-import java.util.AbstractList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import javax.xml.transform.stream.StreamSource;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -32,6 +36,8 @@ public class BlockAnalyzer {
 
     public final Block block;
 
+    public Element be;
+
     public Block block() {
         return block;
     }
@@ -42,9 +48,10 @@ public class BlockAnalyzer {
     }
 
     public BlockAnalyzer(Element be) {
+        this.be = be;
         block = new Block(be.getAttribute("name"));
-        block.type = be.getAttribute("type");
-        block.returnType = Type.parse(be.getAttribute("return"));
+        block.type = be.getNodeName();
+        block.returnType = Type.parse(be.getAttribute("type"));
 
         Function<Element, Variable> variables = define(block.variables::get);
 
@@ -66,7 +73,7 @@ public class BlockAnalyzer {
                         // plain value
                         if ("var".equals(de.getNodeName())) {
                             variables.apply(de).type(type);
-                        } else if ("fun".equals(de.getNodeName())) {
+                        } else if ("arr".equals(de.getNodeName())) {
                             // array or matrix definition
                             Variable var = variable(de).type(type);
 
@@ -83,7 +90,7 @@ public class BlockAnalyzer {
                                 } else if ("val".equals(name)) {
                                     Integer n = Integer.decode(dimel.getTextContent());
                                     var.dim(new Constant(n));
-                                } else if("to".equals(name)) {
+                                } else if("range".equals(name)) {
                                     var.dim(Value.UNDEF);
                                 }
                             });
@@ -97,6 +104,7 @@ public class BlockAnalyzer {
                     break;
 
                 default:
+                    // some code line
                     parseVariables(ce, define(block.variables::get));
                     break;
             }
@@ -107,37 +115,55 @@ public class BlockAnalyzer {
     }
 
     void prepareArgs(Element args) {
-
         variables(args, define(block.arguments::get));
-        
-        Document o = args.getOwnerDocument();
-        Node p = args.getParentNode();
-        Node at = args;
+    };
 
-        String indent = "\n    ";
+    // collect dependencies
+    void dependencies(Function<String, Block> blocks) {
+        for(Iterator<String> it=block.functions.iterator(); it.hasNext();) {
+            String function = it.next();
+            Block dep = blocks.apply(function);
+            if(dep!=null) {
+                block.blocks.add(dep.name);
+                it.remove();
+            }
+        }
+
+        insertHeader();
+    }
+
+    void insertHeader() {
+        
+        final Document o = be.getOwnerDocument();
+        final Node at = be.getFirstChild();
+        final String indent = "\n    ";
 
         Node nl = o.createTextNode(indent);
-        at = p.insertBefore(nl, at);
+        be.insertBefore(nl, at);
 
         for (String name : block.functions) {
             Element f = o.createElement("fun");
             f.setAttribute("name", name);
-            at = p.insertBefore(f, at);
-
+            be.insertBefore(f, at);
             nl = o.createTextNode(indent);
-            at=p.insertBefore(nl, at);
+            be.insertBefore(nl, at);
+        }
+
+        for (String block : block.blocks) {
+            Element f = o.createElement("block");
+            f.setAttribute("name", block);
+            be.insertBefore(f, at);
+            nl = o.createTextNode(indent);
+            be.insertBefore(nl, at);
         }
 
         for (Common common : block.commons) {
             Element c = o.createElement("com");
             c.setAttribute("name", common.name);
-            at = p.insertBefore(c, at);
-
+            be.insertBefore(c, at);
             nl = o.createTextNode(indent);
-            at=p.insertBefore(nl, at);
+            be.insertBefore(nl, at);
         }
-
-        at = args.getNextSibling();
 
         for (Variable var : block.variables) {
             if(var.context==null) {
@@ -153,10 +179,10 @@ public class BlockAnalyzer {
                     v.appendChild(d);
                 }
 
-                at = p.insertBefore(v, at);
+                be.insertBefore(v, at);
 
                 nl = o.createTextNode(indent);
-                at=p.insertBefore(nl, at);
+                be.insertBefore(nl, at);
             }
         }
     }
@@ -191,6 +217,14 @@ public class BlockAnalyzer {
         });
     }
 
+    public static Stream<Element> childElements(Element e, String ... names) {
+        Set<String> set = new HashSet<>(Arrays.asList(names));
+        return childElements(e).filter(ce -> {
+            String localName = ce.getNodeName();
+            return set.contains(localName);
+        });
+    }
+
     Variable setup(Element e, Variable v) {
         Context context = v.context;
 
@@ -210,6 +244,10 @@ public class BlockAnalyzer {
         if(context==block)
             if(block.assigned(v))
                 e.setAttribute("assigned", "true");
+
+        if(v.type!=null) {
+            e.setAttribute("type", v.type.toString());
+        }
 
         return v;
     }
@@ -236,44 +274,83 @@ public class BlockAnalyzer {
         };
     }
 
-    private void parseVariables(Element e, Function<Element, Variable> define) {
-        childElements(e).forEach(ce ->{
-
-            switch(ce.getNodeName()) {
-
-                case "lhs":
-                    parseVariables(ce, assign(define));
-                    break;
-
-                case "var":
-                    define.apply(ce);
-                    break;
-
-                case "fun":
-                    final String name = ce.getAttribute("name");
-
-                    // if it is a defined variable
-                    if (block.variables.exists(name)) {
-                        ce.setAttribute("scope", "var");
-                    } else {
-                        block.functions.add(name);
-                    }
-
-                    // parse variables of function call
-                    parseVariables(ce, define);
-                    break;
-            }
-        });
+    private void parseVariables(Stream<Element> elements, Function<Element, Variable> define) {
+        elements.forEach(ce -> parseVariables(ce, define));
     }
 
-    public static void main(String ... args) throws Exception {
+    private void parseVariables(Element e, Function<Element, Variable> define) {
 
+        String name = e.getNodeName();
+        switch(name) {
+            case "assvar":
+            case "assarr":
+                Variable var = define.apply(e);
+                block.assign(var);
+                // parse possible arguments and value
+                parseVariables(childElements(e), define);
+                break;
+            case "args":
+                parseVariables(childElements(e), define);
+                break;
+            case "for":
+            case "var":
+                define.apply(e);
+                break;
+            case "call":
+                name = e.getAttribute("name");
+                block.blocks.add(name);
+                parseVariables(childElements(e, "args"), define);
+                break;
+            case "do":
+            case "while":
+            case "if":
+            case "cond":
+            case "then":
+            case "elif":
+            case "else":
+                parseVariables(childElements(e), define);
+                break;
+            case "fun":
+                name = e.getAttribute("name");
+                // if it is a defined variable
+                if (block.variables.exists(name)) {
+                    e.setAttribute("scope", "var");
+                } else {
+                    block.functions.add(name);
+                }
+                // parse variables of function call
+                parseVariables(childElements(e), define);
+                break;
+        }
+    }
+
+    public static Document readDocument(String file) throws IOException, TransformerException {
+
+        try(InputStream inputStream = new FileInputStream("dump.xml")) {
+            StreamSource source = new StreamSource(inputStream);
+            SAXTransformerFactory f = (SAXTransformerFactory) SAXTransformerFactory.newInstance();
+            Transformer tr = f.newTransformer();
+            DOMResult result = new DOMResult();
+            tr.transform(source, result);
+            return (Document) result.getNode();
+        }
+    }
+
+    public static Document parseCode(String ... args) throws ParserConfigurationException {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         //factory.setNamespaceAware(true);
         DocumentBuilder builder = factory.newDocumentBuilder();
         Document document = builder.newDocument();
 
         Lines.parse(new DOMResult(document), args);
+
+        return document;
+    }
+
+    public static void main(String ... args) throws Exception {
+        
+        //Document document = parseCode(args);
+        Document document = readDocument("dump.xml");
 
         analyze(document);
 
@@ -286,16 +363,16 @@ public class BlockAnalyzer {
 
     static void analyze(Document document) throws TransformerException {
 
-        Map<String, Block> blocks = new HashMap<>();
+        Map<String, Block> blocks = new TreeMap<>();
 
         childElements(document.getDocumentElement(), "file")
                 .peek(fe -> System.out.format("file: %s\n", fe.getAttribute("name")))
-                .flatMap(ce -> BlockAnalyzer.childElements(ce, "block"))
+                .flatMap(ce -> BlockAnalyzer.childElements(ce, "function", "subroutine", "blockdata", "program"))
                 .map(BlockAnalyzer::new)
                 .peek(System.out::println)
-                .map(BlockAnalyzer::block)
-                .forEach(b -> blocks.put(b.name, b));
-
+                .peek(ba -> blocks.put(ba.block.name, ba.block))
+                .collect(Collectors.toList())
+                .forEach(ba -> ba.dependencies(blocks::get));
 
         Map<String, Common> commons = new HashMap<>();
 
