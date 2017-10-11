@@ -35,6 +35,17 @@ public class Entities<T extends Entity> extends AbstractSet<T> {
         return entities.values().iterator();
     }
 
+    public T get(int index) {
+        Iterator<T> it = iterator();
+
+        while(index>0) {
+            it.next();
+            --index;
+        }
+
+        return it.next();
+    }
+
     @Override
     public int size() {
         return entities.size();

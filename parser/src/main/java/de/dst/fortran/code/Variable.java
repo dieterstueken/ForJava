@@ -20,6 +20,8 @@ public class Variable extends Entity implements Value, Context {
 
     public Context context = null;
 
+    public Variable alias;
+
     transient String toString;
 
     public Variable(String name) {

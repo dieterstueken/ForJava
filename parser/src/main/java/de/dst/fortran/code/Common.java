@@ -11,12 +11,29 @@ import java.util.function.Function;
  */
 public class Common extends Entity implements Context {
 
+    public Common root;
+
     public final Entities<Variable> members;
+
+    final Function<String, Variable> newVariable;
 
     public Common(String common, Function<String, Variable> newVariable) {
         super(common);
+        this.newVariable = newVariable;
 
-        members = new Entities<>(name -> newVariable.apply(name).context(this));
+        members = new Entities<>(this::newVariable);
+    }
+
+    Variable newVariable(String name) {
+        Variable variable = newVariable.apply(name).context(this);
+
+        if(root!=null) {
+            int index = members.size();
+            Variable alias = root.members.get(index);
+            variable.alias = alias;
+        }
+
+        return variable;
     }
 
     public String toString() {

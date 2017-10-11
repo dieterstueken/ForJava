@@ -1,30 +1,14 @@
 package de.dst.fortran.analyzer;
 
 import de.dst.fortran.code.*;
-import de.dst.fortran.parser.Lines;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMResult;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.sax.SAXTransformerFactory;
-import javax.xml.transform.stream.StreamResult;
-import javax.xml.transform.stream.StreamSource;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static de.dst.fortran.analyzer.Analyzer.childElements;
 
 /**
  * Created by IntelliJ IDEA.
@@ -34,24 +18,47 @@ import java.util.stream.Stream;
  */
 public class BlockAnalyzer {
 
-    public final Block block;
+    final Analyzer analyzer;
 
-    public Element be;
+    final Block block;
 
-    public Block block() {
-        return block;
-    }
+    final Element be;
+
+    Boolean ready = false;
 
     @Override
     public String toString() {
         return block.name;
     }
 
-    public BlockAnalyzer(Element be) {
+    BlockAnalyzer(Analyzer analyzer, Element be) {
+        this.analyzer = analyzer;
         this.be = be;
+
         block = new Block(be.getAttribute("name"));
         block.type = be.getNodeName();
         block.returnType = Type.parse(be.getAttribute("type"));
+        block.path = Analyzer.getPath(be);
+        be.setAttribute("path", block.path);
+
+        System.out.format("  define %s:%s\n", block.path, block.name);
+
+    }
+
+    Block block() {
+
+        if(ready==null)
+            throw new IllegalStateException("dependeny loop: " + block.name);
+
+        if(ready)
+            return block;
+
+        // just parsing
+        ready = null;
+
+        String indent = analyzer.indent;
+        System.out.format("%sparse %s:%s\n", indent, block.path, block.name);
+        analyzer.indent += "    ";
 
         Function<Element, Variable> variables = define(block.variables::get);
 
@@ -63,7 +70,7 @@ public class BlockAnalyzer {
                     break;
 
                 case "common":
-                    Common common = block.commons.get(ce.getAttribute("name"));
+                    Common common = newCommon(ce.getAttribute("name"));
                     variables(ce, define(common.members::get));
                     break;
 
@@ -112,25 +119,67 @@ public class BlockAnalyzer {
 
         // finally refresh arguments again
         childElements(be, "args").findFirst().ifPresent(this::prepareArgs);
+
+        ready = true;
+
+        System.out.format("%sdone  %s:%s\n", indent, block.path, block.name);
+        analyzer.indent = indent;
+
+        return block;
+    }
+
+    private void parseVariables(Element e, Function<Element, Variable> define) {
+
+        String name = e.getNodeName();
+        switch(name) {
+            case "assvar":
+            case "assarr":
+                Variable var = define.apply(e);
+                block.assign(var);
+                // parse possible arguments and value
+                parseVariables(childElements(e), define);
+                break;
+            case "args":
+                parseVariables(childElements(e), define);
+                break;
+            case "for":
+            case "var":
+                define.apply(e);
+                break;
+            case "call":
+                name = e.getAttribute("name");
+                if(!isBlock(name))
+                    throw new RuntimeException("missing dependeny: " + name);
+
+                parseVariables(childElements(e, "args"), define);
+                break;
+            case "do":
+            case "while":
+            case "if":
+            case "cond":
+            case "then":
+            case "elif":
+            case "else":
+                parseVariables(childElements(e), define);
+                break;
+            case "fun":
+                name = e.getAttribute("name");
+                // if it is a defined variable
+                if (block.variables.exists(name)) {
+                    e.setAttribute("scope", "var");
+                } else
+                if(!isBlock(name)) {
+                    block.functions.add(name);
+                }
+                // parse variables of function call
+                parseVariables(childElements(e), define);
+                break;
+        }
     }
 
     void prepareArgs(Element args) {
         variables(args, define(block.arguments::get));
     };
-
-    // collect dependencies
-    void dependencies(Function<String, Block> blocks) {
-        for(Iterator<String> it=block.functions.iterator(); it.hasNext();) {
-            String function = it.next();
-            Block dep = blocks.apply(function);
-            if(dep!=null) {
-                block.blocks.add(dep.name);
-                it.remove();
-            }
-        }
-
-        insertHeader();
-    }
 
     void insertHeader() {
         
@@ -149,9 +198,9 @@ public class BlockAnalyzer {
             be.insertBefore(nl, at);
         }
 
-        for (String block : block.blocks) {
+        for (Block block : block.blocks) {
             Element f = o.createElement("block");
-            f.setAttribute("name", block);
+            f.setAttribute("name", block.name);
             be.insertBefore(f, at);
             nl = o.createTextNode(indent);
             be.insertBefore(nl, at);
@@ -187,42 +236,26 @@ public class BlockAnalyzer {
         }
     }
 
-    public static List<Node> childNodes(Element e) {
-        NodeList nodes = e.getChildNodes();
-        return new AbstractList<Node>() {
+    boolean isBlock(String name) {
+        Block block = analyzer.block(name);
+        if(block==null)
+            return false;
 
-            @Override
-            public int size() {
-                return nodes.getLength();
-            }
-
-            @Override
-            public Node get(int index) {
-                Node child = nodes.item(index);
-                return child;
-            }
-        };
+        block.blocks.add(block);
+        return true;
     }
 
-    public static Stream<Element> childElements(Element e) {
-        return childNodes(e).stream()
-                .filter(Element.class::isInstance)
-                .map(Element.class::cast);
-    }
+    Common newCommon(String name) {
+        Common common = block.commons.get(name);
 
-    public static Stream<Element> childElements(Element e, String name) {
-        return childElements(e).filter(ce -> {
-                String localName = ce.getNodeName();
-                return name.equals(localName);
-        });
-    }
+        // prepare root or be new root
+        Common root = analyzer.commons.get(name);
+        if(root!=null)
+            common.root = root;
+        else
+            analyzer.commons.put(name, common);
 
-    public static Stream<Element> childElements(Element e, String ... names) {
-        Set<String> set = new HashSet<>(Arrays.asList(names));
-        return childElements(e).filter(ce -> {
-            String localName = ce.getNodeName();
-            return set.contains(localName);
-        });
+        return common;
     }
 
     Variable setup(Element e, Variable v) {
@@ -264,127 +297,8 @@ public class BlockAnalyzer {
         childElements(e, "var").forEach(define::apply);
     }
 
-    private Function<Element, Variable> assign(Function<Element, Variable> define) {
-        // mark variable assigned
-        return e -> {
-            e.setAttribute("assigned", "true");
-            Variable v = define.apply(e);
-            block.assign(v);
-            return v;
-        };
-    }
-
     private void parseVariables(Stream<Element> elements, Function<Element, Variable> define) {
         elements.forEach(ce -> parseVariables(ce, define));
     }
 
-    private void parseVariables(Element e, Function<Element, Variable> define) {
-
-        String name = e.getNodeName();
-        switch(name) {
-            case "assvar":
-            case "assarr":
-                Variable var = define.apply(e);
-                block.assign(var);
-                // parse possible arguments and value
-                parseVariables(childElements(e), define);
-                break;
-            case "args":
-                parseVariables(childElements(e), define);
-                break;
-            case "for":
-            case "var":
-                define.apply(e);
-                break;
-            case "call":
-                name = e.getAttribute("name");
-                block.blocks.add(name);
-                parseVariables(childElements(e, "args"), define);
-                break;
-            case "do":
-            case "while":
-            case "if":
-            case "cond":
-            case "then":
-            case "elif":
-            case "else":
-                parseVariables(childElements(e), define);
-                break;
-            case "fun":
-                name = e.getAttribute("name");
-                // if it is a defined variable
-                if (block.variables.exists(name)) {
-                    e.setAttribute("scope", "var");
-                } else {
-                    block.functions.add(name);
-                }
-                // parse variables of function call
-                parseVariables(childElements(e), define);
-                break;
-        }
-    }
-
-    public static Document readDocument(String file) throws IOException, TransformerException {
-
-        try(InputStream inputStream = new FileInputStream("dump.xml")) {
-            StreamSource source = new StreamSource(inputStream);
-            SAXTransformerFactory f = (SAXTransformerFactory) SAXTransformerFactory.newInstance();
-            Transformer tr = f.newTransformer();
-            DOMResult result = new DOMResult();
-            tr.transform(source, result);
-            return (Document) result.getNode();
-        }
-    }
-
-    public static Document parseCode(String ... args) throws ParserConfigurationException {
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        //factory.setNamespaceAware(true);
-        DocumentBuilder builder = factory.newDocumentBuilder();
-        Document document = builder.newDocument();
-
-        Lines.parse(new DOMResult(document), args);
-
-        return document;
-    }
-
-    public static void main(String ... args) throws Exception {
-        
-        //Document document = parseCode(args);
-        Document document = readDocument("dump.xml");
-
-        analyze(document);
-
-        Transformer transformer = TransformerFactory.newInstance().newTransformer();
-
-        DOMSource source = new DOMSource(document);
-        StreamResult result = new StreamResult("parsed.xml");
-        transformer.transform(source, result);
-    }
-
-    static void analyze(Document document) throws TransformerException {
-
-        Map<String, Block> blocks = new TreeMap<>();
-
-        childElements(document.getDocumentElement(), "file")
-                .peek(fe -> System.out.format("file: %s\n", fe.getAttribute("name")))
-                .flatMap(ce -> BlockAnalyzer.childElements(ce, "function", "subroutine", "blockdata", "program"))
-                .map(BlockAnalyzer::new)
-                .peek(System.out::println)
-                .peek(ba -> blocks.put(ba.block.name, ba.block))
-                .collect(Collectors.toList())
-                .forEach(ba -> ba.dependencies(blocks::get));
-
-        Map<String, Common> commons = new HashMap<>();
-
-        blocks.values().stream()
-                .flatMap(b -> b.commons.stream())
-                .forEach(c -> {
-                    System.out.format("common: %s\n", c.getName());
-                    Common cx = commons.put(c.getName(), c);
-                    if(cx!=null && !cx.equals(c)) {
-                        cx.equals(c);
-                        System.out.format("different common definitions for %s\n", c.getName());
-                    }
-                });
-    }
 }
