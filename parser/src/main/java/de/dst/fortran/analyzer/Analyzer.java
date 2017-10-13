@@ -1,28 +1,15 @@
 package de.dst.fortran.analyzer;
 
+import de.dst.fortran.XmlWriter;
 import de.dst.fortran.code.Block;
 import de.dst.fortran.code.Common;
-import de.dst.fortran.parser.Lines;
+import de.dst.fortran.lexer.Lexer;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMResult;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.sax.SAXTransformerFactory;
-import javax.xml.transform.stream.StreamResult;
-import javax.xml.transform.stream.StreamSource;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -46,41 +33,13 @@ public class Analyzer {
         return analyzer==null ? null : analyzer.block();
     }
 
-    public static Document readDocument(String file) throws IOException, TransformerException {
-
-        try(InputStream inputStream = new FileInputStream("dump.xml")) {
-            StreamSource source = new StreamSource(inputStream);
-            SAXTransformerFactory f = (SAXTransformerFactory) SAXTransformerFactory.newInstance();
-            Transformer tr = f.newTransformer();
-            DOMResult result = new DOMResult();
-            tr.transform(source, result);
-            return (Document) result.getNode();
-        }
-    }
-
-    public static Document parseCode(String ... args) throws ParserConfigurationException {
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        //factory.setNamespaceAware(true);
-        DocumentBuilder builder = factory.newDocumentBuilder();
-        Document document = builder.newDocument();
-
-        Lines.parse(new DOMResult(document), args);
-
-        return document;
-    }
-
     public static void main(String ... args) throws Exception {
 
-        //Document document = parseCode(args);
-        Document document = readDocument("dump.xml");
-
+        Document document = Lexer.parse(args);
+        //Document document = Analyzer.readDocument("dump.xml");
         new Analyzer().analyze(document);
 
-        Transformer transformer = TransformerFactory.newInstance().newTransformer();
-
-        DOMSource source = new DOMSource(document);
-        StreamResult result = new StreamResult("parsed.xml");
-        transformer.transform(source, result);
+        XmlWriter.writeDocument(document, new File("parsed.xml"));
     }
 
     BlockAnalyzer newAnalyzer(Element be) {
@@ -93,6 +52,8 @@ public class Analyzer {
     }
 
     void analyze(Document document) {
+
+        List<Node> nodes = childNodes(document.getDocumentElement());
 
         childElements(document.getDocumentElement(), "file")
                 .peek(fe -> System.out.format("file: %s\n", fe.getAttribute("name")))

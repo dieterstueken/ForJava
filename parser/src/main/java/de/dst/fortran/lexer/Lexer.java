@@ -1,11 +1,11 @@
 package de.dst.fortran.lexer;
 
+import de.dst.fortran.XmlWriter;
 import de.dst.fortran.lexer.item.Item;
 import de.dst.fortran.lexer.item.Token;
 import de.dst.fortran.lexer.item.Tokenizer;
-import de.dst.fortran.parser.Writer;
+import org.w3c.dom.Document;
 
-import javax.xml.transform.Result;
 import java.io.*;
 import java.util.LinkedList;
 import java.util.List;
@@ -30,16 +30,23 @@ public class Lexer implements AutoCloseable {
         }
     }
 
-    static Lexer open(File result) throws FileNotFoundException {
-        return new Lexer(Writer.open(new FileOutputStream(result)));
+    public static Document parse(String... args) {
+        List<Token> tokens = Tokenizer.tokenize(args);
+        Document document = XmlWriter.newDocument();
+        open(document).process(tokens);
+        return document;
     }
 
-    static Lexer open(Result result) {
-        return new Lexer(Writer.open(result));
+    static Lexer open(Document document) {
+        return new Lexer(XmlWriter.open(document));
+    }
+
+    static Lexer open(File result) throws FileNotFoundException {
+        return new Lexer(XmlWriter.open(new FileOutputStream(result)));
     }
 
     static Lexer open(OutputStream stream) {
-        return new Lexer(Writer.open(stream));
+        return new Lexer(XmlWriter.open(stream));
     }
 
     @Override
@@ -47,12 +54,12 @@ public class Lexer implements AutoCloseable {
         out.close();
     }
 
-    final Writer out;
+    final XmlWriter out;
 
     String label = null;
     String linum = null;
 
-    Writer label() {
+    XmlWriter label() {
         if(label!=null) {
             out.ltext("label", label);
             label = null;
@@ -60,7 +67,7 @@ public class Lexer implements AutoCloseable {
         return out;
     }
 
-    public Lexer(Writer out) {
+    public Lexer(XmlWriter out) {
         this.out = out;
     }
 
@@ -104,7 +111,7 @@ public class Lexer implements AutoCloseable {
     }
 
     // consume space until end line
-    Writer space(List<Token> tokens) {
+    XmlWriter space(List<Token> tokens) {
         while(!tokens.isEmpty()) {
             Token token = tokens.remove(0);
             switch(token.item) {

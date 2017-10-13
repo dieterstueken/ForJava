@@ -30,7 +30,10 @@ public class Common extends Entity implements Context {
         if(root!=null) {
             int index = members.size();
             Variable alias = root.members.get(index);
-            variable.alias = alias;
+            if(!alias.name.equals(variable.name)) {
+                variable.alias = alias;
+                System.out.format("alias /%s/ %s : %s\n", name, variable.name, alias.name);
+            }
         }
 
         return variable;

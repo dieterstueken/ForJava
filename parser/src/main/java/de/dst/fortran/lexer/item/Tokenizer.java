@@ -7,6 +7,7 @@ import de.dst.fortran.lexer.lines.StartLine;
 
 import java.io.*;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -20,13 +21,19 @@ import java.util.stream.Stream;
 public class Tokenizer {
 
     public static void main(String... args) throws IOException {
-
         try(PrintWriter writer = new PrintWriter("items.txt")) {
-
-            Tokenizer tokenizer = new Tokenizer(writer::println);
-
-            Stream.of(args).map(File::new).forEach(tokenizer::tokenize);
+            new Tokenizer(writer::println).tokenizeFiles(args);
         }
+    }
+
+    public static List<Token> tokenize(String... args) {
+        List<Token> tokens = new LinkedList<>();
+        new Tokenizer(tokens::add).tokenizeFiles(args);
+        return tokens;
+    }
+
+    void tokenizeFiles(String... args) {
+        Stream.of(args).map(File::new).forEach(this::tokenize);
     }
 
     final Consumer<? super Token> tokens;
