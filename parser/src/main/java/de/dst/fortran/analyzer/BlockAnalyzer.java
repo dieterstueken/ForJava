@@ -47,27 +47,56 @@ public class BlockAnalyzer {
 
     Block block() {
 
-        if(ready==null)
+        if (ready == null)
             throw new IllegalStateException("dependeny loop: " + block.name);
 
-        if(ready)
-            return block;
+        if (!ready) {
+            String indent = analyzer.indent;
+            System.out.format("%sparse %s:%s\n", indent, block.path, block.name);
+            analyzer.indent += "    ";
+            ready = null;
 
-        // just parsing
-        ready = null;
+            parse();
 
-        String indent = analyzer.indent;
-        System.out.format("%sparse %s:%s\n", indent, block.path, block.name);
-        analyzer.indent += "    ";
+            //System.out.format("%sdone  %s:%s\n", indent, block.path, block.name);
+            analyzer.indent = indent;
+            ready = true;
+        }
+
+        return block;
+    }
+
+    private void parse() {
 
         Function<Element, Variable> variables = define(block.variables::get);
 
         childElements(be).forEach(ce -> {
-
             switch(ce.getNodeName()) {
+
                 case "args":
                     variables(ce, define(block.arguments::get));
                     break;
+
+                case "decl":
+                    decl(ce);
+                    break;
+
+                case "code":
+                    childElements(ce).forEach(e->parseVariables(e, variables));
+                    break;
+            }
+        });
+
+        // finally refresh arguments again
+        childElements(be, "args").findFirst().ifPresent(this::prepareArgs);
+    }
+
+    private void decl(Element e) {
+
+        Function<Element, Variable> variables = define(block.variables::get);
+
+        childElements(e).forEach(ce -> {
+            switch(ce.getNodeName()) {
 
                 case "common":
                     Common common = newCommon(ce.getAttribute("name"));
@@ -84,7 +113,7 @@ public class BlockAnalyzer {
                             // array or matrix definition
                             Variable var = variable(de).type(type);
 
-                            Function <Element, Variable> index = dimel -> {
+                            Function<Element, Variable> index = dimel -> {
                                 Variable v = variable(dimel);
                                 var.dim(v);
                                 return setup(dimel, var);
@@ -97,7 +126,7 @@ public class BlockAnalyzer {
                                 } else if ("val".equals(name)) {
                                     Integer n = Integer.decode(dimel.getTextContent());
                                     var.dim(new Constant(n));
-                                } else if("range".equals(name)) {
+                                } else if ("range".equals(name)) {
                                     var.dim(Value.UNDEF);
                                 }
                             });
@@ -106,46 +135,35 @@ public class BlockAnalyzer {
                         }
                     });
                     break;
-
-                case "c":
-                    break;
-
-                default:
-                    // some code line
-                    parseVariables(ce, define(block.variables::get));
-                    break;
             }
         });
-
-        // finally refresh arguments again
-        childElements(be, "args").findFirst().ifPresent(this::prepareArgs);
-
-        ready = true;
-
-        System.out.format("%sdone  %s:%s\n", indent, block.path, block.name);
-        analyzer.indent = indent;
-
-        return block;
     }
 
     private void parseVariables(Element e, Function<Element, Variable> define) {
 
         String name = e.getNodeName();
+        Variable var;
         switch(name) {
             case "assvar":
-            case "assarr":
-                Variable var = define.apply(e);
+                var = define.apply(e);
                 block.assign(var);
+                break;
+
+            case "assarr":
+                define.apply(e);
                 // parse possible arguments and value
                 parseVariables(childElements(e), define);
                 break;
+
             case "args":
                 parseVariables(childElements(e), define);
                 break;
+
             case "for":
             case "var":
                 define.apply(e);
                 break;
+
             case "call":
                 name = e.getAttribute("name");
                 if(!isBlock(name))
@@ -153,6 +171,7 @@ public class BlockAnalyzer {
 
                 parseVariables(childElements(e, "args"), define);
                 break;
+
             case "do":
             case "while":
             case "if":
@@ -162,6 +181,7 @@ public class BlockAnalyzer {
             case "else":
                 parseVariables(childElements(e), define);
                 break;
+
             case "fun":
                 name = e.getAttribute("name");
                 // if it is a defined variable
@@ -179,7 +199,7 @@ public class BlockAnalyzer {
 
     void prepareArgs(Element args) {
         variables(args, define(block.arguments::get));
-    };
+    }
 
     void insertHeader() {
         

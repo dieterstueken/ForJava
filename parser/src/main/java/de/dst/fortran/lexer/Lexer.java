@@ -49,6 +49,10 @@ public class Lexer implements AutoCloseable {
         return new Lexer(XmlWriter.open(stream));
     }
 
+    public Lexer(XmlWriter out) {
+        this.out = out;
+    }
+
     @Override
     public void close() {
         out.close();
@@ -59,16 +63,9 @@ public class Lexer implements AutoCloseable {
     String label = null;
     String linum = null;
 
-    XmlWriter label() {
-        if(label!=null) {
-            out.ltext("label", label);
-            label = null;
-        }
-        return out;
-    }
-
-    public Lexer(XmlWriter out) {
-        this.out = out;
+    RuntimeException unexpected(Object token) {
+        String error = token==null ? "null" : token.toString();
+        return new IllegalStateException("unexpected: " + error);
     }
 
     boolean isSpace(Token token) {
@@ -80,8 +77,7 @@ public class Lexer implements AutoCloseable {
                 linum = token.get(0);
                 break;
             case CODELINE:
-                out.ltext("l", linum);
-                out.comment(token.get(0)).nl();
+                out.comment(String.format("%s: %s", linum, token.get(0))).nl();
                 break;
             case CONTLINE:
                 out.nl().comment(token.get(0)).nl();
@@ -177,6 +173,7 @@ public class Lexer implements AutoCloseable {
                     out.start("blockdata")
                             .lattribute("name", token.get(0));
                     space(tokens).nl();
+                    out.start("decl");
                     processCodeLines(tokens);
                     out.end().nl();
                     break;
@@ -184,6 +181,7 @@ public class Lexer implements AutoCloseable {
                 case PROGRAM:
                     out.start("program");
                     space(tokens).nl();
+                    out.start("decl");
                     processCodeLines(tokens);
                     out.end().nl();
                     break;
@@ -204,6 +202,7 @@ public class Lexer implements AutoCloseable {
     private void processFunction(List<Token> tokens) {
         procesArgs(tokens);
         out.nl();
+        out.start("decl").nl();
         processCodeLines(tokens);
     }
 
@@ -224,19 +223,45 @@ public class Lexer implements AutoCloseable {
         }
     }
 
+    boolean code = false;
+    private void code() {
+        if(!code) {
+            code = true;
+            out.end().start("code").nl();
+        }
+    }
+
+    XmlWriter label() {
+        code();
+        if(label!=null) {
+            out.ltext("label", label);
+            label = null;
+        }
+        return out;
+    }
+
     private void processCodeLines(List<Token> tokens) {
+
+        if(code)
+            throw unexpected("code");
+
         while(!tokens.isEmpty()) {
 
             Token token = next(tokens);
 
             switch (token.item) {
+
                 case END:
+                    out.end().nl();
+                    code = false;
                     out.empty("end");
                     space(tokens).nl();
                     return;
+
                 case ENDLINE:
                     out.nl();
                     break;
+
                 default:
                     processBlockData(token, tokens);
                     out.nl();
@@ -247,26 +272,30 @@ public class Lexer implements AutoCloseable {
     private void processBlockData(Token token, List<Token> tokens) {
 
         switch (token.item) {
+
             case DIM:
                 out.start("dim")
                         .lattribute("type", token.get(0));
                 processDim(tokens);
                 out.end();
                 break;
+
             case COMMON:
                 out.start("common").lattribute("name", token.get(0));
                 processCommon(token, tokens);
                 out.end();
                 break;
+
             case DATA:
                 out.start("data");
                 processData(tokens);
                 out.end();
                 break;
-            case END:
-                out.empty("end");
-                space(tokens);
-                return;
+
+            case USE:
+                out.text("use", token.get(0));
+                break;
+
             default:
                 processCodeLine(token, tokens);
         }
@@ -417,10 +446,7 @@ public class Lexer implements AutoCloseable {
     private void processCodeLine(Token token, List<Token> tokens) {
 
         switch (token.item) {
-            case USE:
-                out.text("use", token.get(0));
-                break;
-                
+
             case FORMAT:
                 label().start("format");
                 processFmt(tokens);
@@ -493,18 +519,13 @@ public class Lexer implements AutoCloseable {
             }
         }
     }
-    
-    RuntimeException unexpected(Object token) {
-        String error = token==null ? "null" : token.toString();
-        return new IllegalStateException("unexpected: " + error);
-    }
 
     private void processStmt(Token token, List<Token> tokens) {
 
         switch (token.item) {
 
             case GOTO:
-                out.ltext("goto", token.get(0));
+                label().ltext("goto", token.get(0));
                 processExpr(tokens);
                 break;
 
@@ -528,7 +549,7 @@ public class Lexer implements AutoCloseable {
                 break;
 
             case FIO:
-                out.start(token.get(0).toLowerCase()).start("io");
+                label().start(token.get(0).toLowerCase()).start("io");
                 processIO(tokens);  // contains closing brace
                 out.end();
                 processExpr(tokens);
@@ -536,18 +557,18 @@ public class Lexer implements AutoCloseable {
                 break;
 
             case FPRINT:
-                out.start("print"); // missing (
+                label().start("print"); // missing (
                 processExpr(tokens);
                 out.end();
                 break;
 
             case RETURN:
-                out.empty("return");
+                label().empty("return");
                 space(tokens);
                 break;
 
             case STOP:
-                out.start("stop");
+                label().start("stop");
                 processExpr(tokens);
                 out.end();
                 break;
