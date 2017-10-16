@@ -38,8 +38,11 @@ public class Block extends Entity implements Context {
     }
 
     public Variable assign(Variable v) {
-        assigned.add(v.name);
-        return v;
+        boolean ass = assigned.add(v.name);
+        if(ass)
+            return v;
+        else
+            return v;
     }
 
     public boolean assigned(Variable v) {

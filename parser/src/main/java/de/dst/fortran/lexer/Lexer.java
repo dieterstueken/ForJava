@@ -530,9 +530,12 @@ public class Lexer implements AutoCloseable {
                 break;
 
             case CALL:
-                label().start("call").lattribute("name", token.get(0));
-                procesArgs(tokens);
-                out.end();
+                label().start("call").lattribute("name", token.get(1));
+                if(token.get(0).endsWith("(")) {
+                    braced(tokens);
+                } else
+                    out.end();
+
                 break;
 
             case ALLOCATE:

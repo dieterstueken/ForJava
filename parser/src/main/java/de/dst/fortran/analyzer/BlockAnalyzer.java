@@ -143,6 +143,7 @@ public class BlockAnalyzer {
 
         String name = e.getNodeName();
         Variable var;
+        Block external;
         switch(name) {
             case "assvar":
                 var = define.apply(e);
@@ -151,12 +152,44 @@ public class BlockAnalyzer {
 
             case "assarr":
                 define.apply(e);
-                // parse possible arguments and value
-                parseVariables(childElements(e), define);
                 break;
 
-            case "args":
-                parseVariables(childElements(e), define);
+            case "call":
+                name = e.getAttribute("name");
+                external = analyzer.block(name);
+
+                if(external==null)
+                    throw new RuntimeException("missing dependeny: " + name);
+
+                // propagate assignments
+                childElements(e, "var")
+                        .map(define)
+                        .filter(external::assigned)
+                        .forEach(this::external);
+
+                break;
+
+
+            case "fun":
+                name = e.getAttribute("name");
+                // if it is a defined variable
+                if (block.variables.exists(name)) {
+                    // array access
+                    e.setAttribute("scope", "var");
+                } else {
+                    external = analyzer.block(name);
+                    if(external==null) {
+                        // intrinsic function
+                        block.functions.add(name);
+                        e.setAttribute("scope", "intrinsic");
+                    } else {
+                        // propagate assignments
+                        childElements(e, "var")
+                                .map(define)
+                                .filter(external::assigned)
+                                .forEach(this::external);
+                    }
+                }
                 break;
 
             case "for":
@@ -164,14 +197,7 @@ public class BlockAnalyzer {
                 define.apply(e);
                 break;
 
-            case "call":
-                name = e.getAttribute("name");
-                if(!isBlock(name))
-                    throw new RuntimeException("missing dependeny: " + name);
-
-                parseVariables(childElements(e, "args"), define);
-                break;
-
+            case "args":
             case "do":
             case "while":
             case "if":
@@ -179,22 +205,19 @@ public class BlockAnalyzer {
             case "then":
             case "elif":
             case "else":
-                parseVariables(childElements(e), define);
+            default:
                 break;
 
-            case "fun":
-                name = e.getAttribute("name");
-                // if it is a defined variable
-                if (block.variables.exists(name)) {
-                    e.setAttribute("scope", "var");
-                } else
-                if(!isBlock(name)) {
-                    block.functions.add(name);
-                }
-                // parse variables of function call
-                parseVariables(childElements(e), define);
-                break;
         }
+
+        // parse recursively
+        parseVariables(childElements(e), define);
+    }
+
+    Variable external(Variable v) {
+        if(!block.assigned.contains(v.name))
+            block.assign(v);
+        return v;
     }
 
     void prepareArgs(Element args) {
@@ -256,15 +279,6 @@ public class BlockAnalyzer {
         }
     }
 
-    boolean isBlock(String name) {
-        Block block = analyzer.block(name);
-        if(block==null)
-            return false;
-
-        block.blocks.add(block);
-        return true;
-    }
-
     Common newCommon(String name) {
         Common common = block.commons.get(name);
 
@@ -320,5 +334,4 @@ public class BlockAnalyzer {
     private void parseVariables(Stream<Element> elements, Function<Element, Variable> define) {
         elements.forEach(ce -> parseVariables(ce, define));
     }
-
 }

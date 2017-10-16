@@ -50,7 +50,7 @@ public enum Item {
     ENDDO(expr("end\\s*do\\s*")),
 
     GOTO(expr("goto\\s+(\\d+)")),
-    CALL(expr("call\\s*(\\w*)\\s*")),
+    CALL(expr("(call\\s*(\\w*)\\s*\\(?)")),
     CONTINUE("continue"),
 
     USE(expr("use\\s*(.*)")),
