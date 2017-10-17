@@ -212,7 +212,8 @@ public class Lexer implements AutoCloseable {
             switch (token.item) {
                 case OPEN:
                     out.start("args");
-                    braced(tokens);
+                    args(tokens);
+                    out.end();
                     space(tokens);
                     return;
                 case ENDLINE:
@@ -311,7 +312,7 @@ public class Lexer implements AutoCloseable {
                     break;
                 case APPLY:
                     out.start("arr").lattribute("name", token.get(0));
-                    braced(tokens);
+                    args(tokens);
                     break;
                 case OPEN:
                     out.start("arr");
@@ -429,7 +430,8 @@ public class Lexer implements AutoCloseable {
                     break;
                 case APPLY:
                     out.start("arr");
-                    braced(tokens);
+                    args(tokens);
+                    out.end();
                     break;
                 case COMMA:
                     out.text(",");
@@ -531,9 +533,9 @@ public class Lexer implements AutoCloseable {
             case CALL:
                 label().start("call").lattribute("name", token.get(1));
                 if(token.get(0).endsWith("(")) {
-                    braced(tokens);
-                } else
-                    out.end();
+                    args(tokens);
+                }
+                out.end();
 
                 break;
 
@@ -599,7 +601,8 @@ public class Lexer implements AutoCloseable {
             case APPLY:
                 label().start("assarr").lattribute("name", token.get(0));
                 out.start("args");
-                braced(tokens);
+                args(tokens);
+                out.end();
 
                 next = next(tokens);
                 break;
@@ -648,7 +651,8 @@ public class Lexer implements AutoCloseable {
 
                 case APPLY:
                     out.start("fun").lattribute("name", token.get(0));
-                    braced(tokens);
+                    args(tokens);
+                    out.end();
                     break;
 
                 case BINOP:
@@ -727,6 +731,27 @@ public class Lexer implements AutoCloseable {
                 case CLOSE:
                     out.end();
                     return;
+                default:
+                    processExpr(token, tokens);
+            }
+        }
+    }
+
+    // process list of comma separated arguments
+    private void args(List<Token> tokens) {
+        out.start("arg");
+        while(!tokens.isEmpty()) {
+            Token token = next(tokens);
+            switch (token.item) {
+
+                case CLOSE:
+                    out.end();
+                    return;
+
+                case COMMA:
+                    out.end().text(",").start("arg");
+                    break;
+
                 default:
                     processExpr(token, tokens);
             }
