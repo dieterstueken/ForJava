@@ -318,7 +318,7 @@ public class Lexer implements AutoCloseable {
                     braced(tokens);
                     break;
                 case COMMA:
-                    out.empty("s");
+                    out.text(",");
                     break;
                 case SLASH:
                     out.start("values");
@@ -340,7 +340,7 @@ public class Lexer implements AutoCloseable {
             Token token = tokens.remove(0);
             switch (token.item) {
                 case COMMA:
-                    out.empty("s");
+                    out.text(",");
                     break;
                 case SLASH:
                     space(tokens);
@@ -368,7 +368,7 @@ public class Lexer implements AutoCloseable {
                     processDimArr(tokens);
                     break;
                 case COMMA:
-                    out.empty("s");
+                    out.text(",");
                     break;
                 case ENDLINE:
                     return;
@@ -402,7 +402,7 @@ public class Lexer implements AutoCloseable {
                     out.end();
                     return;
                 case COMMA:
-                    out.empty("s");
+                    out.text(",");
                     break;
                 case RANGE:
                     out.empty("range");
@@ -432,7 +432,7 @@ public class Lexer implements AutoCloseable {
                     braced(tokens);
                     break;
                 case COMMA:
-                    out.empty("s");
+                    out.text(",");
                     break;
                 case ENDLINE:
                     return;
@@ -755,7 +755,7 @@ public class Lexer implements AutoCloseable {
                 break;
 
             case COMMA:
-                out.empty("s");
+                out.text(",");
                 break;
 
             case RANGE:
@@ -830,7 +830,7 @@ public class Lexer implements AutoCloseable {
                     return;
 
                 case COMMA:
-                    out.empty("s");
+                    out.text(",");
                     break;
 
                 case STAR:
@@ -881,7 +881,7 @@ public class Lexer implements AutoCloseable {
                     break;
 
                 case COMMA:
-                    out.empty("s");
+                    out.text(",");
                     break;
 
                 case SLASH:
@@ -893,5 +893,4 @@ public class Lexer implements AutoCloseable {
             }
         }
     }
-
 }
