@@ -302,6 +302,7 @@ public class Lexer implements AutoCloseable {
     }
 
     private void processData(List<Token> tokens) {
+        
         while(!tokens.isEmpty()) {
             Token token = tokens.remove(0);
             switch (token.item) {
@@ -316,13 +317,13 @@ public class Lexer implements AutoCloseable {
                     out.start("arr");
                     braced(tokens);
                     break;
-                case SEP:
+                case COMMA:
                     out.empty("s");
                     break;
-                case BINOP:
-                    if(!"/".equals(token.get(0)))
-                        throw unexpected(token);
+                case SLASH:
+                    out.start("values");
                     processDataValues(tokens);
+                    out.end();
                     return;
                 default:
                     space(token);
@@ -338,12 +339,10 @@ public class Lexer implements AutoCloseable {
 
             Token token = tokens.remove(0);
             switch (token.item) {
-                case SEP:
+                case COMMA:
                     out.empty("s");
                     break;
-                case BINOP:
-                    if(!"/".equals(token.get(0)))
-                        throw unexpected(token);
+                case SLASH:
                     space(tokens);
                     return;
                 default:
@@ -368,7 +367,7 @@ public class Lexer implements AutoCloseable {
                     out.start("arr").lattribute("name", token.get(0));
                     processDimArr(tokens);
                     break;
-                case SEP:
+                case COMMA:
                     out.empty("s");
                     break;
                 case ENDLINE:
@@ -381,7 +380,7 @@ public class Lexer implements AutoCloseable {
 
     private void processDimChar(List<Token> tokens) {
         Token token = tokens.get(0);
-        if(token.item==Item.BINOP && "*".equals(token.get(0))) {
+        if(token.item==Item.STAR) {
             token = tokens.get(1);
             if(token.item==Item.CONST) {
                 out.lattribute("size", token.get(0));
@@ -402,7 +401,7 @@ public class Lexer implements AutoCloseable {
                 case CLOSE:
                     out.end();
                     return;
-                case SEP:
+                case COMMA:
                     out.empty("s");
                     break;
                 case RANGE:
@@ -432,7 +431,7 @@ public class Lexer implements AutoCloseable {
                     out.start("arr");
                     braced(tokens);
                     break;
-                case SEP:
+                case COMMA:
                     out.empty("s");
                     break;
                 case ENDLINE:
@@ -697,6 +696,14 @@ public class Lexer implements AutoCloseable {
                     out.empty(binop(token.get(0)));
                     break;
 
+                case CONCAT:
+                    out.empty("cat");
+                    break;
+
+                case POW:
+                    out.empty("pow");
+                    break;
+
                 case LOGICAL:
                     out.empty(token.get(0).toLowerCase());
                     break;
@@ -747,7 +754,7 @@ public class Lexer implements AutoCloseable {
                 out.end();
                 break;
 
-            case SEP:
+            case COMMA:
                 out.empty("s");
                 break;
 
@@ -776,8 +783,6 @@ public class Lexer implements AutoCloseable {
             case "-": return "sub";
             case "*": return "mul";
             case "/": return "div";
-            case "//": return "concat";
-            case "**": return "pow";
         }
 
         throw unexpected(token);
@@ -824,13 +829,11 @@ public class Lexer implements AutoCloseable {
                 case CLOSE:
                     return;
 
-                case SEP:
+                case COMMA:
                     out.empty("s");
                     break;
 
-                case BINOP:
-                    if(!"*".equals(token.get(0)))
-                        throw unexpected(token);
+                case STAR:
                     out.empty("star");
                     break;
 
@@ -877,15 +880,12 @@ public class Lexer implements AutoCloseable {
                     out.text("text", token.get(0));
                     break;
 
-                case SEP:
+                case COMMA:
                     out.empty("s");
                     break;
 
-                case BINOP:
-                    if("/".equals(token.get(0)))
-                        out.empty("nl");
-                    else
-                        throw unexpected(token);
+                case SLASH:
+                    out.empty("nl");
                     break;
 
                 default:

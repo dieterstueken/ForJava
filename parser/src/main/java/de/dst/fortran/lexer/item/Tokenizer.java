@@ -41,7 +41,7 @@ public class Tokenizer {
     static final List<Item> items = Arrays.asList(Item.values());
 
     boolean pending = false;
-    boolean format = false;
+    Item current = null;
     int linum=0;
 
     static final Token ENDFILE = Item.ENDFILE.token();
@@ -53,7 +53,7 @@ public class Tokenizer {
             pending = false;
         }
 
-        format = false;
+        current = null;
     }
 
     public Tokenizer(Consumer<? super Token> tokens) {
@@ -86,24 +86,44 @@ public class Tokenizer {
 
     Token token(LineBuffer line) {
         for (Item item : items) {
+
+            if(item.tokenizer==null)
+                break;  // no further tokenizers
+
             if(item==Item.FMT || item==Item.FMTREP)
-                if(!format)
+                if(current!=Item.FORMAT)
                     continue;
 
-            if(item.tokenizer!=null) {
-                Token token = item.tokenizer.apply(line);
-                if(token!=null) {
-                    switch(item) {
-                        case FORMAT:
-                        case FMTOPEN:
-                            format=true;
-                            break;
-                        case FMTCLOSE:
-                            format = false;
-                            break;
-                    }
-                    return token;
+            if(item==Item.SLASH)
+                if(current!=Item.FORMAT && current!=Item.DATA)
+                    continue;
+
+            if(item==Item.STAR)
+                if(current!=Item.FIO && current!=Item.DIM)
+                    continue;
+
+            Token token = item.tokenizer.apply(line);
+
+            if(token!=null) {
+                switch(item) {
+                    case FIO:
+                        current = Item.FIO;
+                        break;
+                    case FORMAT:
+                    case FMTOPEN:
+                        current = Item.FORMAT;
+                        break;
+                    case DIM:
+                        current = Item.DIM;
+                        break;
+                    case DATA:
+                        current = Item.DATA;
+                        break;
+                    case FMTCLOSE:
+                        current = null;
+                        break;
                 }
+                return token;
             }
         }
 

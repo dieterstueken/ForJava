@@ -26,9 +26,15 @@ public enum Item {
     STOP("stop"),
 
     LOGICAL(expr(":(eq|ne|le|lt|ge|gt|and|or):")),
-    SEP(","),
+    COMMA(","),
     RANGE(":"),
     WILDCARD("(*)"),
+    STAR("*"),
+    SLASH("/"),
+
+    POW("**"),
+    CONCAT("//"),
+    BINOP(expr("([+\\-\\*/])")),
 
     FORMAT(expr("format\\s*\\(\\s*")),
     FMTOPEN(expr("['\"]\\(")),
@@ -78,7 +84,6 @@ public enum Item {
     END("end"),
     APPLY(expr("(\\w+)\\s*\\(")),
     NAME(expr("(\\w+)")),
-    BINOP(expr("(\\+|-|\\*\\*?|//?)")),
 
     OPEN("("),
     CLOSE(")"),
