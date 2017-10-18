@@ -90,6 +90,7 @@ public enum Item {
 
     COMMENT(expr("!(.*)")),
 
+    CODE(),
     LABEL(),
     LINUM(),
     CODELINE(),

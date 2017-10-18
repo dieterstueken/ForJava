@@ -45,6 +45,18 @@ public class XmlWriter implements AutoCloseable {
         }
     }
 
+    public static XmlWriter open(Document document) {
+        return XmlWriter.open(new DOMResult(document));
+    }
+
+    public static XmlWriter open(File file) {
+        try {
+            return open(new FileOutputStream(file));
+        } catch (FileNotFoundException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     public static XmlWriter open(OutputStream os) {
         try {
             final XMLOutputFactory xmlOutputFactory = XMLOutputFactory.newInstance();
@@ -53,10 +65,6 @@ public class XmlWriter implements AutoCloseable {
         } catch (XMLStreamException ex){
             throw new RuntimeException(ex);
         }
-    }
-
-    public static XmlWriter open(Document document) {
-        return XmlWriter.open(new DOMResult(document));
     }
 
     public static XmlWriter open(Result result) {

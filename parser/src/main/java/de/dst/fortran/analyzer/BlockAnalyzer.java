@@ -1,12 +1,12 @@
 package de.dst.fortran.analyzer;
 
 import de.dst.fortran.code.*;
-import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
+import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Stream;
 
 import static de.dst.fortran.analyzer.Analyzer.childElements;
 
@@ -68,13 +68,11 @@ public class BlockAnalyzer {
 
     private void parse() {
 
-        Function<Element, Variable> variables = define(block.variables::get);
-
-        childElements(be).forEach(ce -> {
+        Analyzer.childElements(be).forEach(ce -> {
             switch(ce.getNodeName()) {
 
                 case "args":
-                    variables(ce, define(block.arguments::get));
+                    args(ce);
                     break;
 
                 case "decl":
@@ -82,25 +80,38 @@ public class BlockAnalyzer {
                     break;
 
                 case "code":
-                    childElements(ce).forEach(e->parseVariables(e, variables));
+                    childElements(ce).forEach(this::codeLine);
                     break;
             }
         });
 
         // finally refresh arguments again
-        childElements(be, "args").findFirst().ifPresent(this::prepareArgs);
+        //childElements(be, "args").findFirst().ifPresent(this::prepareArgs);
+    }
+
+    //void prepareArgs(Element args) {
+    //    variables(args, define(block.arguments::get));
+    //}
+
+    private void args(Element e) {
+        Analyzer.childElements(e, "arg").stream()
+                .flatMap(ce-> Analyzer.childElements(ce, "var").stream())
+                .forEach(this::arg);
+
+        block.arguments.size();
+    }
+
+    Variable arg(Element e) {
+        return variable(e, block.arguments::get);
     }
 
     private void decl(Element e) {
 
-        Function<Element, Variable> variables = define(block.variables::get);
-
-        childElements(e).forEach(ce -> {
+        Analyzer.childElements(e).forEach(ce -> {
             switch(ce.getNodeName()) {
 
                 case "common":
-                    Common common = newCommon(ce.getAttribute("name"));
-                    variables(ce, define(common.members::get));
+                    common(ce);
                     break;
 
                 case "dim":
@@ -108,30 +119,10 @@ public class BlockAnalyzer {
                     childElements(ce).forEach(de -> {
                         // plain value
                         if ("var".equals(de.getNodeName())) {
-                            variables.apply(de).type(type);
+                            variable(de).type(type);
                         } else if ("arr".equals(de.getNodeName())) {
                             // array or matrix definition
-                            Variable var = variable(de).type(type);
-
-                            Function<Element, Variable> index = dimel -> {
-                                Variable v = variable(dimel);
-                                var.dim(v);
-                                return setup(dimel, var);
-                            };
-
-                            childElements(de).forEach(dimel -> {
-                                String name = dimel.getNodeName();
-                                if ("var".equals(name)) {
-                                    index.apply(dimel);
-                                } else if ("val".equals(name)) {
-                                    Integer n = Integer.decode(dimel.getTextContent());
-                                    var.dim(new Constant(n));
-                                } else if ("range".equals(name)) {
-                                    var.dim(Value.UNDEF);
-                                }
-                            });
-
-                            setup(de, var);
+                            array(de, block.variables::get).type(type);
                         }
                     });
                     break;
@@ -139,144 +130,144 @@ public class BlockAnalyzer {
         });
     }
 
-    private void parseVariables(Element e, Function<Element, Variable> define) {
+    private void common(Element e) {
+        Common common = newCommon(e.getAttribute("name"));
+        Analyzer.childElements(e).forEach(ce -> {
+            switch(ce.getNodeName()) {
+                case "var":
+                    variable(ce, common.members::get);
+                    break;
 
+                case "arr":
+                    array(ce, common.members::get);
+                    break;
+            }
+        });
+    }
+
+    private void codeLine(Element e) {
         String name = e.getNodeName();
-        Variable var;
-        Block external;
         switch(name) {
             case "assvar":
-                var = define.apply(e);
-                block.assign(var);
+                block.assign(variable(e));
                 break;
 
             case "assarr":
-                define.apply(e);
+                variable(e);
                 break;
 
             case "call":
-                name = e.getAttribute("name");
-                external = analyzer.block(name);
-
-                if(external==null)
-                    throw new RuntimeException("missing dependeny: " + name);
-
-                // propagate assignments
-                childElements(e, "var")
-                        .map(define)
-                        .filter(external::assigned)
-                        .forEach(this::external);
-
-                break;
-
-
-            case "fun":
-                name = e.getAttribute("name");
-                // if it is a defined variable
-                if (block.variables.exists(name)) {
-                    // array access
-                    e.setAttribute("scope", "var");
-                } else {
-                    external = analyzer.block(name);
-                    if(external==null) {
-                        // intrinsic function
-                        block.functions.add(name);
-                        e.setAttribute("scope", "intrinsic");
-                    } else {
-                        // propagate assignments
-                        childElements(e, "var")
-                                .map(define)
-                                .filter(external::assigned)
-                                .forEach(this::external);
-                    }
-                }
+                call(e);
                 break;
 
             case "for":
-            case "var":
-                define.apply(e);
+                variable(e);
                 break;
 
-            case "args":
-            case "do":
-            case "while":
-            case "if":
-            case "cond":
-            case "then":
-            case "elif":
-            case "else":
             default:
+                // if else do while format io
+        }
+
+        parseExpr(e);
+    }
+
+
+    private void call(Element e) {
+        String name = e.getAttribute("name");
+        Block external = analyzer.block(name);
+
+        if(external==null)
+            throw new RuntimeException("missing dependeny: " + name);
+
+        args(external, e);
+    }
+
+    private void fun(Element e) {
+        String name = e.getAttribute("name");
+
+        if (block.variables.exists(name)) {
+
+            Variable var = block.variables.get(name);
+            if(!var.dim().isEmpty()) {
+                e.setAttribute("scope", "array");
+                return;
+            }
+        } else {
+            Block external = analyzer.block(name);
+            if(external!=null) {
+                args(external, e);
+                return;
+            }
+        }
+
+        // intrinsic function
+        block.functions.add(name);
+        e.setAttribute("scope", "intrinsic");
+    }
+
+    private void args(Block external, Element e) {
+        e.setAttribute("scope", block.name);
+
+        List<Element> args = Analyzer.childElements(e, "arg");
+
+        if(external.arguments.size()!=args.size()) {
+            String message = String.format("argument mismatch for %s.%s: got: %d expected: %d",
+                    block.name, external.name, args.size(), external.arguments.size());
+            throw new IllegalArgumentException(message);
+        }
+
+        for(int i=0; i<args.size(); ++i) {
+            Variable vex = external.arguments.get(i);
+            Element arg = args.get(i);
+            Element var = getVariable(arg);
+
+            if(external.assigned(vex)) {
+                if(var!=null)
+                    block.assign(variable(var));
+                var.setAttribute("returned", "true");
+            }
+            if(var!=null)
+                arg.setAttribute("type", "var");
+            else
+                arg.setAttribute("type", "expr");
+        }
+    }
+
+    private void parseExpr(Element e) {
+
+        String name = e.getNodeName();
+        switch(name) {
+
+            case "var":
+                variable(e);
                 break;
 
+            case "fun":
+                fun(e);
+                break;
+
+            case "pow":
+                pow(e);
         }
 
         // parse recursively
-        parseVariables(childElements(e), define);
+        Analyzer.childElements(e).forEach(this::parseExpr);
     }
 
-    Variable external(Variable v) {
-        if(!block.assigned.contains(v.name))
-            block.assign(v);
-        return v;
+    void pow(Element pow) {
+        Node prev = pow.getPreviousSibling();
+        Node next = pow.getNextSibling();
+        if(prev!=null && next!=null) {
+            pow.appendChild(prev);
+            pow.appendChild(createTextNode(","));
+            pow.appendChild(next);
+        } else {
+            pow.setAttribute("error", "true");
+        }
     }
 
-    void prepareArgs(Element args) {
-        variables(args, define(block.arguments::get));
-    }
-
-    void insertHeader() {
-        
-        final Document o = be.getOwnerDocument();
-        final Node at = be.getFirstChild();
-        final String indent = "\n    ";
-
-        Node nl = o.createTextNode(indent);
-        be.insertBefore(nl, at);
-
-        for (String name : block.functions) {
-            Element f = o.createElement("fun");
-            f.setAttribute("name", name);
-            be.insertBefore(f, at);
-            nl = o.createTextNode(indent);
-            be.insertBefore(nl, at);
-        }
-
-        for (Block block : block.blocks) {
-            Element f = o.createElement("block");
-            f.setAttribute("name", block.name);
-            be.insertBefore(f, at);
-            nl = o.createTextNode(indent);
-            be.insertBefore(nl, at);
-        }
-
-        for (Common common : block.commons) {
-            Element c = o.createElement("com");
-            c.setAttribute("name", common.name);
-            be.insertBefore(c, at);
-            nl = o.createTextNode(indent);
-            be.insertBefore(nl, at);
-        }
-
-        for (Variable var : block.variables) {
-            if(var.context==null) {
-                Element v = o.createElement("lvar");
-                v.setAttribute("name", var.name);
-                v.setAttribute("type", var.type().id);
-                if(!block.assigned(var))
-                    v.setAttribute("const", "true");
-
-                for (Value dim : var.dim()) {
-                    Element d = o.createElement("d");
-                    d.setTextContent(dim.toString());
-                    v.appendChild(d);
-                }
-
-                be.insertBefore(v, at);
-
-                nl = o.createTextNode(indent);
-                be.insertBefore(nl, at);
-            }
-        }
+    private Node createTextNode(String text) {
+        return be.getOwnerDocument().createTextNode(text);
     }
 
     Common newCommon(String name) {
@@ -319,19 +310,59 @@ public class BlockAnalyzer {
         return v;
     }
 
+    Variable variable(Element e, Function<String, Variable> variables) {
+        final String name = e.getAttribute("name");
+        if(name==null || name.isEmpty())
+            throw new IllegalArgumentException("no name");
+
+        final Variable var = variables.apply(name);
+        return setup(e, var);
+    }
+
+    Variable array(Element e, Function<String, Variable> variables) {
+        Variable arr = variable(e, variables);
+
+        Analyzer.childElements(e, "arg").stream()
+                .flatMap(ce -> childElements(ce).stream())
+                .forEach(ce -> {
+            String name = ce.getNodeName();
+            if ("var".equals(name)) {
+                Variable v = variable(ce);
+                arr.dim(v);
+                setup(ce, arr);
+            } else if ("val".equals(name)) {
+                Integer n = Integer.decode(ce.getTextContent());
+                arr.dim(new Constant(n));
+            } else if ("range".equals(name)) {
+                arr.dim(Value.UNDEF);
+            }
+        });
+
+        return  arr;
+    }
+
     Variable variable(Element e) {
-        return block.variables.get(e.getAttribute("name"));
+        return variable(e, block.variables::get);
     }
 
-    Function<Element, Variable> define(Function<String, Variable> variables) {
-        return e -> setup(e, variables.apply(e.getAttribute("name")));
-    }
+    // extract single variable or null if an expression or constant
+    Element getVariable(Element e) {
+        Element var = null;
 
-    private void variables(Element e, Function<Element, Variable> define) {
-        childElements(e, "var").forEach(define::apply);
-    }
+        NodeList nodes = e.getChildNodes();
+        for(int i=0; i<nodes.getLength(); ++i) {
+            Node node = nodes.item(i);
+            if(node instanceof Element) {
+                Element ce = (Element) node;
+                String name = ce.getTagName();
+                if(name.equals("var")) {
+                    if(var!=null) // multiple elements -> expression
+                        return null;
+                    var = ce;
+                }
+            }
+        }
 
-    private void parseVariables(Stream<Element> elements, Function<Element, Variable> define) {
-        elements.forEach(ce -> parseVariables(ce, define));
+        return var;
     }
 }

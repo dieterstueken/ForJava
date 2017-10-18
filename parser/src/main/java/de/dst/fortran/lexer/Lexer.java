@@ -6,10 +6,9 @@ import de.dst.fortran.lexer.item.Token;
 import de.dst.fortran.lexer.item.Tokenizer;
 import org.w3c.dom.Document;
 
-import java.io.*;
-import java.util.LinkedList;
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
-import java.util.stream.Stream;
 
 /**
  * Created by IntelliJ IDEA.
@@ -21,9 +20,7 @@ public class Lexer implements AutoCloseable {
 
     public static void main(String... args) throws IOException {
 
-        List<Token> tokens = new LinkedList<>();
-        Tokenizer tokenizer = new Tokenizer(tokens::add);
-        Stream.of(args).map(File::new).forEach(tokenizer::tokenize);
+        List<Token> tokens = Tokenizer.tokenize(args);
 
         try(Lexer lexer = open(new File("dump.xml"))) {
             lexer.process(tokens);
@@ -41,12 +38,8 @@ public class Lexer implements AutoCloseable {
         return new Lexer(XmlWriter.open(document));
     }
 
-    static Lexer open(File result) throws FileNotFoundException {
-        return new Lexer(XmlWriter.open(new FileOutputStream(result)));
-    }
-
-    static Lexer open(OutputStream stream) {
-        return new Lexer(XmlWriter.open(stream));
+    static Lexer open(File result) {
+        return new Lexer(XmlWriter.open(result));
     }
 
     public Lexer(XmlWriter out) {
@@ -224,16 +217,7 @@ public class Lexer implements AutoCloseable {
         }
     }
 
-    boolean code = false;
-    private void code() {
-        if(!code) {
-            code = true;
-            out.end().start("code").nl();
-        }
-    }
-
     XmlWriter label() {
-        code();
         if(label!=null) {
             out.ltext("label", label);
             label = null;
@@ -241,10 +225,47 @@ public class Lexer implements AutoCloseable {
         return out;
     }
 
+    int findCode(List<Token> tokens) {
+        int code = 0;
+        boolean decl = false;
+
+        lines:
+        for(int i=0; i<tokens.size(); ++i) {
+            Token token = tokens.get(i);
+            switch(token.item) {
+
+                case USE:
+                case DIM:
+                case COMMON:
+                case DATA:
+                    decl = true;
+                    break;
+
+                case CODELINE:
+                   decl = false;
+                   break;
+
+                case ENDLINE:
+                    if(decl) {
+                        code = i + 1;
+                        decl = false;
+                        break;
+                    }
+                    // first real code line
+                    break lines;
+
+                case END:
+                    break lines;
+            }
+        }
+
+        return code;
+    }
+
     private void processCodeLines(List<Token> tokens) {
 
-        if(code)
-            throw unexpected("code");
+        int i = findCode(tokens);
+        tokens.add(i, Item.CODE.token());
 
         while(!tokens.isEmpty()) {
 
@@ -254,11 +275,14 @@ public class Lexer implements AutoCloseable {
 
                 case END:
                     out.end().nl();
-                    code = false;
                     out.empty("end");
                     space(tokens).nl();
                     return;
 
+                case CODE:
+                    out.end().start("code").nl();
+                    break;
+                    
                 case ENDLINE:
                     out.nl();
                     break;
@@ -283,7 +307,7 @@ public class Lexer implements AutoCloseable {
 
             case COMMON:
                 out.start("common").lattribute("name", token.get(0));
-                processCommon(token, tokens);
+                processCommon(tokens);
                 out.end();
                 break;
 
@@ -367,6 +391,7 @@ public class Lexer implements AutoCloseable {
                 case APPLY:
                     out.start("arr").lattribute("name", token.get(0));
                     processDimArr(tokens);
+                    out.end();
                     break;
                 case COMMA:
                     out.text(",");
@@ -396,40 +421,47 @@ public class Lexer implements AutoCloseable {
     }
 
     private void processDimArr(List<Token> tokens) {
+        out.start("arg");
         while(!tokens.isEmpty()) {
             Token token = tokens.remove(0);
             switch (token.item) {
+
                 case CLOSE:
                     out.end();
                     return;
+
                 case COMMA:
-                    out.text(",");
+                    out.end().text(",").start("arg");
                     break;
+
                 case RANGE:
                     out.empty("range");
                     break;
+
                 case BOOLEAN:
                 case CONST:
                     out.ltext("val", token.get(0));
                     break;
+
                 case NAME:
                     out.start("var").lattribute("name", token.get(0)).end();
                     break;
+
                 default:
                     space(token);
             }
         }
     }
 
-    private void processCommon(Token token, List<Token> tokens) {
+    private void processCommon(List<Token> tokens) {
         while(!tokens.isEmpty()) {
-            token = tokens.remove(0);
+            Token token = tokens.remove(0);
             switch (token.item) {
                 case NAME:
                     out.start("var").lattribute("name", token.get(0)).end();
                     break;
                 case APPLY:
-                    out.start("arr");
+                    out.start("arr").lattribute("name", token.get(0));
                     args(tokens);
                     out.end();
                     break;

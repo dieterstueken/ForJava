@@ -7,11 +7,10 @@ import de.dst.fortran.lexer.Lexer;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 
 import java.io.File;
 import java.util.*;
-import java.util.stream.Stream;
+import java.util.function.Predicate;
 
 /**
  * version:     $Revision$
@@ -37,9 +36,11 @@ public class Analyzer {
 
         Document document = Lexer.parse(args);
         //Document document = Analyzer.readDocument("dump.xml");
-        new Analyzer().analyze(document);
-
-        XmlWriter.writeDocument(document, new File("parsed.xml"));
+        try {
+            new Analyzer().analyze(document);
+        } finally{
+            XmlWriter.writeDocument(document, new File("parsed.xml"));
+        }
     }
 
     BlockAnalyzer newAnalyzer(Element be) {
@@ -53,11 +54,9 @@ public class Analyzer {
 
     void analyze(Document document) {
 
-        List<Node> nodes = childNodes(document.getDocumentElement());
-
-        childElements(document.getDocumentElement(), "file")
+        childElements(document.getDocumentElement(), "file").stream()
                 .peek(fe -> System.out.format("file: %s\n", fe.getAttribute("name")))
-                .flatMap(ce -> childElements(ce, "function", "subroutine", "blockdata", "program"))
+                .flatMap(ce -> childElements(ce, "function", "subroutine", "blockdata", "program").stream())
                 .forEach(this::newAnalyzer);
 
         analyzers.values().forEach(BlockAnalyzer::block);
@@ -74,41 +73,70 @@ public class Analyzer {
         return name.toLowerCase();
     }
 
-    public static List<Node> childNodes(Element e) {
-        NodeList nodes = e.getChildNodes();
-        return new AbstractList<Node>() {
+    static Element getNextElement(Node node, Predicate<Element> filter) {
 
-            @Override
-            public int size() {
-                return nodes.getLength();
+        while(node!=null) {
+            if(node instanceof Element) {
+                Element element = (Element) node;
+                if(filter.test(element))
+                    return element;
+            }
+            node = node.getNextSibling();
+        }
+
+        return null;
+    }
+
+    public static List<Element> childElements(Element e, Predicate<Element> filter) {
+
+        Element element = getNextElement(e.getFirstChild(), filter);
+        if(element==null)
+            return Collections.emptyList();
+
+        List<Element> children = null;
+
+        while(element!=null) {
+
+            Element next = getNextElement(element.getNextSibling(), filter);
+            if(children==null) {
+                if(next==null) {
+                    children = Collections.singletonList(element);
+                    break;
+                }
+                children = new ArrayList<>();
             }
 
-            @Override
-            public Node get(int index) {
-                Node child = nodes.item(index);
-                return child;
-            }
-        };
+            children.add(element);
+            element = next;
+        }
+
+        return children;
     }
 
-    public static Stream<Element> childElements(Element e) {
-        return childNodes(e).stream()
-                .filter(Element.class::isInstance)
-                .map(Element.class::cast);
+    public static final Predicate<Element> TRUE = o->true;
+
+    public static final Predicate<Element> isName(String name) {
+        return ce->name.equals(ce.getTagName());
     }
 
-    public static Stream<Element> childElements(Element e, String name) {
-        return childElements(e).filter(ce -> {
-            String localName = ce.getNodeName();
-            return name.equals(localName);
-        });
+    public static final Predicate<Element> isName(String name1, String name2) {
+        return isName(name1).or(isName(name2));
     }
 
-    public static Stream<Element> childElements(Element e, String ... names) {
+    public static final Predicate<Element> isName(String ... names) {
         Set<String> set = new HashSet<>(Arrays.asList(names));
-        return childElements(e).filter(ce -> {
-            String localName = ce.getNodeName();
-            return set.contains(localName);
-        });
+        return ce->set.contains(ce.getTagName());
+    }
+
+    public static List<Element> childElements(Element e) {
+        return childElements(e, TRUE);
+    }
+
+    public static List<Element> childElements(Element e, String name) {
+        return childElements(e, isName(name));
+    }
+
+    public static List<Element> childElements(Element e, String ... names) {
+        return childElements(e, isName(names));
     }
 }
