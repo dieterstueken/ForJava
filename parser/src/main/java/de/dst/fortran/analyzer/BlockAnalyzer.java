@@ -206,6 +206,8 @@ public class BlockAnalyzer {
     }
 
     private void args(Block external, Element e) {
+        block.blocks.add(external);
+
         e.setAttribute("scope", block.name);
 
         List<Element> args = Analyzer.childElements(e, "arg");
