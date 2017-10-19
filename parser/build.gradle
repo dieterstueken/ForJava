@@ -1,5 +1,6 @@
 apply plugin: 'java'
 
 dependencies {
+    compile project(':fortran')
     compile 'com.intellij:annotations:12.0'
 }

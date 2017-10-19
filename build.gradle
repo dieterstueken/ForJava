@@ -4,7 +4,7 @@ sourceCompatibility = 1.8
 version = '1.0'
 
 dependencies {
-  compile 'com.helger:jcodemodel:2.8.6'
+  compile 'com.helger:jcodemodel:3.0.0'
 }
 
 allprojects {

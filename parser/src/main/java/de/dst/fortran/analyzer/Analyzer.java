@@ -37,7 +37,11 @@ public class Analyzer {
         Document document = Lexer.parse(args);
         //Document document = Analyzer.readDocument("dump.xml");
         try {
-            new Analyzer().analyze(document);
+            Analyzer analyzer = new Analyzer().analyze(document);
+            CodeGenerator generator = new CodeGenerator("de.irt.jfor.irt3d");
+            generator.generate(analyzer);
+            generator.build(new File("irt3d/src/main/java"));
+
         } finally{
             XmlWriter.writeDocument(document, new File("parsed.xml"));
         }
@@ -52,7 +56,7 @@ public class Analyzer {
         return analyzer;
     }
 
-    void analyze(Document document) {
+    Analyzer analyze(Document document) {
 
         childElements(document.getDocumentElement(), "file").stream()
                 .peek(fe -> System.out.format("file: %s\n", fe.getAttribute("name")))
@@ -60,6 +64,8 @@ public class Analyzer {
                 .forEach(this::newAnalyzer);
 
         analyzers.values().forEach(BlockAnalyzer::block);
+
+        return this;
     }
 
     static String getPath(Element be) {

@@ -1,5 +1,9 @@
 package de.dst.fortran.code;
 
+import com.sun.codemodel.internal.JExpr;
+import com.sun.codemodel.internal.JExpression;
+import de.irt.jfor.*;
+
 /**
  * version:     $Revision$
  * created by:  dst
@@ -12,9 +16,30 @@ public class Type {
     public final String id;
     public final String name;
 
-    public Type(String name, String id) {
+    public final Class<?> type;
+    public JExpression init;
+
+    public Type(String name, String id, Class<?> type, JExpression init) {
         this.id = id;
         this.name = name;
+        this.type = type;
+        this.init = init;
+    }
+
+    public Type(String name, String id, Class<?> type, String init) {
+        this(name, id, type, JExpr.invoke(init));
+    }
+
+    public Type(String name, String id, Class<?> type) {
+        this(name, id, type, JExpr.invoke(id));
+    }
+
+    public Class<?> getJType() {
+        return type;
+    }
+
+    public JExpression init() {
+        return init;
     }
 
     public String toString() {
@@ -23,22 +48,22 @@ public class Type {
 
     public static Type stringOf(int dim) {
         String name = String.format("character*%d", dim);
-        return new Type(name, "CH");
+        return new Type(name, "CH", Chars.class, JExpr.invoke("chars"));
     }
 
-    public static final Type CH = new Type("character*1", "CH");
+    public static final Type CH = new Type("character*1", "CH", Ch.class, "chars");
 
-    public static final Type I = new Type("integer", "I");
-    public static final Type I2 = new Type("integer*2", "I2");
-    public static final Type I4 = new Type("integer*4", "I4");
+    public static final Type I = new Type("integer", "I", I2.class, "i2");
+    public static final Type I2 = new Type("integer*2", "I2", I2.class, "i2");
+    public static final Type I4 = new Type("integer*4", "I4", I4.class, "i4");
 
-    public static final Type L4 = new Type("logical*4", "L4");
+    public static final Type L4 = new Type("logical*4", "L4", L4.class, "l4");
 
-    public static final Type R = new Type("real", "R");
-    public static final Type R4 = new Type("real*4", "R4");
-    public static final Type R8 = new Type("real*8", "R8");
+    public static final Type R = new Type("real", "R", R4.class, "r4");
+    public static final Type R4 = new Type("real*4", "R4", R4.class, "r4");
+    public static final Type R8 = new Type("real*8", "R8", R8.class, "r8");
 
-    public static final Type CX = new Type("complex", "CX");
+    public static final Type CX = new Type("complex", "CX", Complex.class, "complex");
 
     public static Type intrinsic(String name) {
         return "ijklmn".indexOf(Character.toLowerCase(name.charAt(0)))>=0 ? I : R;
