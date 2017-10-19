@@ -359,7 +359,7 @@ public class Lexer implements AutoCloseable {
     private void processDataValues(List<Token> tokens) {
         while(!tokens.isEmpty()) {
 
-            if(getValue(tokens, false))
+            if(getValue(tokens))
                 continue;
 
             Token token = tokens.remove(0);
@@ -653,12 +653,8 @@ public class Lexer implements AutoCloseable {
         out.end();
     }
 
-    private boolean getValue(List<Token> tokens) {
-        return getValue(tokens, true);
-    }
-
     // try to extract a single value
-    private boolean getValue(List<Token> tokens, boolean binop) {
+    private boolean getValue(List<Token> tokens) {
 
         int count = 0;
         Token token=null;
@@ -709,7 +705,7 @@ public class Lexer implements AutoCloseable {
 
             // got value, try get binop
 
-            if(binop && getBinop(tokens))
+            if(getBinop(tokens))
                 ++count; // continue with further values
             else
                 return true;

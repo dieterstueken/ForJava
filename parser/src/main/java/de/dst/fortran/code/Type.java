@@ -1,7 +1,8 @@
 package de.dst.fortran.code;
 
-import com.sun.codemodel.internal.JExpr;
-import com.sun.codemodel.internal.JExpression;
+
+import com.helger.jcodemodel.IJExpression;
+import com.helger.jcodemodel.JExpr;
 import de.irt.jfor.*;
 
 /**
@@ -17,9 +18,9 @@ public class Type {
     public final String name;
 
     public final Class<?> type;
-    public JExpression init;
+    public IJExpression init;
 
-    public Type(String name, String id, Class<?> type, JExpression init) {
+    public Type(String name, String id, Class<?> type, IJExpression init) {
         this.id = id;
         this.name = name;
         this.type = type;
@@ -38,7 +39,7 @@ public class Type {
         return type;
     }
 
-    public JExpression init() {
+    public IJExpression init() {
         return init;
     }
 

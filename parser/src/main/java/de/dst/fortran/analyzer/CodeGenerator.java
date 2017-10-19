@@ -1,6 +1,6 @@
 package de.dst.fortran.analyzer;
 
-import com.sun.codemodel.internal.*;
+import com.helger.jcodemodel.*;
 import de.dst.fortran.code.Common;
 import de.dst.fortran.code.Type;
 import de.dst.fortran.code.Variable;
@@ -46,6 +46,7 @@ public class CodeGenerator {
     }
 
     public void build(File directory) throws IOException {
+        directory.mkdirs();
         codeModel.build(directory);
     }
 
@@ -61,7 +62,7 @@ public class CodeGenerator {
         jc._extends(de.irt.jfor.Common.class);
         for (Variable member : common.members) {
             Type type = member.type();
-            JExpression init = type.init();
+            IJExpression init = type.init();
             jc.field(JMod.PUBLIC|JMod.FINAL, type.type, member.name, init);
         }
     }
