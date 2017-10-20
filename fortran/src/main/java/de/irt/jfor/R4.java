@@ -7,7 +7,7 @@ package de.irt.jfor;
  * modified by: $Author$
  * modified on: $Date$
  */
-public class R4 {
+public class R4 implements Ref {
 
     public float v = 0;
 

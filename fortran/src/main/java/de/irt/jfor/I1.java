@@ -7,19 +7,19 @@ package de.irt.jfor;
  * modified by: $Author$
  * modified on: $Date$
  */
-public class Ch {
+public class I1 implements Ref {
 
-    public final char c;
+    public byte v = 0;
 
-    public Ch(char c) {
-        this.c = c;
+    public I1(char c) {
+        this.v = (byte) c;
     }
 
     public String toString() {
-        return Character.toString(c);
+        return Character.toString((char)v);
     }
 
-    public static Ch of() {
-            return new Ch(' ');
+    public static I1 of() {
+            return new I1(' ');
         }
 }

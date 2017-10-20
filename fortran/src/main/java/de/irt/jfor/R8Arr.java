@@ -7,7 +7,7 @@ package de.irt.jfor;
  * modified by: $Author$
  * modified on: $Date$
  */
-public class R8Arr {
+public class R8Arr implements Arr {
 
     public final double v[];
 

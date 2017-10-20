@@ -3,6 +3,9 @@ package de.dst.fortran.code;
 
 import de.irt.jfor.*;
 
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * version:     $Revision$
  * created by:  dst
@@ -12,38 +15,39 @@ import de.irt.jfor.*;
  */
 public class Type {
 
-    public final Class<?> type;
+    public final Class<?> simple;
 
-    public final Type arr;
+    public final List<Class<?>> types;
 
-    public Type(Class<?> type, Type arr) {
-        this.type = type;
-        this.arr = arr;
+    public Type(Class<?> simple, Class<?> ... types) {
+        this.simple = simple;
+        this.types = Arrays.asList(types);
     }
 
-    static protected Type of(Class<?> type) {
-        return new Type(type, null);
-    }
-    
-    protected Type on(Class<?> type) {
-        return new Type(type, this);   
+    static protected Type of(Class<?> simple, Class<?> ... types) {
+        return new Type(simple, types);
     }
 
     public Class<?> type() {
-        return type;
+        return types.get(0);
+    }
+
+    public Class<?> type(int dim) {
+        return types.get(dim);
     }
 
     public String toString() {
-        return type.getSimpleName();
+        return type().getSimpleName();
     }
 
-    public static final Type CH = of(StringArr.class).on(ChArr.class).on(Ch.class);
-    public static final Type I2 = of(I2Cub.class).on(I2Mat.class).on(I2Arr.class).on(I2.class);
-    public static final Type I4 = of(I4Cub.class).on(I4Mat.class).on(I4Arr.class).on(I4.class);
-    public static final Type L4 = of(L4.class);
-    public static final Type R4 = of(R4Cub.class).on(R4Mat.class).on(R4Arr.class).on(R4.class);
-    public static final Type R8 = of(R8Cub.class).on(R8Mat.class).on(R8Arr.class).on(R8.class);
-    public static final Type CX = of(Complex.class);
+    public static final Type STR= of(String.class, ChArr.class, StringArr.class);
+    public static final Type CH = of(Byte.TYPE, I1.class, I1Arr.class, I1Mat.class);
+    public static final Type I2 = of(Short.TYPE, I2.class, I2Arr.class, I2Mat.class, I2Cub.class);
+    public static final Type I4 = of(Integer.TYPE, I4.class, I4Cub.class, I4Arr.class, I4Mat.class);
+    public static final Type L4 = of(Boolean.TYPE, L4.class);
+    public static final Type R4 = of(Float.TYPE, R4.class, R4Arr.class, R4Mat.class, R4Cub.class);
+    public static final Type R8 = of(Double.TYPE, R8.class, R8Arr.class, R8Mat.class, R8Cub.class);
+    public static final Type CX = of(null, Complex.class);
 
     public static Type intrinsic(String name) {
         return "ijklmn".indexOf(Character.toLowerCase(name.charAt(0)))>=0 ? I4 : R4;

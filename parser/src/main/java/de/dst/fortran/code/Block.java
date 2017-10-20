@@ -17,11 +17,21 @@ public class Block extends Entity implements Context {
 
     public Type returnType = null;
 
+    public Class<?> type() {
+        if(!this.type.equals("function"))
+            return Void.TYPE;
+
+        Type type = this.returnType != null ? this.returnType : Type.intrinsic(name);
+
+        if(type.simple!=null)
+            return type.simple;
+        else
+            return type.type();
+    }
+
     public final Entities<Variable> variables = new Entities<>(Variable::new);
 
-    public final Entities<Variable> arguments = new Entities<>(name -> variables.get(name).context(this));
-
-    public final Set<String> assigned = new HashSet<>();
+    public final Entities<Variable> arguments = new Entities<>(name -> variables.get(name).context(this).isArgument(true));
 
     public final Set<String> functions = new HashSet<>();
 
@@ -38,15 +48,11 @@ public class Block extends Entity implements Context {
     }
 
     public Variable assign(Variable v) {
-        boolean ass = assigned.add(v.name);
-        if(ass)
-            return v;
-        else
-            return v;
+        return v.isAssigned(true);
     }
 
     public boolean assigned(Variable v) {
-        return assigned.contains(v.name);
+        return v.isAssigned();
     }
 
     public void dump() {

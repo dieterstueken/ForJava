@@ -6,7 +6,7 @@ package de.irt.jfor;
  * Date: 20.10.17
  * Time: 11:54
  */
-public class Mat {
+public class Mat implements Ref {
 
     public final int nx;
 

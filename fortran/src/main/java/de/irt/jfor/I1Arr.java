@@ -7,25 +7,30 @@ package de.irt.jfor;
  * modified by: $Author$
  * modified on: $Date$
  */
-public class I2Arr implements Arr {
+public class I1Arr implements Arr {
 
-    public final short v[];
+    public final byte v[];
 
-    public I2Arr(int len) {
-        this.v = new short[len];
+    public I1Arr(int len) {
+        this.v = new byte[len];
     }
 
     public short get(int index) {
         return v[index-1];
     }
 
-    public short set(int index, short value) {
+    public short set(int index, byte value) {
         v[index-1] = value;
         return value;
     }
 
+    public int set(int index, char value) {
+        v[index-1] = (byte) value;
+        return value;
+    }
+
     public int set(int index, int value) {
-        v[index-1] = (short) value;
+        v[index-1] = (byte) value;
         return value;
     }
 
@@ -34,7 +39,7 @@ public class I2Arr implements Arr {
     }
 
 
-    public static I2Arr of(int dim) {
-        return new I2Arr(dim);
+    public static I1Arr of(int dim) {
+        return new I1Arr(dim);
     }
 }

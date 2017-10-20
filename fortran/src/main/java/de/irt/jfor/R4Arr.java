@@ -7,7 +7,7 @@ package de.irt.jfor;
  * modified by: $Author$
  * modified on: $Date$
  */
-public class R4Arr {
+public class R4Arr implements Arr {
 
     public final float v[];
 

@@ -1,9 +1,6 @@
 package de.dst.fortran.code;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * version:     $Revision$
@@ -14,9 +11,13 @@ import java.util.Objects;
  */
 public class Variable extends Entity implements Value, Context {
 
+    enum Prop {EXPLICIT, ARGUMENT, ASSIGNED, REFERENCED};
+
+    public final Set<Prop> props = EnumSet.noneOf(Prop.class);
+
     public Type type = null;
 
-    public List<Value> dim = null;
+    public List<Value> dim = Collections.emptyList();
 
     public Context context = null;
 
@@ -25,28 +26,39 @@ public class Variable extends Entity implements Value, Context {
     transient String toString;
 
     public Variable(String name) {
-        this(name, null);
+        super(name);
     }
 
-    public Type type() {
-        Type type =  this.type != null ? this.type : Type.intrinsic(name);
+    public Variable(String name, Context context) {
+        super(name);
+        this.context = context;
+    }
 
-        if(dim!=null) {
-            for(int d=dim.size(); d>0; --d) {
-                type = type.arr;
-                if(type==null) {
-                    String message = String.format("missing multidimensional data type of dim %d for variable %s",
-                            dim.size(), name);
-                    throw new IllegalArgumentException(message);
-                }
-            }
+    public boolean isPrimitive() {
+        if(!dim.isEmpty())
+            return false;
+
+        if(isReferenced())
+            return false;
+
+        if(isArgument() && isAssigned())
+            return false;
+
+        return true;
+    }
+
+    public Class<?> type() {
+        Type type = this.type != null ? this.type : Type.intrinsic(name);
+
+        if(isPrimitive() && type.simple!=null) {
+            return type.simple;
         }
 
-        return type;
+        return type.type(dim.size());
     }
 
     public String toString() {
-        if(context == null && dim == null)
+        if(context == null && dim.isEmpty())
             return name;
 
         if(toString==null) {
@@ -60,7 +72,7 @@ public class Variable extends Entity implements Value, Context {
 
             buffer.append(name);
 
-            if (dim != null) {
+            if (!dim.isEmpty()) {
                 char sep = '(';
                 for (Value iv : dim) {
                     String name = iv instanceof Entity ? ((Entity)iv).getName() : iv.toString();
@@ -86,14 +98,41 @@ public class Variable extends Entity implements Value, Context {
         return this;
     }
 
-    public Variable(String name, Context context) {
-        super(name);
-        this.context = context;
+
+    public Variable isArgument(boolean argument) {
+        if(argument)
+            props.add(Prop.ARGUMENT);
+        return this;
+    }
+
+    public boolean isArgument() {
+        return props.contains(Prop.ARGUMENT);
+    }
+
+    public Variable isAssigned(boolean assigned) {
+        if(assigned)
+            props.add(Prop.ASSIGNED);
+        return this;
+    }
+
+    public boolean isAssigned() {
+        return props.contains(Prop.ASSIGNED);
+    }
+
+    public Variable isReferenced(boolean referenced) {
+        if(referenced)
+            props.add(Prop.REFERENCED);
+        return this;
+    }
+
+    public boolean isReferenced() {
+        return props.contains(Prop.REFERENCED);
     }
 
     public Variable dim(Value dim) {
-        if(this.dim==null)
+        if(this.dim==null || this.dim.isEmpty())
             this.dim=new ArrayList<>();
+
         this.dim.add(dim);
         this.toString = null;
 
@@ -103,12 +142,8 @@ public class Variable extends Entity implements Value, Context {
     public Variable type(Type type) {
         this.type = type;
         this.toString = null;
-
+        props.add(Prop.EXPLICIT);
         return this;
-    }
-
-    public List<Value> dim() {
-        return this.dim==null ? Collections.emptyList() : dim;
     }
 
     public String contextName() {
@@ -124,7 +159,7 @@ public class Variable extends Entity implements Value, Context {
         Variable variable = (Variable) o;
 
         boolean eq = Objects.equals(type, variable.type)
-                && Objects.equals(dim(), variable.dim())
+                && Objects.equals(dim, variable.dim)
                 && Objects.equals(contextName(), variable.contextName());
 
         return eq;

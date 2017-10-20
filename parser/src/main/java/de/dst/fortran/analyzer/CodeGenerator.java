@@ -2,6 +2,7 @@ package de.dst.fortran.analyzer;
 
 import com.helger.jcodemodel.*;
 import de.dst.fortran.code.*;
+import de.irt.jfor.Ref;
 
 import java.io.File;
 import java.io.IOException;
@@ -65,33 +66,48 @@ public class CodeGenerator {
         }
     }
 
+    JFieldVar defineVariable(JDefinedClass jc, Variable var) {
+        Class<?> type = var.type();
+
+        IJExpression expr = null;
+
+        if(Ref.class.isAssignableFrom(type)) {
+            JInvocation init = codeModel.ref(type).staticInvoke("of");
+
+            if (!var.dim.isEmpty()) {
+                for (Value value : var.dim) {
+                    if (value instanceof Constant) {
+                        int n = ((Constant) value).value.intValue();
+                        init.arg(n);
+                    } else if (value == UNDEF) {
+                        init = null;
+                        break;
+                    } else {
+                        throw new IllegalArgumentException(value.toString());
+                    }
+                }
+            }
+            if(init!=null)
+                expr = init;
+            else
+                expr = JExpr._null();
+        } else
+        if(String.class.isAssignableFrom(type))
+            expr = JExpr._null();
+        else
+        if(Boolean.class.isAssignableFrom(type))
+            expr = JExpr.FALSE;
+        else
+            expr = JExpr.lit(0);
+
+        return jc.field(JMod.PUBLIC|JMod.FINAL, type, var.name, expr);
+    }
+
     void generateCommon(Common common, JDefinedClass jc) {
         jc._extends(de.irt.jfor.Common.class);
         commons.put(common.name, jc);
         for (Variable member : common.members) {
-            Type type = member.type();
-
-            JInvocation init = codeModel.ref(type.type()).staticInvoke("of");
-
-            if(member.dim!=null)
-            for (Value value : member.dim) {
-                if(value instanceof Constant) {
-                    int n = ((Constant) value).value.intValue();
-                    init.arg(n);
-                } else
-                if(value == UNDEF) {
-                    init = null;
-                    break;
-                }
-                else {
-                    throw new IllegalArgumentException(value.toString());
-                }
-            }
-
-            IJExpression expr = init==null ? JExpr._null() : init;
-
-            JFieldVar jvar = jc.field(JMod.PUBLIC|JMod.FINAL,
-                    type.type, member.name, expr);
+            defineVariable(jc, member);
         }
     }
 
@@ -147,8 +163,29 @@ public class CodeGenerator {
             comment.setSingleLineMode(true);
             comment.add("\n");
             comment.add("units");
+            comment = null;
         }
 
+        for (Variable var : analyzer.block.variables) {
+            if(var.context==null) {
+                JFieldVar jvar = defineVariable(jc, var);
+                if (comment == null)
+                    comment = jvar.javadoc();
+            }
+        }
+
+        if(comment!=null) {
+            comment.setSingleLineMode(true);
+            comment.add("\n");
+            comment.add("variables");
+            comment = null;
+        }
+
+        JMethod call = jc.method(JMod.PUBLIC, analyzer.block.type(), "call");
+        for (Variable arg : analyzer.block.arguments) {
+            call.param(JMod.FINAL, arg.type(), arg.name);
+        }
+        
         return jc;
     }
 }

@@ -189,7 +189,7 @@ public class BlockAnalyzer {
         if (block.variables.exists(name)) {
 
             Variable var = block.variables.get(name);
-            if(!var.dim().isEmpty()) {
+            if(!var.dim.isEmpty()) {
                 e.setAttribute("scope", "array");
                 return;
             }
@@ -224,11 +224,18 @@ public class BlockAnalyzer {
             Element arg = args.get(i);
             Element var = getVariable(arg);
 
-            if(external.assigned(vex)) {
-                if(var!=null)
-                    block.assign(variable(var));
+            if(var!=null) {
+                Variable v = variable(var);
+
+                if(external.assigned(vex))
+                    block.assign(v);
+
+                if(vex.isReferenced())
+                    v.isReferenced(true);
+
                 var.setAttribute("returned", "true");
             }
+
             if(var!=null)
                 arg.setAttribute("type", "var");
             else

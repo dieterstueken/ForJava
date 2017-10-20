@@ -10,7 +10,7 @@ import java.util.List;
  * modified by: $Author$
  * modified on: $Date$
  */
-public class StringArr {
+public class StringArr implements Arr {
 
     public final List<String> strings;
 

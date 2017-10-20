@@ -7,7 +7,7 @@ package de.irt.jfor;
  * modified by: $Author$
  * modified on: $Date$
  */
-public class I4Arr {
+public class I4Arr implements Arr {
 
     public final int v[];
 

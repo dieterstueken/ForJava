@@ -7,7 +7,7 @@ package de.irt.jfor;
  * modified by: $Author$
  * modified on: $Date$
  */
-public class Complex {
+public class Complex implements Ref {
 
     public double re = 0;
 
@@ -28,6 +28,9 @@ public class Complex {
         return String.format("Cplx(%d,%d)", re, im);
     }
 
+    public static Complex of() {
+        return of(0,0);
+    }
 
     public static Complex of(double re, double im) {
         return new Complex(re, im);

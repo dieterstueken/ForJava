@@ -7,7 +7,7 @@ package de.irt.jfor;
  * modified by: $Author$
  * modified on: $Date$
  */
-public class L4 {
+public class L4 implements Ref {
 
     public boolean v = false;
 

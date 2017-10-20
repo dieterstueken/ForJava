@@ -151,7 +151,6 @@ public class Analyzer {
     private static final Map<String, Type> TYPES = new HashMap<>();
     {
         TYPES.put("character*1", Type.CH);
-        TYPES.put("character*(*)", Type.CH.arr);
         TYPES.put("integer", Type.I2);
         TYPES.put("integer*2", Type.I2);
         TYPES.put("integer*4", Type.I4);
@@ -171,7 +170,7 @@ public class Analyzer {
                 return type;
 
         if(token.startsWith("character*")) {
-            return Type.CH.arr; // whatever
+            return Type.STR; // whatever
         }
 
         throw new IllegalArgumentException(token);

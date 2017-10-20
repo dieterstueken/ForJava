@@ -7,7 +7,7 @@ package de.irt.jfor;
  * modified by: $Author$
  * modified on: $Date$
  */
-public class I2 {
+public class I2 implements Ref {
 
     public short v = 0;
 
