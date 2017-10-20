@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import static de.dst.fortran.analyzer.Analyzer.childElements;
+import static de.dst.fortran.analyzer.Analyzer.parseType;
 
 /**
  * Created by IntelliJ IDEA.
@@ -37,7 +38,7 @@ public class BlockAnalyzer {
 
         block = new Block(be.getAttribute("name"));
         block.type = be.getNodeName();
-        block.returnType = Type.parse(be.getAttribute("type"));
+        block.returnType = parseType(be.getAttribute("type"));
         block.path = Analyzer.getPath(be);
         be.setAttribute("path", block.path);
 
@@ -115,7 +116,7 @@ public class BlockAnalyzer {
                     break;
 
                 case "dim":
-                    Type type = Type.parse(ce.getAttribute("type"));
+                    Type type = parseType(ce.getAttribute("type"));
                     childElements(ce).forEach(de -> {
                         // plain value
                         if ("var".equals(de.getNodeName())) {

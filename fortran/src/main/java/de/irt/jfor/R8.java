@@ -18,4 +18,13 @@ public class R8 {
     public String toString() {
         return Double.toString(v);
     }
+
+    public static R8 of() {
+        return new R8(0);
+    }
+
+    public static R8 of(double val) {
+        return new R8((float)val);
+    }
+
 }

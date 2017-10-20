@@ -24,9 +24,13 @@ public class Complex {
         return this;
     }
 
-
     public String toString() {
         return String.format("Cplx(%d,%d)", re, im);
+    }
+
+
+    public static Complex of(double re, double im) {
+        return new Complex(re, im);
     }
 
     public Complex assign(Complex o) {

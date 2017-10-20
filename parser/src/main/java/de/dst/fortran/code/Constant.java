@@ -9,7 +9,7 @@ package de.dst.fortran.code;
  */
 public class Constant implements Value {
 
-    Number value;
+    public final Number value;
 
     public Constant(Number value) {
         this.value = value;

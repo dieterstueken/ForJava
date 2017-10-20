@@ -18,4 +18,17 @@ public class R4 {
     public String toString() {
         return Float.toString(v);
     }
+
+    public static R4 of() {
+        return new R4(0);
+    }
+
+    public static R4 of(float val) {
+        return new R4(val);
+    }
+
+    public static R4 of(double val) {
+        return new R4((float)val);
+    }
+
 }

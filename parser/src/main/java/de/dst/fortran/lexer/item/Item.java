@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
 public enum Item {
     SPACE(expr("(\\s+)")),
 
-    FUNCTION(expr("((?:integer|real|complex|character|logical)(?:\\*(:?\\d+))?\\s)?\\s*function\\s*(\\w+)\\s*")),
+    FUNCTION(expr("((?:integer|real|complex|character|logical)(?:\\*(:?\\d+))?)?\\s*function\\s*(\\w+)\\s*")),
     SUBROUTINE(expr("subroutine\\s*(\\w+)\\s*")),
     BLOCKDATA(expr("block\\s+data\\s+(\\w+)\\s*")),
     PROGRAM(expr("program\\s+(\\w+)\\s*")),

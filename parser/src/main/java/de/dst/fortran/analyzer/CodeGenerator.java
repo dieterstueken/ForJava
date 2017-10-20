@@ -1,15 +1,14 @@
 package de.dst.fortran.analyzer;
 
 import com.helger.jcodemodel.*;
-import de.dst.fortran.code.Block;
-import de.dst.fortran.code.Common;
-import de.dst.fortran.code.Type;
-import de.dst.fortran.code.Variable;
+import de.dst.fortran.code.*;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+
+import static de.dst.fortran.code.Value.UNDEF;
 
 
 /**
@@ -47,6 +46,7 @@ public class CodeGenerator {
         }
     }
 
+
     public void generate(Analyzer code) {
         generateCommons(code);
         generateUnits(code);
@@ -70,9 +70,28 @@ public class CodeGenerator {
         commons.put(common.name, jc);
         for (Variable member : common.members) {
             Type type = member.type();
-            IJExpression init = type.init();
+
+            JInvocation init = codeModel.ref(type.type()).staticInvoke("of");
+
+            if(member.dim!=null)
+            for (Value value : member.dim) {
+                if(value instanceof Constant) {
+                    int n = ((Constant) value).value.intValue();
+                    init.arg(n);
+                } else
+                if(value == UNDEF) {
+                    init = null;
+                    break;
+                }
+                else {
+                    throw new IllegalArgumentException(value.toString());
+                }
+            }
+
+            IJExpression expr = init==null ? JExpr._null() : init;
+
             JFieldVar jvar = jc.field(JMod.PUBLIC|JMod.FINAL,
-                    type.type, member.name, init);
+                    type.type, member.name, expr);
         }
     }
 
@@ -94,17 +113,24 @@ public class CodeGenerator {
     }
 
     private JDefinedClass generateUnit(BlockAnalyzer analyzer, JDefinedClass jc) {
-
-        //jc.direct("// commons\n");
+        
+        JDocComment comment = null;
 
         for (Common common : analyzer.block.commons) {
             JDefinedClass jcommon = commons.get(common.name);
             JFieldVar jvar = jc.field(JMod.PUBLIC|JMod.FINAL,
                 jcommon, common.name,
                     JExpr.invoke("common").arg(JExpr.dotclass(jcommon)));
+            if(comment==null)
+                comment = jvar.javadoc();
         }
 
-        //jc.direct("// units\n");
+        if(comment!=null) {
+            comment.setSingleLineMode(true);
+            comment.add("\n");
+            comment.add("commons");
+            comment = null;
+        }
 
         for (Block block : analyzer.block.blocks) {
             String name = block.name;
@@ -112,6 +138,15 @@ public class CodeGenerator {
             JFieldVar jvar = jc.field(JMod.PUBLIC|JMod.FINAL,
                     junit, name,
                     JExpr.invoke("unit").arg(JExpr.dotclass(junit)));
+            if(comment==null)
+                comment = jvar.javadoc();
+
+        }
+
+        if(comment!=null) {
+            comment.setSingleLineMode(true);
+            comment.add("\n");
+            comment.add("units");
         }
 
         return jc;

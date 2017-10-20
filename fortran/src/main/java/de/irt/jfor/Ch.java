@@ -18,4 +18,8 @@ public class Ch {
     public String toString() {
         return Character.toString(c);
     }
+
+    public static Ch of() {
+            return new Ch(' ');
+        }
 }

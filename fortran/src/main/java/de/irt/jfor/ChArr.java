@@ -7,19 +7,28 @@ package de.irt.jfor;
  * modified by: $Author$
  * modified on: $Date$
  */
-public class Chars {
+public class ChArr {
 
     public final StringBuffer buffer;
 
-    public Chars(int len) {
+    public ChArr(int len) {
         buffer = new StringBuffer(len);
     }
 
-    public Chars() {
+    public ChArr() {
         buffer = new StringBuffer();
     }
 
     public String toString() {
         return buffer.toString();
+    }
+
+
+    public static ChArr of() {
+        return new ChArr();
+    }
+
+    public static ChArr of(int len) {
+        return new ChArr(len);
     }
 }

@@ -29,7 +29,20 @@ public class Variable extends Entity implements Value, Context {
     }
 
     public Type type() {
-        return type != null ? type : Type.intrinsic(name);
+        Type type =  this.type != null ? this.type : Type.intrinsic(name);
+
+        if(dim!=null) {
+            for(int d=dim.size(); d>0; --d) {
+                type = type.arr;
+                if(type==null) {
+                    String message = String.format("missing multidimensional data type of dim %d for variable %s",
+                            dim.size(), name);
+                    throw new IllegalArgumentException(message);
+                }
+            }
+        }
+
+        return type;
     }
 
     public String toString() {

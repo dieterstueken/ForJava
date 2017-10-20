@@ -18,4 +18,8 @@ public class L4 {
     public String toString() {
         return Boolean.toString(v);
     }
+
+    public static L4 of() {
+        return new L4(false);
+    }
 }

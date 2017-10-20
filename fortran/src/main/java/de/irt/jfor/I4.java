@@ -18,4 +18,12 @@ public class I4 {
     public String toString() {
         return Integer.toString(v);
     }
+
+    public static I4 of() {
+        return new I4((short)0);
+    }
+
+    public static I4 of(int value) {
+        return new I4((short)value);
+    }
 }

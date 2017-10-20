@@ -3,6 +3,7 @@ package de.dst.fortran.analyzer;
 import de.dst.fortran.XmlWriter;
 import de.dst.fortran.code.Block;
 import de.dst.fortran.code.Common;
+import de.dst.fortran.code.Type;
 import de.dst.fortran.lexer.Lexer;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -144,5 +145,57 @@ public class Analyzer {
 
     public static List<Element> childElements(Element e, String ... names) {
         return childElements(e, isName(names));
+    }
+
+
+    private static final Map<String, Type> TYPES = new HashMap<>();
+    {
+        TYPES.put("character*1", Type.CH);
+        TYPES.put("character*(*)", Type.CH.arr);
+        TYPES.put("integer", Type.I2);
+        TYPES.put("integer*2", Type.I2);
+        TYPES.put("integer*4", Type.I4);
+        TYPES.put("logical*4", Type.L4);
+        TYPES.put("real", Type.R4);
+        TYPES.put("real*4", Type.R4);
+        TYPES.put("real*8", Type.R8);
+        TYPES.put("complex", Type.CX);
+    }
+
+    public static Type parseType(final String token) {
+        if(token==null || token.isEmpty())
+            return null;
+
+        Type type = TYPES.get(token);
+            if(type!=null)
+                return type;
+
+        if(token.startsWith("character*")) {
+            return Type.CH.arr; // whatever
+        }
+
+        throw new IllegalArgumentException(token);
+    }
+
+    public static Integer parseInt(String line) {
+
+        if(line==null || line.isEmpty())
+            return null;
+
+        char ch = line.charAt(0);
+        if(!Character.isDigit(ch))
+            return null;
+
+        int label = 0;
+
+        int len = line.length();
+        for(int i=0; i<len; ++i) {
+            ch = line.charAt(i);
+            if(!Character.isDigit(ch))
+                break;
+            label = 10 * label + Character.getNumericValue(ch);
+        }
+
+        return label;
     }
 }

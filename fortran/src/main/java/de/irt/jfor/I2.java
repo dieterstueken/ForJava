@@ -18,4 +18,17 @@ public class I2 {
     public String toString() {
         return Short.toString(v);
     }
+
+    public static I2 of() {
+        return new I2((short)0);
+    }
+
+    public static I2 of(short value) {
+        return new I2(value);
+    }
+
+    public static I2 of(int value) {
+        return new I2((short)value);
+    }
+
 }
