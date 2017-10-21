@@ -1,16 +1,19 @@
 package de.dst.fortran.analyzer;
 
 import com.helger.jcodemodel.*;
-import de.dst.fortran.code.*;
+import de.dst.fortran.code.Common;
+import de.dst.fortran.code.Constant;
+import de.dst.fortran.code.Value;
+import de.dst.fortran.code.Variable;
 import de.irt.jfor.Ref;
 
+import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 import static de.dst.fortran.code.Value.UNDEF;
-
 
 /**
  * version:     $Revision$
@@ -21,14 +24,18 @@ import static de.dst.fortran.code.Value.UNDEF;
  */
 public class CodeGenerator {
 
-    private final JCodeModel codeModel = new JCodeModel();
+    final JCodeModel codeModel = new JCodeModel();
 
-    private final JPackage jfor = codeModel._package("de.irt.jfor");
+    final JPackage jfor = codeModel._package("de.irt.jfor");
 
-    private final JPackage jmodule;
+    final JPackage jmodule;
 
-    private Map<String, JDefinedClass> commons = new HashMap<>();
-    private Map<String, JDefinedClass> units = new HashMap<>();
+    JPackage subPackage(@Nonnull String name) {
+        return jmodule.subPackage(name);
+    }
+
+    Map<String, JDefinedClass> commons = new HashMap<>();
+    Map<String, UnitGenerator> units = new HashMap<>();
 
     public CodeGenerator(String module) {
         jmodule = codeModel._package(module);
@@ -114,78 +121,10 @@ public class CodeGenerator {
     private void generateUnits(Analyzer code) {
 
         for (BlockAnalyzer analyzer : code.analyzers.values()) {
-            JPackage jpkg = jmodule.subPackage(analyzer.block.path);
-            JDefinedClass jc = defineClass(jpkg, analyzer.block.name);
-            jc._extends(de.irt.jfor.Unit.class);
-
-            units.put(analyzer.block.name, jc);
+            UnitGenerator unit = new UnitGenerator(this, analyzer);
+            units.put(analyzer.block.name, unit);
         }
 
-        for (BlockAnalyzer analyzer : code.analyzers.values()) {
-            JDefinedClass jc = units.get(analyzer.block.name);
-            generateUnit(analyzer, jc);
-        }
-
-    }
-
-    private JDefinedClass generateUnit(BlockAnalyzer analyzer, JDefinedClass jc) {
-        
-        JDocComment comment = null;
-
-        for (Common common : analyzer.block.commons) {
-            JDefinedClass jcommon = commons.get(common.name);
-            JFieldVar jvar = jc.field(JMod.PUBLIC|JMod.FINAL,
-                jcommon, common.name,
-                    JExpr.invoke("common").arg(JExpr.dotclass(jcommon)));
-            if(comment==null)
-                comment = jvar.javadoc();
-        }
-
-        if(comment!=null) {
-            comment.setSingleLineMode(true);
-            comment.add("\n");
-            comment.add("commons");
-            comment = null;
-        }
-
-        for (Block block : analyzer.block.blocks) {
-            String name = block.name;
-            JDefinedClass junit = units.get(name);
-            JFieldVar jvar = jc.field(JMod.PUBLIC|JMod.FINAL,
-                    junit, name,
-                    JExpr.invoke("unit").arg(JExpr.dotclass(junit)));
-            if(comment==null)
-                comment = jvar.javadoc();
-
-        }
-
-        if(comment!=null) {
-            comment.setSingleLineMode(true);
-            comment.add("\n");
-            comment.add("units");
-            comment = null;
-        }
-
-        for (Variable var : analyzer.block.variables) {
-            if(var.context==null) {
-                JFieldVar jvar = defineVariable(jc, var);
-                if (comment == null)
-                    comment = jvar.javadoc();
-            }
-        }
-
-        if(comment!=null) {
-            comment.setSingleLineMode(true);
-            comment.add("\n");
-            comment.add("variables");
-            comment = null;
-        }
-
-        JMethod call = jc.method(JMod.PUBLIC, analyzer.block.type(), "call");
-        for (Variable arg : analyzer.block.arguments) {
-            call.param(JMod.FINAL, arg.type(), arg.name);
-        }
-        
-        return jc;
+        units.values().forEach(UnitGenerator::define);
     }
 }

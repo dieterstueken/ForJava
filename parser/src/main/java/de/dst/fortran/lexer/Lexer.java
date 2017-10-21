@@ -200,21 +200,35 @@ public class Lexer implements AutoCloseable {
     }
 
     private void procesArgs(List<Token> tokens) {
-        while(!tokens.isEmpty()) {
-            Token token = tokens.remove(0);
-            switch (token.item) {
-                case OPEN:
-                    out.start("args");
-                    args(tokens);
-                    out.end();
-                    space(tokens);
-                    return;
-                case ENDLINE:
-                    return;
-                default:
-                    space(token);
-            }
+        Token next = next(tokens);
+
+        if(next.item==Item.OPEN) {
+            out.start("args");
+            args(tokens);
+            out.end();
+        } else {
+            // push back ENDLINE
+            tokens.add(0, next);
+            out.empty("args");
         }
+
+        space(tokens);
+
+        //while(!tokens.isEmpty()) {
+        //    Token token = tokens.remove(0);
+        //    switch (token.item) {
+        //        case OPEN:
+        //            out.start("args");
+        //            args(tokens);
+        //            out.end();
+        //            space(tokens);
+        //            return;
+        //        case ENDLINE:
+        //            return;
+        //        default:
+        //            space(token);
+        //    }
+        //}
     }
 
     XmlWriter label() {

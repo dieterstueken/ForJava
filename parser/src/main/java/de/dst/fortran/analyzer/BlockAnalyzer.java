@@ -35,7 +35,6 @@ public class BlockAnalyzer {
     BlockAnalyzer(Analyzer analyzer, Element be) {
         this.analyzer = analyzer;
         this.be = be;
-
         block = new Block(be.getAttribute("name"));
         block.type = be.getNodeName();
         block.returnType = parseType(be.getAttribute("type"));
@@ -43,7 +42,6 @@ public class BlockAnalyzer {
         be.setAttribute("path", block.path);
 
         System.out.format("  define %s:%s\n", block.path, block.name);
-
     }
 
     Block block() {
@@ -94,8 +92,8 @@ public class BlockAnalyzer {
     //    variables(args, define(block.arguments::get));
     //}
 
-    private void args(Element e) {
-        Analyzer.childElements(e, "arg").stream()
+    private void args(Element args) {
+        Analyzer.childElements(args, "arg").stream()
                 .flatMap(ce-> Analyzer.childElements(ce, "var").stream())
                 .forEach(this::arg);
 
