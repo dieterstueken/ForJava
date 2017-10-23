@@ -1,5 +1,6 @@
 package de.dst.fortran.lexer;
 
+import de.dst.fortran.StreamWriter;
 import de.dst.fortran.XmlWriter;
 import de.dst.fortran.lexer.item.Item;
 import de.dst.fortran.lexer.item.Token;
@@ -16,39 +17,26 @@ import java.util.List;
  * Date: 07.10.17
  * Time: 12:39
  */
-public class Lexer implements AutoCloseable {
+public class Lexer {
 
     public static void main(String... args) throws IOException {
 
         List<Token> tokens = Tokenizer.tokenize(args);
 
-        try(Lexer lexer = open(new File("dump.xml"))) {
-            lexer.process(tokens);
+        try(StreamWriter out = StreamWriter.open(new File("dump.xml"))) {
+            new Lexer(out).process(tokens);
         }
     }
 
     public static Document parse(String... args) {
         List<Token> tokens = Tokenizer.tokenize(args);
         Document document = XmlWriter.newDocument();
-        open(document).process(tokens);
+        new Lexer(StreamWriter.open(document)).process(tokens);
         return document;
-    }
-
-    static Lexer open(Document document) {
-        return new Lexer(XmlWriter.open(document));
-    }
-
-    static Lexer open(File result) {
-        return new Lexer(XmlWriter.open(result));
     }
 
     public Lexer(XmlWriter out) {
         this.out = out;
-    }
-
-    @Override
-    public void close() {
-        out.close();
     }
 
     final XmlWriter out;
