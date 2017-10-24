@@ -26,8 +26,6 @@ public class CodeGenerator {
 
     final JCodeModel codeModel = new JCodeModel();
 
-    final JPackage jfor = codeModel._package("de.irt.jfor");
-
     final JPackage jmodule;
 
     JPackage subPackage(@Nonnull String name) {

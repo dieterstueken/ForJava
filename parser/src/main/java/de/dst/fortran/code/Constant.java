@@ -15,6 +15,23 @@ public class Constant implements Value {
         this.value = value;
     }
 
+    public static Constant of(String text) {
+        Number val = null;
+
+        if(text.indexOf('.')<0) {
+            val = Integer.decode(text);
+        } else {
+            int i = text.indexOf('D');
+            if(i>=0) {
+                text = text.substring(0, i) + "E" + text.substring(i+1);
+                val = Double.parseDouble(text);
+            } else
+                val = Float.parseFloat(text);
+        }
+
+        return new Constant(val);
+    }
+
     public String toString() {
         return value.toString();
     }
