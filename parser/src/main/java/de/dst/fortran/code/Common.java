@@ -27,12 +27,15 @@ public class Common extends Entity implements Context {
     Variable newVariable(String name) {
         Variable variable = newVariable.apply(name).context(this);
 
+        // always by reference
+        variable.isReferenced(true);
+
         if(root!=null) {
             int index = members.size();
-            Variable alias = root.members.get(index);
-            if(!alias.name.equals(variable.name)) {
-                variable.alias = alias;
-                System.out.format("alias /%s/ %s : %s\n", name, variable.name, alias.name);
+            Variable ref = root.members.get(index);
+            variable.ref = ref;
+            if(!ref.name.equals(variable.name)) {
+                System.out.format("alias /%s/ %s : %s\n", name, variable.name, ref.name);
             }
         }
 

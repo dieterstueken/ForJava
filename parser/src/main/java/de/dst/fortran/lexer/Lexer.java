@@ -1,11 +1,12 @@
 package de.dst.fortran.lexer;
 
+import de.dst.fortran.DomWriter;
 import de.dst.fortran.StreamWriter;
 import de.dst.fortran.XmlWriter;
 import de.dst.fortran.lexer.item.Item;
 import de.dst.fortran.lexer.item.Token;
 import de.dst.fortran.lexer.item.Tokenizer;
-import org.w3c.dom.Document;
+import org.dom4j.Document;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,9 +31,9 @@ public class Lexer {
 
     public static Document parse(String... args) {
         List<Token> tokens = Tokenizer.tokenize(args);
-        Document document = XmlWriter.newDocument();
-        new Lexer(StreamWriter.open(document)).process(tokens);
-        return document;
+        DomWriter writer = DomWriter.create();
+        new Lexer(writer).process(tokens);
+        return writer.getDocument();
     }
 
     public Lexer(XmlWriter out) {
@@ -58,16 +59,18 @@ public class Lexer {
                 linum = token.get(0);
                 break;
             case CODELINE:
-                out.comment(String.format("%s: %s", linum, token.get(0))).nl();
+                out.start("F").attribute("line", linum).text(token.get(0)).end().nl();
                 break;
             case CONTLINE:
-                out.nl().comment(token.get(0)).nl();
+                out.nl().text("f", token.get(0)).nl();
                 break;
             case COMMENTLINE:
                 // expect previous endl
                 String comment = token.get(0);
                 if(comment!=null && !comment.isEmpty())
                     out.text("C", token.get(0));
+                else
+                    out.empty("C");
                 out.nl();
                 break;
             case COMMENT:
@@ -112,7 +115,7 @@ public class Lexer {
         throw unexpected("EOF");
     }
 
-    void process(List<Token> tokens) {
+    public void process(List<Token> tokens) {
         out.start("fortran").nl();
         while(!tokens.isEmpty()) {
             Token token = tokens.remove(0);
@@ -653,6 +656,8 @@ public class Lexer {
         getValue(tokens);
 
         out.end();
+
+        space(tokens);
     }
 
     // try to extract a single value

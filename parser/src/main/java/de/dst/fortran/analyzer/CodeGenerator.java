@@ -5,7 +5,9 @@ import de.dst.fortran.code.Common;
 import de.dst.fortran.code.Constant;
 import de.dst.fortran.code.Value;
 import de.dst.fortran.code.Variable;
+import de.irt.jfor.Arr;
 import de.irt.jfor.Ref;
+import de.irt.jfor.Unit;
 
 import javax.annotation.Nonnull;
 import java.io.File;
@@ -27,6 +29,10 @@ public class CodeGenerator {
     final JCodeModel codeModel = new JCodeModel();
 
     final JPackage jmodule;
+
+    final AbstractJType refType = codeModel._ref(Ref.class);
+    final AbstractJType arrType = codeModel._ref(Arr.class);
+    final AbstractJType unitType = codeModel._ref(Unit.class);
 
     JPackage subPackage(@Nonnull String name) {
         return jmodule.subPackage(name);

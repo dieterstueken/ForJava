@@ -27,6 +27,8 @@ public class BlockAnalyzer {
 
     Boolean ready = false;
 
+    String line = "";
+
     @Override
     public String toString() {
         return block.name;
@@ -55,7 +57,12 @@ public class BlockAnalyzer {
             analyzer.indent += "    ";
             ready = null;
 
-            parse();
+            try {
+                parse();
+            } catch(Throwable e) {
+                String message = String.format("error parsing %s.%s:%s", block.path, block.name, line);
+                throw new RuntimeException(message, e);
+            }
 
             //System.out.format("%sdone  %s:%s\n", indent, block.path, block.name);
             analyzer.indent = indent;
@@ -125,6 +132,10 @@ public class BlockAnalyzer {
                         }
                     });
                     break;
+
+                case "F":
+                    line = ce.getAttribute("line");
+                    break;
             }
         });
     }
@@ -149,27 +160,46 @@ public class BlockAnalyzer {
         switch(name) {
             case "assvar":
                 block.assign(variable(e));
+                parseExpr(childElements(e));
                 break;
 
             case "assarr":
-                variable(e);
+                assarr(e);
                 break;
 
             case "call":
                 call(e);
                 break;
 
+            case "if":
+            case "do":
+                childElements(e).forEach(this::codeLine);
+                break;
+
+            case "then":
+            case "else":
+                childElements(e).forEach(this::codeLine);
+                break;
+
             case "for":
                 variable(e);
                 break;
 
+            case "cond":
+            case "elif":
+            case "while":
+                parseExpr(childElements(e));
+                break;
+
+            case "F":
+                line = e.getAttribute("line");
+                break;
+
             default:
-                // if else do while format io
+                name.length();
+                break;
         }
-
-        parseExpr(e);
     }
-
 
     private void call(Element e) {
         String name = e.getAttribute("name");
@@ -187,10 +217,13 @@ public class BlockAnalyzer {
         if (block.variables.exists(name)) {
 
             Variable var = block.variables.get(name);
-            if(!var.dim.isEmpty()) {
+            if(var.isArray()) {
                 e.setAttribute("scope", "array");
                 return;
-            }
+            } else
+            if(var.context==null)
+                var.context(Context.INTRINSIC);
+
         } else {
             Block external = analyzer.block(name);
             if(external!=null) {
@@ -236,30 +269,41 @@ public class BlockAnalyzer {
 
             if(var!=null)
                 arg.setAttribute("type", "var");
-            else
+            else {
                 arg.setAttribute("type", "expr");
+                parseExpr(childElements(arg));
+            }
         }
     }
 
-    private void parseExpr(Element e) {
+    private void parseExpr(List<Element> expr) {
 
-        String name = e.getNodeName();
-        switch(name) {
+        for (int i = 0; i < expr.size(); i++) {
+            Element e = expr.get(i);
 
-            case "var":
-                variable(e);
-                break;
+            String name = e.getNodeName();
+            switch(name) {
 
-            case "fun":
-                fun(e);
-                break;
+                case "var":
+                    variable(e);
+                    break;
 
-            case "pow":
-                pow(e);
+                case "fun":
+                    fun(e);
+                    parseExpr(childElements(e));
+                    break;
+
+                case "pow":
+                    pow(e);
+                    expr.remove(i+1);
+                    break;
+
+                case "b":
+                default:
+                    parseExpr(childElements(e));
+                    break;
+            }
         }
-
-        // parse recursively
-        Analyzer.childElements(e).forEach(this::parseExpr);
     }
 
     void pow(Element pow) {
@@ -270,7 +314,7 @@ public class BlockAnalyzer {
             pow.appendChild(createTextNode(","));
             pow.appendChild(next);
         } else {
-            pow.setAttribute("error", "true");
+            throw new IllegalStateException("missing pow rhs");
         }
     }
 
@@ -349,8 +393,24 @@ public class BlockAnalyzer {
         return  arr;
     }
 
+    Variable assarr(Element e) {
+        Variable arr = variable(e);
+
+        if(!arr.isArray()) {
+            arr.context(Context.FUNCTION);
+            e.setAttribute("scope", "function");
+        } else {
+            // parse arguments and rhs
+            parseExpr(childElements(e));
+        }
+
+        return arr;
+    }
+
     Variable variable(Element e) {
-        return variable(e, block.variables::get);
+        if(e!=null)
+            return variable(e, block.variables::get);
+        return null;
     }
 
     // extract single variable or null if an expression or constant

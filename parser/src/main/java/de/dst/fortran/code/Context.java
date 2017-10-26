@@ -10,4 +10,7 @@ package de.dst.fortran.code;
 public interface Context {
 
     String getName();
+
+    Context INTRINSIC = () -> "instrinsic";
+    Context FUNCTION = () -> "function";
 }

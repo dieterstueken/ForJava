@@ -13,30 +13,36 @@ import org.dom4j.Element;
  */
 public class DomWriter implements XmlWriter {
 
-    final Element root;
+    final Document doc;
     Element current;
 
-    public DomWriter(Element root) {
-        this.root = root;
-        this.current = root;
+    public DomWriter(Document doc) {
+        this.doc = doc;
     }
 
-    public static DomWriter create(String rootName) {
+    public static DomWriter create() {
         Document doc = DocumentHelper.createDocument();
-        return new DomWriter(doc.addElement(rootName));
+        return new DomWriter(doc);
+    }
+
+    public Document getDocument() {
+        return doc;
+    }
+
+    @Override
+    public XmlWriter start(String name) {
+        if(current==null)
+            current = doc.addElement(name);
+        else
+            current = current.addElement(name);
+        return this;
+
     }
 
     @Override
     public XmlWriter empty(String name) {
         current.addElement(name);
         return this;
-    }
-
-    @Override
-    public XmlWriter start(String name) {
-        current = current.addElement(name);
-        return this;
-
     }
 
     @Override

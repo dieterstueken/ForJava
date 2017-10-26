@@ -5,8 +5,8 @@ import com.helger.jcodemodel.JFieldVar;
 import de.dst.fortran.code.Variable;
 import org.dom4j.Element;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * version:     $Revision$
@@ -17,16 +17,21 @@ import java.util.Map;
  */
 public class CommonClass extends FortranClass {
 
-    final Map<String, JFieldVar> members = new LinkedHashMap<>();
+    final List<JFieldVar> members = new ArrayList<>();
 
     public CommonClass(CodeGenerator generator, JDefinedClass jclass, Element common) {
         super(generator, jclass);
         jclass._extends(de.irt.jfor.Common.class);
+
+        common.elements().stream()
+                .map(this::var)
+                .map(this::defineMember)
+                .forEach(members::add);
     }
 
     public JFieldVar defineMember(Variable var) {
         JFieldVar member =  super.defineMember(var);
-        members.put(member.name(), member);
+        members.add(member);
         return member;
     }
 }

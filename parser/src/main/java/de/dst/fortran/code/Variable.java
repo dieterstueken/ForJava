@@ -1,5 +1,7 @@
 package de.dst.fortran.code;
 
+import de.irt.jfor.Arr;
+
 import java.util.*;
 
 /**
@@ -21,7 +23,7 @@ public class Variable extends Entity implements Value, Context {
 
     public Context context = null;
 
-    public Variable alias;
+    public Variable ref;
 
     transient String toString;
 
@@ -34,8 +36,19 @@ public class Variable extends Entity implements Value, Context {
         this.context = context;
     }
 
-    public boolean isPrimitive() {
+    public boolean isArray() {
         if(!dim.isEmpty())
+            return true;
+
+        if(type!=null && Arr.class.isAssignableFrom(type.type()))
+            return true;
+
+        return false;
+    }
+
+
+    public boolean isPrimitive() {
+        if(isArray())
             return false;
 
         if(isReferenced())
@@ -55,6 +68,10 @@ public class Variable extends Entity implements Value, Context {
         }
 
         return type.type(dim.size());
+    }
+
+    public String getRefName() {
+        return ref!=null ? ref.getName() : getName();
     }
 
     public String toString() {

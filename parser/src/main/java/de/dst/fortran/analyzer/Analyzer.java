@@ -1,10 +1,13 @@
 package de.dst.fortran.analyzer;
 
+import de.dst.fortran.StreamWriter;
 import de.dst.fortran.XmlWriter;
 import de.dst.fortran.code.Block;
 import de.dst.fortran.code.Common;
 import de.dst.fortran.code.Type;
 import de.dst.fortran.lexer.Lexer;
+import de.dst.fortran.lexer.item.Token;
+import de.dst.fortran.lexer.item.Tokenizer;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -33,9 +36,16 @@ public class Analyzer {
         return analyzer==null ? null : analyzer.block();
     }
 
+    public static Document parse(String... args) {
+        List<Token> tokens = Tokenizer.tokenize(args);
+        Document document = XmlWriter.newDocument();
+        new Lexer(StreamWriter.open(document)).process(tokens);
+        return document;
+    }
+
     public static void main(String ... args) throws Exception {
 
-        Document document = Lexer.parse(args);
+        Document document = parse(args);
         //Document document = Analyzer.readDocument("dump.xml");
         try {
             Analyzer analyzer = new Analyzer().analyze(document);
@@ -95,6 +105,8 @@ public class Analyzer {
     }
 
     public static List<Element> childElements(Element e, Predicate<Element> filter) {
+        if(e==null)
+            return Collections.emptyList();
 
         Element element = getNextElement(e.getFirstChild(), filter);
         if(element==null)
@@ -145,6 +157,11 @@ public class Analyzer {
 
     public static List<Element> childElements(Element e, String ... names) {
         return childElements(e, isName(names));
+    }
+
+    public static Element childElement(Element e, String name) {
+        List<Element> childElements = childElements(e, name);
+        return childElements.size()>0 ? childElements.get(0) : null;
     }
 
 

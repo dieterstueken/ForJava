@@ -2,6 +2,7 @@ package de.dst.fortran.generator;
 
 import com.helger.jcodemodel.*;
 import de.dst.fortran.code.Constant;
+import de.dst.fortran.code.Context;
 import de.dst.fortran.code.Value;
 import de.dst.fortran.code.Variable;
 import de.irt.jfor.Ref;
@@ -19,7 +20,7 @@ import static de.dst.fortran.code.Value.UNDEF;
  * modified by: $Author$
  * modified on: $Date$
  */
-public class FortranClass {
+public class FortranClass implements Context {
 
     final CodeGenerator generator;
 
@@ -30,6 +31,11 @@ public class FortranClass {
     public FortranClass(CodeGenerator generator, JDefinedClass jclass) {
         this.jclass = jclass;
         this.generator = generator;
+    }
+
+    @Override
+    public String getName() {
+        return jclass.name();
     }
 
     protected RuntimeException unexpected(Element elem) {
