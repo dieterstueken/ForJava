@@ -7,6 +7,8 @@ import org.w3c.dom.Element;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 import static de.dst.fortran.analyzer.Analyzer.childElements;
 
@@ -90,13 +92,16 @@ public class MethodGenerator {
     }
 
     IJStatement code(Element code) {
+        if(code==null)
+            return null;
+
         switch (code.getTagName()) {
 
             case "F":
                 line = code.getAttribute("line");
 
             case "f":
-                return null;
+                return JFormatter::newline;
 
             case "C":
                 return comment(code);
@@ -107,9 +112,60 @@ public class MethodGenerator {
             case "assarr":
                 return assarr(code);
 
+            case "if":
+                return _if(code);
+
+            case "return":
+                return IFExpression._return();
+
             default:
                 return f -> f.print("/* ").print(code.getTagName()).print(" */");
         }
+    }
+
+    Stream<IJStatement> statements(Element e) {
+        return childElements(e).stream().map(this::code).filter(Objects::nonNull);
+    }
+
+    private IJStatement _if(Element code) {
+        List<Element> elements = childElements(code);
+        Element cond = elements.remove(0);
+        if(!"cond".equals(cond.getTagName()))
+            throw new IllegalArgumentException("condition expected, got: " + cond.getTagName());
+
+        return _if(expr(childElements(cond)), elements);
+    }
+
+    // populate given conditional
+    private JConditional _if(IJExpression cond, List<Element> elements) {
+        JConditional _if = IFExpression._if(cond);
+
+        done:
+        while(!elements.isEmpty()) {
+            Element e = elements.remove(0);
+            String name = e.getTagName();
+            switch(name) {
+                case "then":
+                    // add code lines
+                    statements(e).forEach(_if._then()::add);
+                    break;
+
+                case "else":
+                    // add code lines
+                    statements(e).forEach(_if._else()::add);
+                    break done;
+
+                case "elif":
+                    _if._else().add(_if(expr(childElements(e)), elements))
+                            .bracesRequired(false).indentRequired(false);
+                    break done;
+            }
+        }
+
+        if(!elements.isEmpty())
+            throw new IllegalArgumentException("non terminal else: " + elements.get(0).getTagName());
+
+        return _if;
     }
 
     private IJStatement comment(Element e) {
@@ -125,7 +181,7 @@ public class MethodGenerator {
         String name = e.getAttribute("name");
         IJAssignmentTarget target = var(name);
         // todo: complex values
-        return target.assign(expr(childElements(e, "expr")));
+        return target.assign(expr(childElements(e)));
     }
 
     private IJStatement assarr(Element e) {
@@ -143,9 +199,35 @@ public class MethodGenerator {
         return expr;
     }
 
-    IJGenerable expr(Element e) {
+    static final Map<String, IJExpression> OPERATORS = new HashMap();
 
-        switch (e.getTagName()) {
+    static {
+        OPERATORS.put("add", f -> f.print("+"));
+        OPERATORS.put("sub", f -> f.print("-"));
+        OPERATORS.put("neg", f -> f.print("-"));
+        OPERATORS.put("mul", f -> f.print("*"));
+        OPERATORS.put("div", f -> f.print("/"));
+
+        OPERATORS.put("eq", f -> f.print("=="));
+        OPERATORS.put("ne", f -> f.print("!="));
+        OPERATORS.put("le", f -> f.print("<="));
+        OPERATORS.put("lt", f -> f.print("<"));
+        OPERATORS.put("ge", f -> f.print(">="));
+        OPERATORS.put("gt", f -> f.print(">"));
+
+        OPERATORS.put("and", f -> f.print("&&"));
+        OPERATORS.put("or", f -> f.print("||"));
+        OPERATORS.put("f", f->f.newline().print("    "));
+    }
+
+    IJExpression expr(Element e) {
+
+        String tag = e.getTagName();
+        IJExpression op = OPERATORS.get(tag);
+        if(op!=null)
+            return op;
+
+        switch (tag) {
 
             case "expr":
                 return expr(childElements(e));
@@ -162,25 +244,12 @@ public class MethodGenerator {
             case "b":
                 return IFExpression.expr("(").append(expr(childElements(e))).append(")");
 
-            case "add":
-                return f -> f.print("+");
-
-            case "neg":
-            case "sub":
-                return f -> f.print("-");
-
-            case "mul":
-                return f -> f.print("*");
-
-            case "div":
-                return f -> f.print("/");
-
             default:
                 return IFExpression.expr(e.getTagName() + "...");
         }
     }
 
-    private IJGenerable val(Element e) {
+    private IJExpression val(Element e) {
         String value = e.getTextContent();
 
         if ("true".equals(value))
@@ -206,7 +275,7 @@ public class MethodGenerator {
         return JExpr.lit(Double.parseDouble(value));
     }
 
-    private IJGenerable fun(Element e) {
+    private IJExpression fun(Element e) {
 
         String name = e.getAttribute("name");
         JInvocation invoke = invoke(name);

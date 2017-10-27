@@ -112,6 +112,7 @@ class UnitGenerator extends MethodGenerator {
         Element assarr = childElement(fun, "assarr");
 
         MethodGenerator method = new MethodGenerator(codeGenerator, jclass, var.type(), name);
+        method.jmethod.mods();
 
         Entities<Variable> arguments = new Entities<>(Variable::new);
 

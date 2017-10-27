@@ -561,8 +561,9 @@ public class Lexer {
                     space(tokens);
                     return;
                 default:
+                    out.start("then");
                     processStmt(token, tokens);
-                    out.end();
+                    out.end().end();
                     return;
             }
         }

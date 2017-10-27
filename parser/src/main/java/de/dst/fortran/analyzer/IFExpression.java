@@ -1,8 +1,6 @@
 package de.dst.fortran.analyzer;
 
-import com.helger.jcodemodel.IJExpression;
-import com.helger.jcodemodel.IJGenerable;
-import com.helger.jcodemodel.JFormatter;
+import com.helger.jcodemodel.*;
 
 import javax.annotation.Nonnull;
 
@@ -52,5 +50,17 @@ public interface IFExpression extends IJExpression {
 
     default IFExpression nl() {
         return append(NL);
+    }
+
+    static JConditional _if(IJExpression expr) {
+        return new JConditional(expr) {};
+    }
+
+    static JReturn _return () {
+        return new JReturn(null) {};
+    }
+
+    static JReturn _return (IJExpression expr) {
+        return new JReturn(expr) {};
     }
 }
