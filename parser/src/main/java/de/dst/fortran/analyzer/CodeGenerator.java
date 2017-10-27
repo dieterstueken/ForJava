@@ -125,7 +125,9 @@ public class CodeGenerator {
     private void generateUnits(Analyzer code) {
 
         for (BlockAnalyzer analyzer : code.analyzers.values()) {
-            UnitGenerator unit = new UnitGenerator(this, analyzer);
+            JPackage jpkg = subPackage(analyzer.block.path);
+            JDefinedClass jclass = defineClass(jpkg, analyzer.block.name);
+            UnitGenerator unit = new UnitGenerator(this, analyzer, jclass);
             units.put(analyzer.block.name, unit);
         }
 

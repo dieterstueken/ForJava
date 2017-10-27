@@ -26,6 +26,11 @@ public class Entities<T extends Entity> extends AbstractSet<T> {
         return entities.computeIfAbsent(name, create);
     }
 
+    // lookup, don't create
+    public T find(String name) {
+        return entities.get(name);
+    }
+
     public boolean exists(String name) {
         return entities.containsKey(name);
     }

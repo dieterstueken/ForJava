@@ -11,6 +11,7 @@ import de.dst.fortran.lexer.item.Tokenizer;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
+import org.w3c.dom.Text;
 
 import java.io.File;
 import java.util.*;
@@ -74,7 +75,11 @@ public class Analyzer {
                 .flatMap(ce -> childElements(ce, "function", "subroutine", "blockdata", "program").stream())
                 .forEach(this::newAnalyzer);
 
-        analyzers.values().forEach(BlockAnalyzer::block);
+        final Set<String> intrinsics = new TreeSet<>();
+        analyzers.values().stream().map(BlockAnalyzer::block).forEach(b->intrinsics.addAll(b.functions));
+
+        //System.out.println("intrinsics:");
+        //intrinsics.forEach(System.out::println);
 
         return this;
     }
@@ -134,15 +139,15 @@ public class Analyzer {
 
     public static final Predicate<Element> TRUE = o->true;
 
-    public static final Predicate<Element> isName(String name) {
+    public static final Predicate<Element> ofName(String name) {
         return ce->name.equals(ce.getTagName());
     }
 
-    public static final Predicate<Element> isName(String name1, String name2) {
-        return isName(name1).or(isName(name2));
+    public static final Predicate<Element> ofName(String name1, String name2) {
+        return ofName(name1).or(ofName(name2));
     }
 
-    public static final Predicate<Element> isName(String ... names) {
+    public static final Predicate<Element> ofName(String ... names) {
         Set<String> set = new HashSet<>(Arrays.asList(names));
         return ce->set.contains(ce.getTagName());
     }
@@ -151,12 +156,18 @@ public class Analyzer {
         return childElements(e, TRUE);
     }
 
+    public static Element newLine(Element e) {
+        Text text = e.getOwnerDocument().createTextNode("\n");
+        e.appendChild(text);
+        return e;
+    }
+
     public static List<Element> childElements(Element e, String name) {
-        return childElements(e, isName(name));
+        return childElements(e, ofName(name));
     }
 
     public static List<Element> childElements(Element e, String ... names) {
-        return childElements(e, isName(names));
+        return childElements(e, ofName(names));
     }
 
     public static Element childElement(Element e, String name) {

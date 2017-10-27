@@ -40,6 +40,10 @@ public class Complex implements Ref {
         return assign(o.re, o.im);
     }
 
+    public double abs() {
+        return Math.hypot(re, im);
+    }
+
     public Complex plus(Complex o) {
         return new Complex(re + o.re, im + o.im);
     }
@@ -55,5 +59,11 @@ public class Complex implements Ref {
     public Complex div(Complex o) {
         double d = o.re*o.re + o.im*o.im;
         return new Complex((re * o.re + im * o.im)/d, (im * o.re + re * o.im)/d);
+    }
+
+    public Complex sqrt() {
+        double r = abs();
+        int sign = im>=0?1:-1;
+        return of(Math.sqrt((re-r)/2), sign * Math.sqrt((re+r)/2));
     }
 }

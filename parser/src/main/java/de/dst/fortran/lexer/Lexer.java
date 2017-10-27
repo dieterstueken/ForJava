@@ -230,8 +230,17 @@ public class Lexer {
         return out;
     }
 
+    /**
+     * Search index of first code line after declaration
+     * @param tokens to parse.
+     * @return index of first code line.
+     */
     int findCode(List<Token> tokens) {
-        int code = 0;
+
+        // index of last declaration token
+        int index = 0;
+
+        // was a declaration line
         boolean decl = false;
 
         lines:
@@ -247,12 +256,13 @@ public class Lexer {
                     break;
 
                 case CODELINE:
-                   decl = false;
-                   break;
+                    // find if it is a declaration
+                    decl = false;
+                    break;
 
                 case ENDLINE:
                     if(decl) {
-                        code = i + 1;
+                        index = i;
                         decl = false;
                         break;
                     }
@@ -264,7 +274,7 @@ public class Lexer {
             }
         }
 
-        return code;
+        return index+1;
     }
 
     private void processCodeLines(List<Token> tokens) {
@@ -622,6 +632,7 @@ public class Lexer {
     private void processAssignment(Token token, List<Token> tokens) {
 
         Token next=null;
+        int close = 1;
 
         switch (token.item) {
 
@@ -640,6 +651,8 @@ public class Lexer {
                 out.start("args");
                 args(tokens);
                 out.end();
+                out.start("expr");
+                ++close;
 
                 next = next(tokens);
                 break;
@@ -654,8 +667,9 @@ public class Lexer {
             throw unexpected(token);
 
         getValue(tokens);
-
-        out.end();
+        
+        while(--close>=0)
+            out.end();
 
         space(tokens);
     }

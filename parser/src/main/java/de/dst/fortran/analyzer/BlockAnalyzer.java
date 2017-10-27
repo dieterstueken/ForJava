@@ -5,11 +5,11 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
-import static de.dst.fortran.analyzer.Analyzer.childElements;
-import static de.dst.fortran.analyzer.Analyzer.parseType;
+import static de.dst.fortran.analyzer.Analyzer.*;
 
 /**
  * Created by IntelliJ IDEA.
@@ -86,7 +86,7 @@ public class BlockAnalyzer {
                     break;
 
                 case "code":
-                    childElements(ce).forEach(this::codeLine);
+                    code(ce);
                     break;
             }
         });
@@ -155,17 +155,61 @@ public class BlockAnalyzer {
         });
     }
 
-    private void codeLine(Element e) {
+    private void code(Element e) {
+        List<Element> code = childElements(e);
+
+        Element functions = null;
+
+        for (Element element : code) {
+           if(codeLine(element)) {
+               if(functions==null) {
+                   functions = e.getOwnerDocument().createElement("functions");
+                   e.getParentNode().insertBefore(functions, e);
+               }
+
+               Element function = e.getOwnerDocument().createElement("function");
+               function.setAttribute("name", element.getAttribute("name"));
+
+               newLine(functions);
+               functions.appendChild(function);
+
+               List<Node> block = new LinkedList<>();
+
+               for(Node node=element; node!=null; node = node.getPreviousSibling()) {
+
+                   // stop at first break line
+                   if("C".equals(node.getNodeName()) && node.getFirstChild()==null)
+                       break;
+
+                   block.add(0, node);
+               }
+
+               block.forEach(function::appendChild);
+
+               newLine(function);
+               //newLine(functions);
+           }
+        }
+
+        if(functions!=null)
+            newLine(functions);
+    }
+
+    private void codeLines(Element e) {
+        childElements(e).forEach(this::codeLine);
+    }
+
+    private boolean codeLine(Element e) {
         String name = e.getNodeName();
         switch(name) {
             case "assvar":
+                // tag statement functions
                 block.assign(variable(e));
                 parseExpr(childElements(e));
                 break;
 
             case "assarr":
-                assarr(e);
-                break;
+                return assarr(e).context==Context.FUNCTION;
 
             case "call":
                 call(e);
@@ -173,12 +217,12 @@ public class BlockAnalyzer {
 
             case "if":
             case "do":
-                childElements(e).forEach(this::codeLine);
+                codeLines(e);
                 break;
 
             case "then":
             case "else":
-                childElements(e).forEach(this::codeLine);
+                codeLines(e);
                 break;
 
             case "for":
@@ -199,6 +243,8 @@ public class BlockAnalyzer {
                 name.length();
                 break;
         }
+
+        return false;
     }
 
     private void call(Element e) {
@@ -401,7 +447,7 @@ public class BlockAnalyzer {
             e.setAttribute("scope", "function");
         } else {
             // parse arguments and rhs
-            parseExpr(childElements(e));
+            parseExpr(childElements(childElement(e, "expr")));
         }
 
         return arr;
