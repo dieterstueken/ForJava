@@ -111,7 +111,8 @@ class UnitGenerator extends MethodGenerator {
 
         Element assarr = childElement(fun, "assarr");
 
-        MethodGenerator method = new MethodGenerator(codeGenerator, jclass, var.type(), name);
+        MethodGenerator method = new MethodGenerator(codeGenerator, jclass);
+        method.method(JMod.PUBLIC|JMod.STATIC, var.type(), name);
         method.jmethod.mods();
 
         Entities<Variable> arguments = new Entities<>(Variable::new);
@@ -141,7 +142,7 @@ class UnitGenerator extends MethodGenerator {
 
     void body() {
 
-        method(code.block.type(), "call");
+        method(JMod.PUBLIC, code.block.type(), "call");
 
         header(childElement(code.be, "decl"));
 

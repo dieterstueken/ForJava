@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
 
+import static de.dst.fortran.analyzer.Analyzer.childElement;
 import static de.dst.fortran.analyzer.Analyzer.childElements;
 
 /**
@@ -35,17 +36,11 @@ public class MethodGenerator {
         this.jclass = jclass;
     }
 
-    JMethod method(Class type, String name) {
+    JMethod method(int mod, Class type, String name) {
         if(jmethod!=null)
             throw new IllegalStateException("duplicate methode definitition");
 
-        return jmethod = jclass.method(JMod.PUBLIC, type, name);
-    }
-
-    MethodGenerator(CodeGenerator codeGenerator, JDefinedClass jclass, Class type, String name) {
-        this.codeGenerator = codeGenerator;
-        this.jclass = jclass;
-        method(type, name);
+        return jmethod = jclass.method(mod, type, name);
     }
 
     void decl(JVar var) {
@@ -75,7 +70,7 @@ public class MethodGenerator {
 
         IJAssignmentTarget target = variables.get(name);
         if (target == null)
-            throw new RuntimeException("missing variable: " + name);
+            return null;
 
         AbstractJType type = getType(target);
         if (codeGenerator.refType.isAssignableFrom(type)) {
@@ -116,11 +111,20 @@ public class MethodGenerator {
                 return _if(code);
 
             case "return":
-                return IFExpression._return();
+                return _return();
 
             default:
                 return f -> f.print("/* ").print(code.getTagName()).print(" */");
         }
+    }
+
+    JReturn _return() {
+        AbstractJType type = jmethod.type();
+        if(type== type.owner().VOID)
+            return IFExpression._return();
+
+        final IJAssignmentTarget var = var(jclass.name().toLowerCase());
+        return IFExpression._return(var);
     }
 
     Stream<IJStatement> statements(Element e) {
@@ -230,6 +234,7 @@ public class MethodGenerator {
         switch (tag) {
 
             case "expr":
+            case "arg":
                 return expr(childElements(e));
 
             case "val":
@@ -278,6 +283,11 @@ public class MethodGenerator {
     private IJExpression fun(Element e) {
 
         String name = e.getAttribute("name");
+
+        if("float".equals(name)) {
+            return JExpr.cast(codeGenerator.codeModel.FLOAT, expr(childElement(e, "arg")));
+        }
+
         JInvocation invoke = invoke(name);
         childElements(e, "arg").forEach(arg -> invoke.arg(expr(childElements(arg))));
 
