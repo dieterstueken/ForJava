@@ -7,7 +7,7 @@ package de.irt.jfor;
  * modified by: $Author$
  * modified on: $Date$
  */
-public class Complex implements Ref {
+public class Complex {
 
     public double re = 0;
 
@@ -24,6 +24,10 @@ public class Complex implements Ref {
         return this;
     }
 
+    public Complex assign(Complex o) {
+        return assign(o.re, o.im);
+    }
+
     public String toString() {
         return String.format("Cplx(%d,%d)", re, im);
     }
@@ -36,19 +40,15 @@ public class Complex implements Ref {
         return new Complex(re, im);
     }
 
-    public Complex assign(Complex o) {
-        return assign(o.re, o.im);
-    }
-
     public double abs() {
         return Math.hypot(re, im);
     }
 
-    public Complex plus(Complex o) {
+    public Complex add(Complex o) {
         return new Complex(re + o.re, im + o.im);
     }
 
-    public Complex minus(Complex o) {
+    public Complex sub(Complex o) {
         return new Complex(re - o.re, im - o.im);
     }
 

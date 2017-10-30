@@ -3,11 +3,9 @@ package de.dst.fortran.analyzer;
 import com.helger.jcodemodel.*;
 import de.dst.fortran.code.Variable;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Stream;
 
 import static de.dst.fortran.analyzer.Analyzer.childElement;
@@ -63,7 +61,13 @@ public class MethodGenerator {
     }
 
     IJAssignmentTarget var(Element e) {
-        return var(e.getAttribute("name"));
+        IJAssignmentTarget var = var(e.getAttribute("name"));
+
+        // possibly pass by reference
+        if("true".equals(e.getAttribute("returned"))) {
+            return var;
+        } else
+            return deref(var);
     }
 
     IJAssignmentTarget var(String name) {
@@ -72,8 +76,20 @@ public class MethodGenerator {
         if (target == null)
             return null;
 
+        return target;
+    }
+
+    boolean isComplex(IJAssignmentTarget target) {
         AbstractJType type = getType(target);
-        if (codeGenerator.refType.isAssignableFrom(type)) {
+        return codeGenerator.cplxType.isAssignableFrom(type);
+    }
+
+    IJAssignmentTarget deref(IJAssignmentTarget target) {
+
+        AbstractJType type = getType(target);
+
+        if (codeGenerator.refType.isAssignableFrom(type)
+                && !codeGenerator.arrType.isAssignableFrom(type)) {
             target = target.ref("v");
         }
 
@@ -90,10 +106,12 @@ public class MethodGenerator {
         if(code==null)
             return null;
 
-        switch (code.getTagName()) {
+        final String name = code.getTagName();
+        switch (name) {
 
             case "F":
                 line = code.getAttribute("line");
+                return null;
 
             case "f":
                 return JFormatter::newline;
@@ -107,28 +125,47 @@ public class MethodGenerator {
             case "assarr":
                 return assarr(code);
 
+            case "call":
+                return call(code);
+
+            case "goto":
+                return _goto(code);
+
             case "if":
                 return _if(code);
+
+            case "do":
+                return _do(code);
+
+            case "cycle":
+                return new JBreak(null);
+
+            case "exit":
+                return new JContinue(null);
 
             case "return":
                 return _return();
 
             default:
-                return f -> f.print("/* ").print(code.getTagName()).print(" */");
+                return f -> f.print("/* ").print(name).print(" */");
         }
     }
 
     JReturn _return() {
         AbstractJType type = jmethod.type();
         if(type== type.owner().VOID)
-            return IFExpression._return();
+            return JFExpression._return();
 
         final IJAssignmentTarget var = var(jclass.name().toLowerCase());
-        return IFExpression._return(var);
+        return JFExpression._return(deref(var));
     }
 
     Stream<IJStatement> statements(Element e) {
-        return childElements(e).stream().map(this::code).filter(Objects::nonNull);
+        return statements(childElements(e));
+    }
+
+    Stream<IJStatement> statements(Collection<Element> elements) {
+        return elements.stream().map(this::code).filter(Objects::nonNull);
     }
 
     private IJStatement _if(Element code) {
@@ -142,7 +179,7 @@ public class MethodGenerator {
 
     // populate given conditional
     private JConditional _if(IJExpression cond, List<Element> elements) {
-        JConditional _if = IFExpression._if(cond);
+        JConditional _if = JFExpression._if(cond);
 
         done:
         while(!elements.isEmpty()) {
@@ -172,11 +209,65 @@ public class MethodGenerator {
         return _if;
     }
 
+    private IJStatement _goto(Element _goto) {
+        return f->f.print("/* goto ").print(_goto.getTextContent()).print("*/");
+    }
+
+    private IJStatement _do(Element code) {
+        List<Element> body = childElements(code);
+
+        Element cond = body.remove(0);
+
+        final String type = cond.getTagName();
+        switch(type) {
+            case "while":
+                return _while(cond, body);
+
+            case "for":
+                return _for(cond, body);
+        }
+
+        throw new IllegalArgumentException("unknown do loop statement: " + type);
+    }
+
+    private IJStatement _while(Element cond, List<Element> body) {
+        JWhileLoop _while = new JWhileLoop(expr(cond)) {};
+        statements(body).forEach(_while.body()::add);
+        return _while;
+    }
+
+    private IJStatement _for(Element cond, List<Element> body) {
+
+        IJAssignmentTarget target = deref(var(cond));
+
+        if(!(target instanceof JVar))
+            throw new ClassCastException();
+
+        JVar var = (JVar) target;
+
+        List<Element> args = childElements(cond, "arg");
+
+        JForLoop _for = new JForLoop() {};
+
+        _for.init((JVar) target, expr(args.get(0)));
+        _for.test(var.lte(expr(args.get(1))));
+        _for.update(args.size()>2 ? var.assignPlus(expr(args.get(2))) : var.preincr());
+
+        statements(body).forEach(_for.body()::add);
+        return _for;
+    }
+
+
     private IJStatement comment(Element e) {
-        final String comment = e.getTextContent();
+        String comment = e.getTextContent();
 
         if (comment.isEmpty())
             return JFormatter::newline;
+
+        if(comment.charAt(0)=='+') {
+            comment = "+" + comment.substring(1).trim();
+        } else
+            comment = comment.trim();
 
         return new JSingleLineCommentStatement(comment);
     }
@@ -184,23 +275,74 @@ public class MethodGenerator {
     private IJStatement assvar(Element e) {
         String name = e.getAttribute("name");
         IJAssignmentTarget target = var(name);
-        // todo: complex values
-        return target.assign(expr(childElements(e)));
+
+        final JFExpression expr = expr(childElements(e));
+
+        if(isComplex(target)) {
+            // resolve assign(Complex.of...
+            if(expr instanceof JFComplex) {
+                JFComplex cplx = (JFComplex) expr;
+                return target.invoke("assign")
+                        .arg(cplx.re())
+                        .arg(cplx.im());
+            } else
+                return target.invoke("assign").arg(expr);
+        } else {
+            return deref(target).assign(expr);
+        }
     }
 
     private IJStatement assarr(Element e) {
         String name = e.getAttribute("name");
-        return f -> f.print("/* ").print(name).print(" */");
+        IJAssignmentTarget var = var(name);
+
+        JInvocation invoke = var.invoke("set");
+        childElements(childElement(e, "args"), "arg")
+                .stream()
+                .map(this::expr)
+                .forEach(invoke::arg);
+
+        invoke.arg(expr(childElement(e, "expr")));
+
+        return invoke;
     }
 
-    IFExpression expr(List<Element> tokens) {
+    JFExpression expr(List<Element> tokens) {
 
-        IFExpression expr = IFExpression.EMPTY;
+        pow(tokens);
+
+        JFExpression expr = JFExpression.EMPTY;
 
         for (Element ce : tokens)
             expr = expr.append(expr(ce));
 
         return expr;
+    }
+
+    // rearrange pow operator(s)
+    List<Element> pow(List<Element> elements) {
+
+        for(int i=0; i<elements.size(); ++i) {
+            Element pow = elements.get(i);
+            String name = pow.getNodeName();
+            if(!"pow".equals(name))
+                continue;
+
+            Node prev = pow.getPreviousSibling();
+            Node next = pow.getNextSibling();
+            if(prev==null || next==null)
+                throw new IllegalStateException("missing pow rhs");
+
+            pow.appendChild(prev);
+            pow.appendChild(pow.getOwnerDocument().createTextNode(","));
+            pow.appendChild(next);
+
+            elements.remove(i+1);
+            elements.remove(i-1);
+            i-=1;
+        }
+
+        return elements;
     }
 
     static final Map<String, IJExpression> OPERATORS = new HashMap();
@@ -233,9 +375,16 @@ public class MethodGenerator {
 
         switch (tag) {
 
+            case "F":
+                line = e.getAttribute("line");
+                return null;
+
             case "expr":
-            case "arg":
+            case "while":
                 return expr(childElements(e));
+
+            case "arg":
+                return arg(e);
 
             case "val":
                 return val(e);
@@ -246,12 +395,39 @@ public class MethodGenerator {
             case "fun":
                 return fun(e);
 
+            case "pow":
+                return pow(e);
+
             case "b":
-                return IFExpression.expr("(").append(expr(childElements(e))).append(")");
+                return JFExpression.expr("(").append(expr(childElements(e))).append(")");
+
+            case "string":
+                 return _string(e);
+
+            case "c":
+                return f->f.print("/* ").print(e.getTextContent()).print(" */");
 
             default:
-                return IFExpression.expr(e.getTagName() + "...");
+                return JFExpression.expr(e.getTagName() + "...");
         }
+    }
+
+    IJExpression _string(Element e) {
+        String text = e.getTextContent();
+        if(text.length()==1)
+            return JExpr.lit(text.charAt(0));
+        else
+            return JExpr.lit(text);
+    }
+
+    private IJExpression arg(Element e) {
+        IJExpression expr = expr(childElements(e));
+
+        if("true".equals(e.getAttribute("returned"))) {
+            expr = JExpr.invoke("ref").arg(expr);
+        }
+
+        return expr;
     }
 
     private IJExpression val(Element e) {
@@ -280,17 +456,50 @@ public class MethodGenerator {
         return JExpr.lit(Double.parseDouble(value));
     }
 
+    private IJExpression pow(Element e) {
+        List<Element> pow = childElements(e);
+        if(pow.size()!=2)
+            throw new IllegalArgumentException("pow");
+        return JExpr.invoke("pow")
+                .arg(expr(pow.get(0)))
+                .arg(expr(pow.get(1)));
+    }
+
+    private IJStatement call(Element call) {
+        String name = call.getAttribute("name");
+        return invoke(name, childElements(call, "arg"));
+    }
+
     private IJExpression fun(Element e) {
 
         String name = e.getAttribute("name");
 
         if("float".equals(name)) {
-            return JExpr.cast(codeGenerator.codeModel.FLOAT, expr(childElement(e, "arg")));
+            name = "_float";
+            //return JExpr.cast(codeGenerator.codeModel.FLOAT, expr(childElement(e, "arg")));
         }
 
-        JInvocation invoke = invoke(name);
-        childElements(e, "arg").forEach(arg -> invoke.arg(expr(childElements(arg))));
+        if("int".equals(name)) {
+            //return JExpr.cast(codeGenerator.codeModel.SHORT, expr(childElement(e, "arg")));
+            name = "_int";
+        }
 
+        if("cmplx".equals(name)) {
+            List<Element> args = childElements(e, "arg");
+            if(args.size()==2) {
+                IJExpression re = expr(args.get(0));
+                IJExpression im = expr(args.get(1));
+                return codeGenerator.complex(re, im);
+            }
+        }
+
+        return invoke(name, childElements(e, "arg"));
+    }
+
+    private JInvocation invoke(String name, List<Element> args) {
+
+        JInvocation invoke = invoke(name);
+        args.forEach(arg -> invoke.arg(expr(arg)));
         return invoke;
     }
 

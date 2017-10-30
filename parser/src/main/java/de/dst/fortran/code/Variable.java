@@ -57,6 +57,9 @@ public class Variable extends Entity implements Value, Context {
         if(isArgument() && isAssigned())
             return false;
 
+        if(type==Type.CX)
+            return false;
+
         return true;
     }
 
@@ -136,9 +139,11 @@ public class Variable extends Entity implements Value, Context {
         return props.contains(Prop.ASSIGNED);
     }
 
-    public Variable isReferenced(boolean referenced) {
-        if(referenced)
-            props.add(Prop.REFERENCED);
+    public Variable setReferenced() {
+        props.add(Prop.REFERENCED);
+        if(ref!=null)
+            ref.setReferenced();
+
         return this;
     }
 

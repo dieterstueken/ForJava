@@ -6,6 +6,7 @@ import de.dst.fortran.code.Constant;
 import de.dst.fortran.code.Value;
 import de.dst.fortran.code.Variable;
 import de.irt.jfor.Arr;
+import de.irt.jfor.Complex;
 import de.irt.jfor.Ref;
 import de.irt.jfor.Unit;
 
@@ -30,9 +31,10 @@ public class CodeGenerator {
 
     final JPackage jmodule;
 
-    final AbstractJType refType = codeModel._ref(Ref.class);
-    final AbstractJType arrType = codeModel._ref(Arr.class);
-    final AbstractJType unitType = codeModel._ref(Unit.class);
+    final AbstractJClass refType = codeModel.ref(Ref.class);
+    final AbstractJClass arrType = codeModel.ref(Arr.class);
+    final AbstractJClass unitType = codeModel.ref(Unit.class);
+    final AbstractJClass cplxType = codeModel.ref(Complex.class);
 
     JPackage subPackage(@Nonnull String name) {
         return jmodule.subPackage(name);
@@ -77,12 +79,17 @@ public class CodeGenerator {
         }
     }
 
+    JFComplex complex(IJExpression re, IJExpression im) {
+        return new JFComplex(cplxType, re, im);
+    }
+
     JFieldVar defineVariable(JDefinedClass jc, Variable var) {
         Class<?> type = var.type();
 
         IJExpression expr = null;
+        int mod = JMod.PUBLIC;
 
-        if(Ref.class.isAssignableFrom(type)) {
+        if(Ref.class.isAssignableFrom(type) || Complex.class.isAssignableFrom(type)) {
             JInvocation init = codeModel.ref(type).staticInvoke("of");
 
             if (!var.dim.isEmpty()) {
@@ -98,6 +105,8 @@ public class CodeGenerator {
                     }
                 }
             }
+            
+            mod |= JMod.FINAL;
             if(init!=null)
                 expr = init;
             else
@@ -111,7 +120,7 @@ public class CodeGenerator {
         else
             expr = JExpr.lit(0);
 
-        return jc.field(JMod.PUBLIC|JMod.FINAL, type, var.name, expr);
+        return jc.field(mod, type, var.name, expr);
     }
 
     void generateCommon(Common common, JDefinedClass jc) {

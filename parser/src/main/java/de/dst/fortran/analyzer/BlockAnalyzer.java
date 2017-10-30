@@ -204,7 +204,7 @@ public class BlockAnalyzer {
         switch(name) {
             case "assvar":
                 // tag statement functions
-                block.assign(variable(e));
+                variable(e).isAssigned(true);
                 parseExpr(childElements(e));
                 break;
 
@@ -298,25 +298,29 @@ public class BlockAnalyzer {
 
         for(int i=0; i<args.size(); ++i) {
             Variable vex = external.arguments.get(i);
+
+            boolean returned = vex.isAssigned() || vex.isReferenced();
+
             Element arg = args.get(i);
             Element var = getVariable(arg);
 
             if(var!=null) {
                 Variable v = variable(var);
 
-                if(external.assigned(vex))
-                    block.assign(v);
+                if(vex.isAssigned()) {
+                    v.isAssigned(true);
+                }
 
-                if(vex.isReferenced())
-                    v.isReferenced(true);
+                if(returned) {
+                    v.setReferenced();
+                    var.setAttribute("returned", "true");
+                }
 
-                var.setAttribute("returned", "true");
-            }
-
-            if(var!=null)
                 arg.setAttribute("type", "var");
-            else {
+            } else {
                 arg.setAttribute("type", "expr");
+                if(returned)
+                    arg.setAttribute("returned", "true");
                 parseExpr(childElements(arg));
             }
         }
@@ -324,11 +328,9 @@ public class BlockAnalyzer {
 
     private void parseExpr(List<Element> expr) {
 
-        for (int i = 0; i < expr.size(); i++) {
-            Element e = expr.get(i);
-
+        for (Element e : expr) {
             String name = e.getNodeName();
-            switch(name) {
+            switch (name) {
 
                 case "var":
                     variable(e);
@@ -337,11 +339,6 @@ public class BlockAnalyzer {
                 case "fun":
                     fun(e);
                     parseExpr(childElements(e));
-                    break;
-
-                case "pow":
-                    pow(e);
-                    expr.remove(i+1);
                     break;
 
                 case "b":
@@ -398,7 +395,7 @@ public class BlockAnalyzer {
         }
 
         if(context==block)
-            if(block.assigned(v))
+            if(v.isAssigned())
                 e.setAttribute("assigned", "true");
 
         if(v.type!=null) {

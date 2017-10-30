@@ -47,25 +47,17 @@ public class Block extends Entity implements Context {
         return new Common(name, variables::get);
     }
 
-    public Variable assign(Variable v) {
-        return v.isAssigned(true);
-    }
-
-    public boolean assigned(Variable v) {
-        return v.isAssigned();
-    }
-
     public void dump() {
 
         System.out.format("%s %s\n", name, type);
 
         arguments.forEach(v ->
-                System.out.format("%s %s\n", assigned(v) ? "*":" ", v)
+                System.out.format("%s %s\n", v.isAssigned() ? "*":" ", v)
         );
 
         variables.forEach(v -> {
             if(v.context==null)
-                System.out.format("%s %s\n", assigned(v) ? "*":" ", v);
+                System.out.format("%s %s\n", v.isAssigned() ? "*":" ", v);
         });
 
         System.out.println("--");

@@ -11,44 +11,44 @@ import javax.annotation.Nonnull;
  * modified by: $Author$
  * modified on: $Date$
  */
-public interface IFExpression extends IJExpression {
+public interface JFExpression extends IJExpression {
 
-    IFExpression EMPTY = new IFExpression() {
+    JFExpression EMPTY = new JFExpression() {
         @Override
         public void generate(@Nonnull JFormatter f) {}
 
         @Override
-        public IFExpression append(IJGenerable expr) {
-            if(expr instanceof IFExpression)
-                return (IFExpression) expr;
+        public JFExpression append(IJGenerable expr) {
+            if(expr instanceof JFExpression)
+                return (JFExpression) expr;
             else
-                return IFExpression.super.append(expr);
+                return JFExpression.super.append(expr);
         }
     };
 
-    IFExpression NL = JFormatter::newline;
+    JFExpression NL = JFormatter::newline;
 
-    static IFExpression expr(IJGenerable expr) {
+    static JFExpression expr(IJGenerable expr) {
         return EMPTY.append(expr);
     }
 
-    static IFExpression expr(char fragment) {
+    static JFExpression expr(char fragment) {
         return f->f.print(fragment);
     }
 
-    static IFExpression expr(String fragment) {
+    static JFExpression expr(String fragment) {
         return fragment==null || fragment.isEmpty() ? EMPTY : f->f.print(fragment);
     }
 
-    default IFExpression append(IJGenerable expr) {
+    default JFExpression append(IJGenerable expr) {
         return expr==EMPTY||expr==null ? this : f-> f.generable(this).generable(expr);
     }
 
-    default IFExpression append(String code) {
+    default JFExpression append(String code) {
         return append(expr(code));
     }
 
-    default IFExpression nl() {
+    default JFExpression nl() {
         return append(NL);
     }
 

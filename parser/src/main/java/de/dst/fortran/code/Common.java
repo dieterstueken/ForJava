@@ -28,7 +28,7 @@ public class Common extends Entity implements Context {
         Variable variable = newVariable.apply(name).context(this);
 
         // always by reference
-        variable.isReferenced(true);
+        //variable.isReferenced(true);
 
         if(root!=null) {
             int index = members.size();

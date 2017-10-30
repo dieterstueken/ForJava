@@ -55,6 +55,8 @@ public enum Item {
     DOWHILE(expr("do\\s+while\\s*\\(")),
     ENDDO(expr("end\\s*do\\s*")),
 
+    EXIT("exit"),
+    CYCLE("cycle"),
     GOTO(expr("goto\\s+(\\d+)")),
     CALL(expr("(call\\s*(\\w*)\\s*\\(?)")),
     CONTINUE("continue"),

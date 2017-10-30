@@ -18,7 +18,7 @@ public class Fortran {
         return (short) Math.min(v1, v2);
     }
 
-    public static float min1(float v1, float v2) {
+    public static float amin1(float v1, float v2) {
         return Math.min(v1, v2);
     }
 
@@ -53,16 +53,38 @@ public class Fortran {
     }
 
 
-    public static float sqrt(double value) {
+    public static float sign(float v, float s) {
+        return (short) dsign(v, s);
+    }
+
+    public static int sign(int v, int s) {
+        v = Math.abs(v);
+        return (short) (s<0 ? -v : v);
+    }
+
+    public static short isign(short v, short s) {
+        return (short) sign(v, s);
+    }
+
+    public static double dsign(double v, double s) {
+        v = Math.abs(v);
+        return (short) (s<0 ? -v : v);
+    }
+
+    public static float sqrt(float value) {
         return (float) Math.sqrt(value);
+    }
+
+    public static double sqrt(double value) {
+        return Math.sqrt(value);
+    }
+
+    public static double dsqrt(double v) {
+        return Math.sqrt(v);
     }
 
     public static Complex csqrt(Complex value) {
         return  value.sqrt();
-    }
-
-    public static float dsqrt(float v) {
-        return (float) Math.sqrt(v);
     }
 
 
@@ -92,6 +114,10 @@ public class Fortran {
         return (float) Math.atan(v);
     }
 
+    public static double datan(double v) {
+        return Math.atan(v);
+    }
+
 
     public static float tanh(double value) {
         return (float) Math.tanh(value);
@@ -101,8 +127,8 @@ public class Fortran {
         return (float) Math.atan2(v1, v2);
     }
 
-    public static float datan2(float v1, float v2) {
-        return (float) Math.atan2(v1, v2);
+    public static double datan2(double v1, double v2) {
+        return Math.atan2(v1, v2);
     }
 
 
@@ -110,8 +136,17 @@ public class Fortran {
         return (float) Math.exp(v);
     }
 
-    public static float dexp(float v) {
-        return (float) Math.exp(v);
+    public static double dexp(double v) {
+        return Math.exp(v);
+    }
+
+
+    public static float pow(float v, float e) {
+        return (float) Math.pow(v, e);
+    }
+
+    public static double pow(double v, double e) {
+        return Math.pow(v, e);
     }
 
 
@@ -119,16 +154,16 @@ public class Fortran {
         return (float) Math.log(value);
     }
 
-    public static float dlog(float v) {
-        return (float) Math.log(v);
+    public static double dlog(double v) {
+        return Math.log(v);
     }
 
     public static float alog10(float value) {
         return (float) Math.log10(value);
     }
 
-    public static float dlog10(float v) {
-        return (float) Math.log10(v);
+    public static double dlog10(double v) {
+        return Math.log10(v);
     }
 
 
@@ -136,18 +171,33 @@ public class Fortran {
         return (short) Math.round(value);
     }
 
+    public static short _int(double v) {
+        return (short) v;
+    }
+
     public static short idint(double v) {
         return (short) v;
     }
 
-    public double dble(float value) {
-        return value;
+    public static float _float(short v) {
+        return v;
+    }
+
+    public static float _float(double v) {
+        return (short) v;
+    }
+
+    public double dble(float v) {
+        return v;
     }
 
     public static Complex cmplx(double re, double im) {
         return Complex.of(re, im);
     }
 
+    public static Complex cmplx(double re) {
+        return cmplx(re, 0);
+    }
 
     public static short ifix(double v) {
         return (short) (v - idint(v));
@@ -155,5 +205,9 @@ public class Fortran {
 
     public static String len_trim(String str) {
         return str.trim();
+    }
+
+    public Object ref(Object expr) {
+        return expr;
     }
 }

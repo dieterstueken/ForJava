@@ -17,6 +17,10 @@ public class ChArr implements Arr {
             buffer.append(' ');
     }
 
+    public ChArr(String value) {
+        buffer = new StringBuffer(value);
+    }
+
     public ChArr() {
         buffer = new StringBuffer();
     }
@@ -40,5 +44,10 @@ public class ChArr implements Arr {
 
     public static ChArr of(int len) {
         return new ChArr(len);
+    }
+
+    public ChArr substring(int i, int len) {
+        len = Math.min(len, buffer.length());
+        return new ChArr(toString().substring(i, i+len));
     }
 }

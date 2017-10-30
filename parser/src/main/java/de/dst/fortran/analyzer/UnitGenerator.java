@@ -126,6 +126,10 @@ class UnitGenerator extends MethodGenerator {
         JDocComment comment = method.jmethod.javadoc();
         for (Element ce : childElements(fun)) {
             switch (ce.getTagName()) {
+                case "F":
+                    line = ce.getAttribute("line");
+                    break;
+
                 case "C":
                     String text = ce.getTextContent();
                     comment.add(text);
@@ -134,6 +138,7 @@ class UnitGenerator extends MethodGenerator {
             }
         }
 
+        method.line = line;
         final JBlock jbody = method.jmethod.body();
 
         // single line expression

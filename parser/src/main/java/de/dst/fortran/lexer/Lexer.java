@@ -523,7 +523,7 @@ public class Lexer {
 
             case DO:
                 label().start("do").start("for").lattribute("name", token.get(0));
-                processExpr(tokens);
+                args(tokens);
                 out.end();
                 break;
 
@@ -616,6 +616,16 @@ public class Lexer {
 
             case RETURN:
                 label().empty("return");
+                space(tokens);
+                break;
+
+            case CYCLE:
+                label().empty("cycle");
+                space(tokens);
+                break;
+
+            case EXIT:
+                label().empty("exit");
                 space(tokens);
                 break;
 
@@ -794,6 +804,7 @@ public class Lexer {
             Token token = next(tokens);
             switch (token.item) {
 
+                case ENDLINE:
                 case CLOSE:
                     out.end();
                     return;
@@ -801,6 +812,7 @@ public class Lexer {
                 case COMMA:
                     out.end().text(",").start("arg");
                     break;
+
 
                 default:
                     processExpr(token, tokens);
