@@ -813,6 +813,9 @@ public class Lexer {
                     out.end().text(",").start("arg");
                     break;
 
+                case RANGE:
+                    out.end().text(",").start("arg").attribute("type", "range");
+                    break;
 
                 default:
                     processExpr(token, tokens);
