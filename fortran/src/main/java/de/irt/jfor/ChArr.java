@@ -9,33 +9,26 @@ package de.irt.jfor;
  */
 public class ChArr implements Arr {
 
-    public final StringBuffer buffer;
+    public final String text;
 
     public ChArr(int len) {
-        buffer = new StringBuffer(len);
-        while(len-->0)
-            buffer.append(' ');
+        text = "";
     }
 
     public ChArr(String value) {
-        buffer = new StringBuffer(value);
+        text = value;
     }
 
     public ChArr() {
-        buffer = new StringBuffer();
+        text = "";
     }
 
     public String toString() {
-        return buffer.toString();
+        return text.toString();
     }
 
     public char get(int index) {
-        return buffer.charAt(index);
-    }
-
-    public char set(int index, char ch) {
-        buffer.setCharAt(index, ch);
-        return ch;
+        return text.charAt(index);
     }
 
     public static ChArr of() {
@@ -46,8 +39,22 @@ public class ChArr implements Arr {
         return new ChArr(len);
     }
 
-    public ChArr substring(int i, int len) {
-        len = Math.min(len, buffer.length());
-        return new ChArr(toString().substring(i, i+len));
+    public ChArr cat(String text) {
+        return new ChArr(this.text+text);
+    }
+
+    public ChArr get(int i, int len) {
+        len = Math.min(len, text.length());
+        return new ChArr(toString().substring(i-1, i+len));
+    }
+
+    public int len_trim() {
+        int i = text.length();
+        while(i>0) {
+            if(text.charAt(i-1)!=' ')
+                break;
+            --i;
+        }
+        return i;
     }
 }

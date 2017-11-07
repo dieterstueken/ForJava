@@ -689,6 +689,7 @@ public class Lexer {
     private boolean getValue(List<Token> tokens) {
 
         int count = 0;
+        int close = 0;
         Token token=null;
 
         tokens:
@@ -736,8 +737,12 @@ public class Lexer {
             }
 
             // got value, try get binop
+            while(--close>=0)
+                out.end();
 
-            if(getBinop(tokens))
+            close=getBinop(tokens);
+
+            if(close>=0)
                 ++count; // continue with further values
             else
                 return true;
@@ -751,7 +756,7 @@ public class Lexer {
         return false;
     }
 
-    private boolean getBinop(List<Token> tokens) {
+    private int getBinop(List<Token> tokens) {
         while(!tokens.isEmpty()) {
             Token token = next(tokens);
 
@@ -761,8 +766,8 @@ public class Lexer {
                     break;
 
                 case CONCAT:
-                    out.empty("cat");
-                    break;
+                    out.start("cat");
+                    return 1; // close again
 
                 case POW:
                     out.empty("pow");
@@ -774,13 +779,13 @@ public class Lexer {
 
                 default:// silently push back
                     tokens.add(0, token);
-                    return false;
+                    return -1;
             }
 
-            return true;
+            return 0;
         }
 
-        return false;
+        return -1;
     }
 
     // process until closed brace
@@ -814,7 +819,7 @@ public class Lexer {
                     break;
 
                 case RANGE:
-                    out.end().text(",").start("arg").attribute("type", "range");
+                    out.end().text(",").start("arg").attribute("range", "true");
                     break;
 
                 default:

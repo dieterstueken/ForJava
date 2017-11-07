@@ -398,6 +398,9 @@ public class MethodGenerator {
             case "pow":
                 return pow(e);
 
+            case "cat":
+                return cat(e);
+
             case "b":
                 return JFExpression.expr("(").append(expr(childElements(e))).append(")");
 
@@ -456,6 +459,13 @@ public class MethodGenerator {
         return JExpr.lit(Double.parseDouble(value));
     }
 
+    private IJExpression cat(Element e) {
+
+        Element arg = childElement(e, "string");
+        String text = arg.getTextContent();
+        return f-> f.print(".cat(\"").print(text).print("\")");
+    }
+
     private IJExpression pow(Element e) {
         List<Element> pow = childElements(e);
         if(pow.size()!=2)
@@ -497,7 +507,6 @@ public class MethodGenerator {
     }
 
     private JInvocation invoke(String name, List<Element> args) {
-
         JInvocation invoke = invoke(name);
         args.forEach(arg -> invoke.arg(expr(arg)));
         return invoke;

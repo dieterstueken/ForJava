@@ -18,8 +18,16 @@ public class Fortran {
         return (short) Math.min(v1, v2);
     }
 
-    public static float amin1(float v1, float v2) {
-        return Math.min(v1, v2);
+    public static float amin0(double v1, double v2) {
+        return (short) Math.min(v1, v2);
+    }
+
+    public static int amin0(int v1, int v2) {
+        return  Math.min(v1, v2);
+    }
+
+    public static short amin1(short v1, short v2) {
+        return (short) Math.min(v1, v2);
     }
 
 
@@ -203,8 +211,8 @@ public class Fortran {
         return (short) (v - idint(v));
     }
 
-    public static String len_trim(String str) {
-        return str.trim();
+    public static int len_trim(ChArr str) {
+        return str.len_trim();
     }
 
     public Object ref(Object expr) {
