@@ -11,7 +11,7 @@ import java.util.*;
  * modified by: $Author$
  * modified on: $Date$
  */
-public class Variable extends Entity implements Value, Context {
+public class Variable extends Entity implements Value {
 
     enum Prop {EXPLICIT, ARGUMENT, ASSIGNED, REFERENCED};
 

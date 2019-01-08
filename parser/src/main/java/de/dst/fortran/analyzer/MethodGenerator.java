@@ -8,8 +8,8 @@ import org.w3c.dom.Node;
 import java.util.*;
 import java.util.stream.Stream;
 
-import static de.dst.fortran.analyzer.Analyzer.childElement;
-import static de.dst.fortran.analyzer.Analyzer.childElements;
+import static de.dst.fortran.code.Analyzer.childElement;
+import static de.dst.fortran.code.Analyzer.childElements;
 
 /**
  * version:     $Revision$
@@ -114,7 +114,7 @@ public class MethodGenerator {
                 return null;
 
             case "f":
-                return JFormatter::newline;
+                return JFExpression.NL;
 
             case "C":
                 return comment(code);
@@ -262,7 +262,7 @@ public class MethodGenerator {
         String comment = e.getTextContent();
 
         if (comment.isEmpty())
-            return JFormatter::newline;
+            return JFExpression.NL;
 
         if(comment.charAt(0)=='+') {
             comment = "+" + comment.substring(1).trim();

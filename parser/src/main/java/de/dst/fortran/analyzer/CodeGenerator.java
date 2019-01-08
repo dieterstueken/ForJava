@@ -1,20 +1,25 @@
 package de.dst.fortran.analyzer;
 
 import com.helger.jcodemodel.*;
-import de.dst.fortran.code.Common;
-import de.dst.fortran.code.Constant;
-import de.dst.fortran.code.Value;
-import de.dst.fortran.code.Variable;
+import de.dst.fortran.StreamWriter;
+import de.dst.fortran.XmlWriter;
+import de.dst.fortran.code.*;
+import de.dst.fortran.lexer.Lexer;
+import de.dst.fortran.lexer.item.Token;
+import de.dst.fortran.lexer.item.Tokenizer;
 import de.irt.jfor.Arr;
 import de.irt.jfor.Complex;
 import de.irt.jfor.Ref;
 import de.irt.jfor.Unit;
+import org.w3c.dom.Document;
 
 import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static de.dst.fortran.code.Value.UNDEF;
 
@@ -49,9 +54,7 @@ public class CodeGenerator {
 
     JDefinedClass defineClass(JPackage jp, String name) {
 
-        char c = name.charAt(0);
-        c = Character.toUpperCase(c);
-        name = Character.toString(c) + name.substring(1);
+        name = Character.toUpperCase(name.charAt(0)) + name.substring(1);
 
         try {
             return  jp._class(name);
@@ -60,10 +63,9 @@ public class CodeGenerator {
         }
     }
 
-
     public void generate(Analyzer code) {
-        generateCommons(code);
-        generateUnits(code);
+        generateCommons(code.commons());
+        generateUnits(code.units());
     }
 
     public void build(File directory) throws IOException {
@@ -71,23 +73,22 @@ public class CodeGenerator {
         codeModel.build(directory);
     }
 
-    public void generateCommons(Analyzer code) {
-
+    public void generateCommons(Stream<? extends Common> commons) {
         JPackage jpkg = jmodule.subPackage("common");
-        for (Common common : code.commons.values()) {
-            generateCommon(common, defineClass(jpkg, common.name));
-        }
+        commons.forEach(common->{
+            String name = common.getName().toUpperCase();
+            generateCommon(common, defineClass(jpkg, name));
+        });
     }
 
     JFComplex complex(IJExpression re, IJExpression im) {
         return new JFComplex(cplxType, re, im);
     }
 
-    JFieldVar defineVariable(JDefinedClass jc, Variable var) {
+    JFieldVar defineVariable(JDefinedClass jc, Variable var, int mod) {
         Class<?> type = var.type();
 
         IJExpression expr = null;
-        int mod = JMod.PUBLIC;
 
         if(Ref.class.isAssignableFrom(type) || Complex.class.isAssignableFrom(type)) {
             JInvocation init = codeModel.ref(type).staticInvoke("of");
@@ -125,21 +126,59 @@ public class CodeGenerator {
 
     void generateCommon(Common common, JDefinedClass jc) {
         jc._extends(de.irt.jfor.Common.class);
-        commons.put(common.name, jc);
-        for (Variable member : common.members) {
-            defineVariable(jc, member);
-        }
+        commons.put(common.getName(), jc);
+        common.members().forEach(member->{
+            defineVariable(jc, member, JMod.PUBLIC);
+        });
     }
 
-    private void generateUnits(Analyzer code) {
+    static String camelName(String name) {
+        char c = name.charAt(0);
+        if(Character.isUpperCase(c))
+            return name;
+        else
+            return Character.toUpperCase(c) + name.substring(1);
+    }
 
-        for (BlockAnalyzer analyzer : code.analyzers.values()) {
-            JPackage jpkg = subPackage(analyzer.block.path);
-            JDefinedClass jclass = defineClass(jpkg, analyzer.block.name);
-            UnitGenerator unit = new UnitGenerator(this, analyzer, jclass);
-            units.put(analyzer.block.name, unit);
-        }
+    private void generateUnits(Stream<? extends BlockElement> blocks) {
+
+        blocks.forEach(element -> {
+            final Block block = element.block();
+            JPackage jpkg = subPackage(block.path);
+            String name = camelName(block.name);
+            JDefinedClass jclass = defineClass(jpkg, name);
+            UnitGenerator unit = new UnitGenerator(this, element, jclass);
+            units.put(block.name, unit);
+        });
 
         units.values().forEach(UnitGenerator::define);
     }
+
+    public static void main(String ... args) throws Exception {
+
+        Document document = parse(args);
+        try {
+            Analyzer analyzer = Analyzer.analyze(document);
+
+            //final Set<String> intrinsics = new TreeSet<>();
+            //analyzer.units().map(BlockAnalyzer::block).forEach(b->intrinsics.addAll(b.functions));
+            //System.out.println("intrinsics:");
+            //intrinsics.forEach(System.out::println);
+
+            CodeGenerator generator = new CodeGenerator("de.irt.jfor.irt3d");
+            generator.generate(analyzer);
+            generator.build(new File("irt3d/src/main/java"));
+
+        } finally{
+            XmlWriter.writeDocument(document, new File("parsed.xml"));
+        }
+    }
+
+    public static Document parse(String... args) {
+        List<Token> tokens = Tokenizer.tokenize(args);
+        Document document = XmlWriter.newDocument();
+        new Lexer(StreamWriter.open(document)).process(tokens);
+        return document;
+    }
+
 }

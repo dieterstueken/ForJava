@@ -15,7 +15,7 @@ public interface JFExpression extends IJExpression {
 
     JFExpression EMPTY = new JFExpression() {
         @Override
-        public void generate(@Nonnull JFormatter f) {}
+        public void generate(@Nonnull IJFormatter f) {}
 
         @Override
         public JFExpression append(IJGenerable expr) {
@@ -26,7 +26,7 @@ public interface JFExpression extends IJExpression {
         }
     };
 
-    JFExpression NL = JFormatter::newline;
+    IJStatement NL = IJFormatter::newline;
 
     static JFExpression expr(IJGenerable expr) {
         return EMPTY.append(expr);
@@ -48,9 +48,7 @@ public interface JFExpression extends IJExpression {
         return append(expr(code));
     }
 
-    default JFExpression nl() {
-        return append(NL);
-    }
+    default IJStatement nl() { return NL; }
 
     static JConditional _if(IJExpression expr) {
         return new JConditional(expr) {};

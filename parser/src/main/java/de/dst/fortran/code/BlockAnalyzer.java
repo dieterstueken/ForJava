@@ -1,6 +1,5 @@
-package de.dst.fortran.analyzer;
+package de.dst.fortran.code;
 
-import de.dst.fortran.code.*;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -9,7 +8,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
-import static de.dst.fortran.analyzer.Analyzer.*;
+import static de.dst.fortran.code.Analyzer.*;
 
 /**
  * Created by IntelliJ IDEA.
@@ -17,17 +16,22 @@ import static de.dst.fortran.analyzer.Analyzer.*;
  * Date: 14.04.17
  * Time: 17:21
  */
-public class BlockAnalyzer {
+public class BlockAnalyzer implements BlockElement {
 
     final Analyzer analyzer;
 
-    final Block block;
+    public final Block block;
 
-    final Element be;
+    public final Element be;
 
     Boolean ready = false;
 
     String line = "";
+
+    @Override
+    public Element element() {
+        return be;
+    }
 
     @Override
     public String toString() {
@@ -46,7 +50,7 @@ public class BlockAnalyzer {
         System.out.format("  define %s:%s\n", block.path, block.name);
     }
 
-    Block block() {
+    public Block block() {
 
         if (ready == null)
             throw new IllegalStateException("dependeny loop: " + block.name);
@@ -141,7 +145,7 @@ public class BlockAnalyzer {
     }
 
     private void common(Element e) {
-        Common common = newCommon(e.getAttribute("name"));
+        CommonAnalyzer common = newCommon(e.getAttribute("name"));
         Analyzer.childElements(e).forEach(ce -> {
             switch(ce.getNodeName()) {
                 case "var":
@@ -365,11 +369,11 @@ public class BlockAnalyzer {
         return be.getOwnerDocument().createTextNode(text);
     }
 
-    Common newCommon(String name) {
-        Common common = block.commons.get(name);
+    CommonAnalyzer newCommon(String name) {
+        CommonAnalyzer common = block.commons.get(name);
 
         // prepare root or be new root
-        Common root = analyzer.commons.get(name);
+        CommonAnalyzer root = analyzer.commons.get(name);
         if(root!=null)
             common.root = root;
         else
@@ -390,7 +394,7 @@ public class BlockAnalyzer {
 //            context = a.context;
 //        }
 
-        if(context instanceof Common) {
+        if(context instanceof CommonAnalyzer) {
             e.setAttribute("common", context.getName());
         }
 

@@ -7,7 +7,7 @@ package de.dst.fortran.code;
  * modified by: $Author$
  * modified on: $Date$
  */
-public class Entity {
+public class Entity implements Context {
 
     public final String name;
 

@@ -35,6 +35,10 @@ public class Fortran {
         return (float) Math.max(v1, v2);
     }
 
+    public static float max(double v1, double v2, double v3) {
+        return (float) Math.max(Math.max(v1, v2), v3);
+    }
+
     public static short max0(double v1, double v2) {
         return (short) Math.max(v1, v2);
     }

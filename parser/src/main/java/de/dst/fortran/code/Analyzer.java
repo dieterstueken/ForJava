@@ -1,13 +1,5 @@
-package de.dst.fortran.analyzer;
+package de.dst.fortran.code;
 
-import de.dst.fortran.StreamWriter;
-import de.dst.fortran.XmlWriter;
-import de.dst.fortran.code.Block;
-import de.dst.fortran.code.Common;
-import de.dst.fortran.code.Type;
-import de.dst.fortran.lexer.Lexer;
-import de.dst.fortran.lexer.item.Token;
-import de.dst.fortran.lexer.item.Tokenizer;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -16,6 +8,7 @@ import org.w3c.dom.Text;
 import java.io.File;
 import java.util.*;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 /**
  * version:     $Revision$
@@ -26,9 +19,17 @@ import java.util.function.Predicate;
  */
 public class Analyzer {
 
-    final Map<String, BlockAnalyzer> analyzers = new TreeMap<>();
+    public final Map<String, BlockAnalyzer> analyzers = new TreeMap<>();
 
-    final Map<String, Common> commons = new TreeMap<>();
+    public final Map<String, CommonAnalyzer> commons = new TreeMap<>();
+
+    public Stream<BlockAnalyzer> units() {
+        return analyzers.values().stream();
+    }
+
+    public Stream<? extends Common> commons() {
+        return commons.values().stream();
+    }
 
     String indent = "";
 
@@ -37,29 +38,7 @@ public class Analyzer {
         return analyzer==null ? null : analyzer.block();
     }
 
-    public static Document parse(String... args) {
-        List<Token> tokens = Tokenizer.tokenize(args);
-        Document document = XmlWriter.newDocument();
-        new Lexer(StreamWriter.open(document)).process(tokens);
-        return document;
-    }
-
-    public static void main(String ... args) throws Exception {
-
-        Document document = parse(args);
-        //Document document = Analyzer.readDocument("dump.xml");
-        try {
-            Analyzer analyzer = new Analyzer().analyze(document);
-            CodeGenerator generator = new CodeGenerator("de.irt.jfor.irt3d");
-            generator.generate(analyzer);
-            generator.build(new File("irt3d/src/main/java"));
-
-        } finally{
-            XmlWriter.writeDocument(document, new File("parsed.xml"));
-        }
-    }
-
-    BlockAnalyzer newAnalyzer(Element be) {
+    BlockAnalyzer newBlock(Element be) {
         BlockAnalyzer analyzer = new BlockAnalyzer(this, be);
         BlockAnalyzer other = analyzers.put(analyzer.block.name, analyzer);
         if(other!=null)
@@ -68,20 +47,20 @@ public class Analyzer {
         return analyzer;
     }
 
-    Analyzer analyze(Document document) {
+    public static Analyzer analyze(Document document) {
 
+        Analyzer analyzer = new Analyzer();
+
+        // prepare blocks to analyze
         childElements(document.getDocumentElement(), "file").stream()
                 .peek(fe -> System.out.format("file: %s\n", fe.getAttribute("name")))
                 .flatMap(ce -> childElements(ce, "function", "subroutine", "blockdata", "program").stream())
-                .forEach(this::newAnalyzer);
+                .forEach(analyzer::newBlock);
 
-        final Set<String> intrinsics = new TreeSet<>();
-        analyzers.values().stream().map(BlockAnalyzer::block).forEach(b->intrinsics.addAll(b.functions));
+        // resolve dependencies: generate all pending blocks
+        analyzer.units().forEach(BlockAnalyzer::block);
 
-        //System.out.println("intrinsics:");
-        //intrinsics.forEach(System.out::println);
-
-        return this;
+        return analyzer;
     }
 
     static String getPath(Element be) {

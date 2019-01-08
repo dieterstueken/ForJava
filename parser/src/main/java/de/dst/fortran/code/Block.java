@@ -9,7 +9,7 @@ import java.util.Set;
  * Date: 14.04.17
  * Time: 13:44
  */
-public class Block extends Entity implements Context {
+public class Block extends Entity {
 
     public String path = null;
 
@@ -37,14 +37,14 @@ public class Block extends Entity implements Context {
 
     public final Set<Block> blocks = new HashSet<>();
 
-    public final Entities<Common> commons = new Entities<>(this::newCommon);
+    public final Entities<CommonAnalyzer> commons = new Entities<>(this::newCommon);
 
     public Block(String name) {
         super(name);
     }
 
-    private Common newCommon(String name) {
-        return new Common(name, variables::get);
+    private CommonAnalyzer newCommon(String name) {
+        return new CommonAnalyzer(name, variables::get);
     }
 
     public void dump() {
