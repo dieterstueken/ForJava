@@ -1,4 +1,4 @@
-package de.dst.fortran.analyzer;
+package de.dst.fortran.code.generator.java;
 
 import com.helger.jcodemodel.*;
 import de.dst.fortran.code.*;
