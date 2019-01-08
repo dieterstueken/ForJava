@@ -30,6 +30,9 @@ public class Fortran {
         return (short) Math.min(v1, v2);
     }
 
+    public static short amin1(float v1, float v2) {
+        return (short) Math.min(v1, v2);
+    }
 
     public static float max(double v1, double v2) {
         return (float) Math.max(v1, v2);

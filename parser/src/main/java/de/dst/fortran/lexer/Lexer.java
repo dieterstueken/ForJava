@@ -1,12 +1,10 @@
 package de.dst.fortran.lexer;
 
-import de.dst.fortran.DomWriter;
 import de.dst.fortran.StreamWriter;
 import de.dst.fortran.XmlWriter;
 import de.dst.fortran.lexer.item.Item;
 import de.dst.fortran.lexer.item.Token;
 import de.dst.fortran.lexer.item.Tokenizer;
-import org.dom4j.Document;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,13 +25,6 @@ public class Lexer {
         try(StreamWriter out = StreamWriter.open(new File("dump.xml"))) {
             new Lexer(out).process(tokens);
         }
-    }
-
-    public static Document parse(String... args) {
-        List<Token> tokens = Tokenizer.tokenize(args);
-        DomWriter writer = DomWriter.create();
-        new Lexer(writer).process(tokens);
-        return writer.getDocument();
     }
 
     public Lexer(XmlWriter out) {
