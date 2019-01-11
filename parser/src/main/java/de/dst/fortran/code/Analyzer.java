@@ -1,5 +1,10 @@
 package de.dst.fortran.code;
 
+import de.dst.fortran.StreamWriter;
+import de.dst.fortran.XmlWriter;
+import de.dst.fortran.lexer.Lexer;
+import de.dst.fortran.lexer.item.Token;
+import de.dst.fortran.lexer.item.Tokenizer;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -204,4 +209,12 @@ public class Analyzer {
 
         return label;
     }
+
+    public static Document parse(String... args) {
+        List<Token> tokens = Tokenizer.tokenize(args);
+        Document document = XmlWriter.newDocument();
+        new Lexer(StreamWriter.open(document)).process(tokens);
+        return document;
+    }
+
 }

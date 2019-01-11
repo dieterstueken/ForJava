@@ -1,12 +1,8 @@
 package de.dst.fortran.code.generator.java;
 
 import com.helger.jcodemodel.*;
-import de.dst.fortran.StreamWriter;
 import de.dst.fortran.XmlWriter;
 import de.dst.fortran.code.*;
-import de.dst.fortran.lexer.Lexer;
-import de.dst.fortran.lexer.item.Token;
-import de.dst.fortran.lexer.item.Tokenizer;
 import de.irt.jfor.Arr;
 import de.irt.jfor.Complex;
 import de.irt.jfor.Ref;
@@ -17,7 +13,6 @@ import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -156,7 +151,7 @@ public class CodeGenerator {
 
     public static void main(String ... args) throws Exception {
 
-        Document document = parse(args);
+        Document document = Analyzer.parse(args);
         try {
             Analyzer analyzer = Analyzer.analyze(document);
 
@@ -172,13 +167,6 @@ public class CodeGenerator {
         } finally{
             XmlWriter.writeDocument(document, new File("parsed.xml"));
         }
-    }
-
-    public static Document parse(String... args) {
-        List<Token> tokens = Tokenizer.tokenize(args);
-        Document document = XmlWriter.newDocument();
-        new Lexer(StreamWriter.open(document)).process(tokens);
-        return document;
     }
 
 }
