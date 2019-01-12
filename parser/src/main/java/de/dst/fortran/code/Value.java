@@ -16,4 +16,8 @@ public interface Value {
             return "UNDEF";
         }
     };
+
+    enum Kind {
+        INTRINSIC, PRIMITIVE, PROPERTY, ARRAY, MATRIX, CUBE
+    }
 }

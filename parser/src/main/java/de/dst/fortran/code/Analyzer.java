@@ -13,7 +13,6 @@ import org.w3c.dom.Text;
 import java.io.File;
 import java.util.*;
 import java.util.function.Predicate;
-import java.util.stream.Stream;
 
 /**
  * version:     $Revision$
@@ -28,12 +27,12 @@ public class Analyzer {
 
     public final Map<String, CommonAnalyzer> commons = new TreeMap<>();
 
-    public Stream<BlockAnalyzer> units() {
-        return analyzers.values().stream();
+    public Collection<BlockAnalyzer> units() {
+        return analyzers.values();
     }
 
-    public Stream<? extends Common> commons() {
-        return commons.values().stream();
+    public Collection<? extends Common> commons() {
+        return commons.values();
     }
 
     String indent = "";
@@ -159,55 +158,13 @@ public class Analyzer {
         return childElements.size()>0 ? childElements.get(0) : null;
     }
 
-
-    private static final Map<String, Type> TYPES = new HashMap<>();
-    {
-        TYPES.put("character*1", Type.CH);
-        TYPES.put("integer", Type.I2);
-        TYPES.put("integer*2", Type.I2);
-        TYPES.put("integer*4", Type.I4);
-        TYPES.put("logical*4", Type.L4);
-        TYPES.put("real", Type.R4);
-        TYPES.put("real*4", Type.R4);
-        TYPES.put("real*8", Type.R8);
-        TYPES.put("complex", Type.CX);
-    }
-
     public static Type parseType(final String token) {
-        if(token==null || token.isEmpty())
-            return null;
-
-        Type type = TYPES.get(token);
-            if(type!=null)
-                return type;
-
-        if(token.startsWith("character*")) {
-            return Type.STR; // whatever
-        }
-
-        throw new IllegalArgumentException(token);
+        return Type.parse(token);
     }
 
-    public static Integer parseInt(String line) {
-
-        if(line==null || line.isEmpty())
-            return null;
-
-        char ch = line.charAt(0);
-        if(!Character.isDigit(ch))
-            return null;
-
-        int label = 0;
-
-        int len = line.length();
-        for(int i=0; i<len; ++i) {
-            ch = line.charAt(i);
-            if(!Character.isDigit(ch))
-                break;
-            label = 10 * label + Character.getNumericValue(ch);
-        }
-
-        return label;
+    public static TypeDef parseType(final String token, Value.Kind kind) {
+        Type type = Type.parse(token);
+        return type==null ? null : type.kind(kind);
     }
 
     public static Document parse(String... args) {

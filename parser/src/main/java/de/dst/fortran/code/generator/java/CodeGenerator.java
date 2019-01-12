@@ -14,7 +14,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import static de.dst.fortran.code.Value.UNDEF;
 
@@ -26,6 +25,8 @@ import static de.dst.fortran.code.Value.UNDEF;
  * modified on: $Date$
  */
 public class CodeGenerator {
+
+    static final Types TYPES = new Types();
 
     final JCodeModel codeModel = new JCodeModel();
 
@@ -68,7 +69,7 @@ public class CodeGenerator {
         codeModel.build(directory);
     }
 
-    public void generateCommons(Stream<? extends Common> commons) {
+    public void generateCommons(Iterable<? extends Common> commons) {
         JPackage jpkg = jmodule.subPackage("common");
         commons.forEach(common->{
             String name = common.getName().toUpperCase();
@@ -76,12 +77,16 @@ public class CodeGenerator {
         });
     }
 
+    Class<?> typeOf(TypeDef type) {
+        return TYPES.get(type);
+    }
+
     JFComplex complex(IJExpression re, IJExpression im) {
         return new JFComplex(cplxType, re, im);
     }
 
     JFieldVar defineVariable(JDefinedClass jc, Variable var, int mod) {
-        Class<?> type = var.type();
+        Class<?> type = typeOf(var.type());
 
         IJExpression expr = null;
 
@@ -135,7 +140,7 @@ public class CodeGenerator {
             return Character.toUpperCase(c) + name.substring(1);
     }
 
-    private void generateUnits(Stream<? extends BlockElement> blocks) {
+    private void generateUnits(Iterable<? extends BlockElement> blocks) {
 
         blocks.forEach(element -> {
             final Block block = element.block();

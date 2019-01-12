@@ -1,7 +1,7 @@
 package de.dst.fortran.code;
 
+import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Stream;
 
 /**
  * version:     $Revision$
@@ -26,8 +26,8 @@ public class CommonAnalyzer extends Entity implements Common {
     }
 
     @Override
-    public Stream<Variable> members() {
-        return members.stream();
+    public Set<Variable> members() {
+        return members;
     }
 
     Variable newVariable(String name) {

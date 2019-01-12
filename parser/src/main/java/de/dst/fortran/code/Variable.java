@@ -1,7 +1,5 @@
 package de.dst.fortran.code;
 
-import de.irt.jfor.Arr;
-
 import java.util.*;
 
 /**
@@ -40,8 +38,13 @@ public class Variable extends Entity implements Value {
         if(!dim.isEmpty())
             return true;
 
-        if(type!=null && Arr.class.isAssignableFrom(type.type()))
+        //if(type!=null && Arr.class.isAssignableFrom(type.type()))
+        //    return true;
+
+        if(Type.STR.equals(type)) {
+            // strings may be treated as arrays
             return true;
+        }
 
         return false;
     }
@@ -57,20 +60,20 @@ public class Variable extends Entity implements Value {
         if(isArgument() && isAssigned())
             return false;
 
-        if(type==Type.CX)
+        if(type==Type.CPX)
             return false;
 
         return true;
     }
 
-    public Class<?> type() {
+    public TypeDef type() {
         Type type = this.type != null ? this.type : Type.intrinsic(name);
 
-        if(isPrimitive() && type.simple!=null) {
-            return type.simple;
+        if(isPrimitive()) {
+            return type.primitive();
         }
 
-        return type.type(dim.size());
+        return type.dim(dim.size());
     }
 
     public String getRefName() {

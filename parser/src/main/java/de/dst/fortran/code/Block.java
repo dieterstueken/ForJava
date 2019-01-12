@@ -13,20 +13,15 @@ public class Block extends Entity {
 
     public String path = null;
 
-    public String type = null;
+    String type = null;
 
-    public Type returnType = null;
+    TypeDef returnType = null;
 
-    public Class<?> type() {
+    public TypeDef type() {
         if(!this.type.equals("function"))
-            return Void.TYPE;
+            return null;
 
-        Type type = this.returnType != null ? this.returnType : Type.intrinsic(name);
-
-        if(type.simple!=null)
-            return type.simple;
-        else
-            return type.type();
+        return this.returnType != null ? this.returnType : Type.intrinsic(name).primitive();
     }
 
     public final Entities<Variable> variables = new Entities<>(Variable::new);

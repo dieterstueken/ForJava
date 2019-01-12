@@ -1,6 +1,7 @@
 package de.dst.fortran.code.generator.java;
 
 import com.helger.jcodemodel.*;
+import de.dst.fortran.code.TypeDef;
 import de.dst.fortran.code.Variable;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -34,11 +35,11 @@ public class MethodGenerator {
         this.jclass = jclass;
     }
 
-    JMethod method(int mod, Class type, String name) {
+    JMethod method(int mod, TypeDef type, String name) {
         if(jmethod!=null)
             throw new IllegalStateException("duplicate methode definitition");
 
-        return jmethod = jclass.method(mod, type, name);
+        return jmethod = jclass.method(mod, codeGenerator.typeOf(type), name);
     }
 
     void decl(JVar var) {
@@ -97,7 +98,7 @@ public class MethodGenerator {
     }
 
     JVar param(Variable var) {
-        JVar param = jmethod.param(JMod.FINAL, var.type(), var.name);
+        JVar param = jmethod.param(JMod.FINAL, codeGenerator.typeOf(var.type()), var.name);
         variables.put(var.name, param);
         return param;
     }

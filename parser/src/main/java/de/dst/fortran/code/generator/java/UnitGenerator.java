@@ -201,7 +201,7 @@ class UnitGenerator extends MethodGenerator {
         for (Variable var : code.block().variables) {
             if (var.context == null && var.isPrimitive()) {
 
-                final Class<?> type = var.type();
+                final Class<?> type = codeGenerator.typeOf(var.type());
                 AbstractJType jType = codeGenerator.codeModel._ref(type);
                 IJExpression init = Boolean.class.isAssignableFrom(type) ? JExpr.FALSE : JExpr.lit(0);
                 JVar jvar = jbody.decl(jType, var.name, init);

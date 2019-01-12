@@ -43,7 +43,7 @@ public class BlockAnalyzer implements BlockElement {
         this.be = be;
         block = new Block(be.getAttribute("name"));
         block.type = be.getNodeName();
-        block.returnType = parseType(be.getAttribute("type"));
+        block.returnType = parseType(be.getAttribute("type"), Value.Kind.PROPERTY);
         block.path = Analyzer.getPath(be);
         be.setAttribute("path", block.path);
 

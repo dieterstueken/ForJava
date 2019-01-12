@@ -1,6 +1,6 @@
 package de.dst.fortran.code;
 
-import java.util.stream.Stream;
+import java.util.Collection;
 
 /**
  * version:     $Revision$
@@ -11,5 +11,5 @@ import java.util.stream.Stream;
  */
 public interface Common extends Context {
 
-    Stream<? extends Variable> members();
+    Collection<? extends Variable> members();
 }

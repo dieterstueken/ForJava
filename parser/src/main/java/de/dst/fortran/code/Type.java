@@ -1,10 +1,8 @@
 package de.dst.fortran.code;
 
+import java.util.EnumMap;
 
-import de.irt.jfor.*;
-
-import java.util.Arrays;
-import java.util.List;
+import static de.dst.fortran.code.Value.Kind.*;
 
 /**
  * version:     $Revision$
@@ -13,43 +11,63 @@ import java.util.List;
  * modified by: $Author$
  * modified on: $Date$
  */
-public class Type {
+public enum Type {
 
-    public final Class<?> simple;
+    STR, CH, I2, I4, L4, R4, R8, CPX;
 
-    public final List<Class<?>> types;
+    public static Type parse(String token) {
+        if(token==null || token.isEmpty())
+            return null;
 
-    public Type(Class<?> simple, Class<?> ... types) {
-        this.simple = simple;
-        this.types = Arrays.asList(types);
+        switch(token) {
+            case "character*1": return CH;
+            case "integer": return I2;
+            case "integer*2": return I2;
+            case "integer*4": return I4;
+            case "logical*4": return L4;
+            case "real": return R4;
+            case "real*4": return R4;
+            case "real*8": return R8;
+            case "complex": return CPX;
+        }
+
+        // fallback
+        if(token.startsWith("character*")) {
+            return STR; // whatever
+        }
+
+        throw new IllegalArgumentException(token);
     }
-
-    static protected Type of(Class<?> simple, Class<?> ... types) {
-        return new Type(simple, types);
-    }
-
-    public Class<?> type() {
-        return types.get(0);
-    }
-
-    public Class<?> type(int dim) {
-        return types.get(dim);
-    }
-
-    public String toString() {
-        return type().getSimpleName();
-    }
-
-    public static final Type STR= of(String.class, ChArr.class, StringArr.class);
-    public static final Type CH = of(Byte.TYPE, I1.class, I1Arr.class, I1Mat.class);
-    public static final Type I2 = of(Short.TYPE, I2.class, I2Arr.class, I2Mat.class, I2Cub.class);
-    public static final Type I4 = of(Integer.TYPE, I4.class, I4Arr.class, I4Cub.class, I4Mat.class);
-    public static final Type L4 = of(Boolean.TYPE, L4.class);
-    public static final Type R4 = of(Float.TYPE, R4.class, R4Arr.class, R4Mat.class, R4Cub.class);
-    public static final Type R8 = of(Double.TYPE, R8.class, R8Arr.class, R8Mat.class, R8Cub.class);
-    public static final Type CX = of(null, Complex.class);
 
     public static Type intrinsic(String name) {
         return "ijklmn".indexOf(Character.toLowerCase(name.charAt(0)))>=0 ? I4 : R4;
     }
+
+    public TypeDef kind(Value.Kind kind) {
+        return kinds.get(kind);
+    }
+
+    public TypeDef primitive() {
+        return kind(Value.Kind.PRIMITIVE);
+    }
+
+    public TypeDef dim(int n) {
+        switch(n) {
+            case 0: return kind(PROPERTY);
+            case 1: return kind(ARRAY);
+            case 2: return kind(MATRIX);
+            case 3: return kind(CUBE);
+        }
+
+        throw new IllegalArgumentException(Integer.toString(n));
+
+    }
+
+    private EnumMap<Value.Kind, TypeDef> kinds = new EnumMap<>(Value.Kind.class);
+    {
+        for (Value.Kind kind : Value.Kind.values()) {
+            kinds.put(kind, TypeDef.of(this, kind));
+        }
+    }
+
 }
