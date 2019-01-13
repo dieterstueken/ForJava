@@ -2,6 +2,7 @@ package de.dst.fortran.code.generator.kotlin
 
 import com.squareup.kotlinpoet.*
 import de.dst.fortran.code.*
+import de.irt.kfor.Fortran
 import de.irt.kfor.Units
 import java.io.File
 import kotlin.reflect.KClass
@@ -14,7 +15,7 @@ import kotlin.reflect.KClass
  * modified on: $Date$
  */
 
-class CodeGenerator(val root : File) {
+class CodeGenerator(val root : File, val packageRoot : String) {
 
     val types : Types = Types()
 
@@ -22,10 +23,10 @@ class CodeGenerator(val root : File) {
     val commons = mutableMapOf<String, TypeSpec>()
     val units = mutableMapOf<String, TypeSpec>()
 
-    fun generateCommon(packageName: String, common : Common) {
+    fun generateCommon(common : Common) {
         val name = common.getName().toUpperCase();
 
-        val file = FileSpec.builder(packageName, name)
+        val file = FileSpec.builder(packageRoot + ".common", name)
                 .addType(common.defineType())
                 .build()
 
@@ -35,7 +36,7 @@ class CodeGenerator(val root : File) {
     fun generateUnit(element : BlockElement) {
 
         val block = element.block();
-        val packageName = "kfor.irt3d" + block.path;
+        val packageName = packageRoot + '.' + block.path;
 
         val file = FileSpec.builder(packageName, element.block().camelName())
                 .addType(element.defineType())
@@ -58,9 +59,11 @@ class CodeGenerator(val root : File) {
     fun BlockElement.defineType() : TypeSpec {
         val name = this.block().camelName();
         val spec = TypeSpec.classBuilder(name)
+                .superclass(Fortran::class)
                 .primaryConstructor(FunSpec.constructorBuilder()
                         .addParameter("units", Units::class)
                         .build())
+                .addSuperclassConstructorParameter(CodeBlock.of("units"))
                 .addProperties(this.properties())
                 .build()
 
@@ -71,12 +74,14 @@ class CodeGenerator(val root : File) {
         return spec;
     }
 
-    fun BlockElement.properties() = this.block().commons.asIterable().map{it.load()}
+    fun BlockElement.properties() = listOf<PropertySpec>() // this.block().commons.asIterable().map{it.load()}
 
-    fun CommonAnalyzer.load() : PropertySpec {
-        val type = commons.get(this.name)
-        return PropertySpec.builder(this.name, type)
-    }
+    //fun CommonAnalyzer.load() : PropertySpec {
+    //    val spec : TypeSpec = commons.get(this.name)!!
+    //    val type : TypeName
+    //    return PropertySpec.builder(this.name, type)
+    //            .build()
+    //}
 
 
     fun Common.defineType() : TypeSpec {
@@ -139,11 +144,10 @@ fun main(args: Array<String>) {
     val analyzer = Analyzer.analyze(document)
 
     val root = File("irt3d/src/main/kotlin")
-    val generator = CodeGenerator(root)
-    val packageName = "kfor.irt3d"
+    val generator = CodeGenerator(root, "de.irt.jfor.irt3d")
 
     for (common in analyzer.commons()) {
-        generator.generateCommon(packageName+".common", common);
+        generator.generateCommon(common);
     }
 
     for(unit in analyzer.units()) {
