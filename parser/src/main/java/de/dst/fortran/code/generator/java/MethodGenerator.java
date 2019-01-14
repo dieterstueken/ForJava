@@ -487,11 +487,11 @@ public class MethodGenerator {
 
         if("float".equals(name)) {
             name = "_float";
-            //return JExpr.cast(codeGenerator.codeModel.FLOAT, expr(childElement(e, "arg")));
+            //return JExpr.cast(generators.codeModel.FLOAT, expr(childElement(e, "arg")));
         }
 
         if("int".equals(name)) {
-            //return JExpr.cast(codeGenerator.codeModel.SHORT, expr(childElement(e, "arg")));
+            //return JExpr.cast(generators.codeModel.SHORT, expr(childElement(e, "arg")));
             name = "_int";
         }
 
