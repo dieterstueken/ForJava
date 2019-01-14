@@ -23,11 +23,11 @@ import java.util.function.Predicate;
  */
 public class Analyzer {
 
-    public final Map<String, BlockAnalyzer> analyzers = new TreeMap<>();
+    public final Map<String, CodeAnalyzer> analyzers = new TreeMap<>();
 
     public final Map<String, CommonAnalyzer> commons = new TreeMap<>();
 
-    public Collection<BlockAnalyzer> units() {
+    public Collection<CodeAnalyzer> units() {
         return analyzers.values();
     }
 
@@ -37,14 +37,14 @@ public class Analyzer {
 
     String indent = "";
 
-    Block block(String name) {
-        BlockAnalyzer analyzer = analyzers.get(name);
-        return analyzer==null ? null : analyzer.block();
+    Code block(String name) {
+        CodeAnalyzer analyzer = analyzers.get(name);
+        return analyzer==null ? null : analyzer.code();
     }
 
-    BlockAnalyzer newBlock(Element be) {
-        BlockAnalyzer analyzer = new BlockAnalyzer(this, be);
-        BlockAnalyzer other = analyzers.put(analyzer.block.name, analyzer);
+    CodeAnalyzer newBlock(Element be) {
+        CodeAnalyzer analyzer = new CodeAnalyzer(this, be);
+        CodeAnalyzer other = analyzers.put(analyzer.block.name, analyzer);
         if(other!=null)
             throw new IllegalArgumentException("duplicate block: " + analyzer.block.name);
 
@@ -62,7 +62,7 @@ public class Analyzer {
                 .forEach(analyzer::newBlock);
 
         // resolve dependencies: generate all pending blocks
-        analyzer.units().forEach(BlockAnalyzer::block);
+        analyzer.units().forEach(CodeAnalyzer::code);
 
         return analyzer;
     }

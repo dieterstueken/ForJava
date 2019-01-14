@@ -9,9 +9,13 @@ import org.w3c.dom.Element;
  * modified by: $Author$
  * modified on: $Date$
  */
-public interface BlockElement {
+public interface CodeElement extends Context {
 
-    Block block();
+    Code code();
 
     Element element();
+
+    default String getName() {
+        return code().getName();
+    }
 }

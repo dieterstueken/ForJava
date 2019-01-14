@@ -9,7 +9,7 @@ import java.util.Set;
  * Date: 14.04.17
  * Time: 13:44
  */
-public class Block extends Entity {
+public class Code extends Entity {
 
     public String path = null;
 
@@ -30,11 +30,11 @@ public class Block extends Entity {
 
     public final Set<String> functions = new HashSet<>();
 
-    public final Set<Block> blocks = new HashSet<>();
+    public final Set<Code> blocks = new HashSet<>();
 
     public final Entities<CommonAnalyzer> commons = new Entities<>(this::newCommon);
 
-    public Block(String name) {
+    public Code(String name) {
         super(name);
     }
 

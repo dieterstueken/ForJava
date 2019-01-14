@@ -1,7 +1,7 @@
 package de.dst.fortran.code.generator.kotlin
 
 import com.squareup.kotlinpoet.*
-import de.dst.fortran.code.BlockElement
+import de.dst.fortran.code.CodeElement
 import de.irt.kfor.Fortran
 import de.irt.kfor.Units
 
@@ -12,18 +12,22 @@ import de.irt.kfor.Units
  * Time: 18:17
  */
 
-class UnitGenerator(generators : CodeGenerators, className : ClassName, val element : BlockElement)
-    : CodeGenerator(generators, className)
+class UnitGenerator(generators : CodeGenerators, className : ClassName, element : CodeElement)
+    : CodeGenerator<CodeElement>(generators, className, element)
 {
+    override val initialize = "function(%T::class)"
+
+    val code = block.code()
+
     companion object {
-        fun create(generators : CodeGenerators, element : BlockElement) : UnitGenerator {
-            val className = ClassName(generators.packageRoot + '.' + element.block().path, element.camelName())
+        fun create(generators : CodeGenerators, element : CodeElement) : UnitGenerator {
+            val className = ClassName(generators.packageRoot + '.' + element.code().path, element.camelName())
             return UnitGenerator(generators, className, element)
         }
 
-        fun BlockElement.camelName() : String {
+        fun CodeElement.camelName() : String {
 
-             var name = this.block().name;
+             var name = this.code().name;
 
              var c = name[0];
              if(c.isUpperCase())
@@ -31,37 +35,39 @@ class UnitGenerator(generators : CodeGenerators, className : ClassName, val elem
 
              return c.toUpperCase() + name.substring(1)
         }
+
+        fun blocks(generators : CodeGenerators) : CodeBlocks<CodeElement> {
+            return object: CodeBlocks<CodeElement>(generators) {
+                override fun generate(block: CodeElement) = UnitGenerator.create(generators, block);
+            }
+        }
     }
 
-    override fun build() {
+    override fun generate() {
 
         FileSpec.builder(className.packageName, className.simpleName)
                 .addType(TypeSpec.classBuilder(className.simpleName)
                                 .superclass(Fortran::class)
                                 .primaryConstructor(FunSpec.constructorBuilder()
-                                                        .addParameter("units", Units::class)
-                                                        .build())
-                                                .addSuperclassConstructorParameter(CodeBlock.of("units"))
-                                                .addProperties(properties())
-                                                .addProperties(units())
-                                                .build()
+                                        .addParameter("units", Units::class)
+                                        .build())
+                        .addSuperclassConstructorParameter(CodeBlock.of("units"))
+                        .addProperties(properties())
+                        .addProperties(units())
+                        .addProperties(members())
+                        .build()
                 )
                 .build()
                 .writeTo(generators.root)
     }
 
-    fun properties() = element.block().commons.map{
-        val type : TypeName = generators.commons.get(it.name)!!
-        PropertySpec.builder(it.name, type)
-                .initializer("unit(%T::class)", type)
-                .build()
-    }
+    fun properties() = code.commons.map(generators::asProperty)
 
-    fun units() = element.block().blocks.asIterable().map{
-        val type : TypeName = generators.units.get(it.name)!!.className
-        PropertySpec.builder(it.name, type)
-                .initializer("unit(%T::class)", type)
-                .build()
-    }
+    fun units() = code.blocks.map(generators::asProperty)
+    
+    fun members() = code.variables
+            .filter{it.context==null}
+            .filter{!it.isPrimitive}
+            .map{it.asProperty()}
 }
 

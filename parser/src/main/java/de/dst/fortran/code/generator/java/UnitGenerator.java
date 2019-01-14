@@ -19,12 +19,12 @@ import static de.dst.fortran.code.Analyzer.childElements;
  */
 class UnitGenerator extends MethodGenerator {
 
-    final BlockElement code;
+    final CodeElement element;
 
-    UnitGenerator(CodeGenerator codeGenerator, BlockElement code, JDefinedClass jclass) {
+    UnitGenerator(CodeGenerator codeGenerator, CodeElement element, JDefinedClass jclass) {
         super(codeGenerator, jclass);
         this.jclass._extends(de.irt.jfor.Unit.class);
-        this.code = code;
+        this.element = element;
     }
 
     void define() {
@@ -34,7 +34,7 @@ class UnitGenerator extends MethodGenerator {
             func();
             body();
         } catch(Throwable e) {
-            String message = String.format("error parsing %s.%s:%s", code.block().path, code.block().name, line);
+            String message = String.format("error parsing %s.%s:%s", element.code().path, element.code().name, line);
             throw new RuntimeException(message, e);
         }
     }
@@ -49,7 +49,7 @@ class UnitGenerator extends MethodGenerator {
 
         JDocComment comment = null;
 
-        for (Common common : code.block().commons) {
+        for (Common common : element.code().commons) {
             JDefinedClass jcommon = codeGenerator.commons.get(common.getName());
             JFieldVar cvar = jclass.field(JMod.PRIVATE | JMod.FINAL,
                     jcommon, common.getName(),
@@ -72,7 +72,7 @@ class UnitGenerator extends MethodGenerator {
             comment = null;
         }
 
-        for (Block block : code.block().blocks) {
+        for (Code block : element.code().blocks) {
             String name = block.name;
             JDefinedClass junit = codeGenerator.units.get(name).jclass;
             JFieldVar jvar = jclass.field(JMod.PRIVATE | JMod.FINAL,
@@ -90,7 +90,7 @@ class UnitGenerator extends MethodGenerator {
             comment = null;
         }
 
-        for (Variable var : code.block().variables) {
+        for (Variable var : element.code().variables) {
             if (var.context == null && !var.isPrimitive()) {
                 JFieldVar jvar = codeGenerator.defineVariable(jclass, var, JMod.PRIVATE);
                 if (comment == null)
@@ -108,13 +108,13 @@ class UnitGenerator extends MethodGenerator {
     }
 
     void func() {
-        Element functions = childElement(code.element(), "functions");
+        Element functions = childElement(element.element(), "functions");
         childElements(functions, "function").forEach(this::function);
     }
 
     void function(Element fun) {
         String name = fun.getAttribute("name");
-        Variable var = code.block().variables.find(name);
+        Variable var = element.code().variables.find(name);
         if(var==null || var.context!= Context.FUNCTION)
             throw new IllegalArgumentException("undefined function: " + name);
 
@@ -156,12 +156,12 @@ class UnitGenerator extends MethodGenerator {
 
     void body() {
 
-        method(JMod.PUBLIC, code.block().type(), "call");
+        method(JMod.PUBLIC, element.code().type(), "call");
 
-        header(childElement(code.element(), "decl"));
+        header(childElement(element.element(), "decl"));
 
         // prepare arguments
-        for (Element arg : childElements(childElement(code.element(), "args"), "arg")) {
+        for (Element arg : childElements(childElement(element.element(), "args"), "arg")) {
 
             boolean nl = false;
             for (Element ce : childElements(arg)) {
@@ -173,7 +173,7 @@ class UnitGenerator extends MethodGenerator {
                         nl = true;
                         break;
                     case "var": {
-                        Variable var = code.block().arguments.get(ce.getAttribute("name"));
+                        Variable var = element.code().arguments.get(ce.getAttribute("name"));
                         JVar param = param(var);
                         if (nl)
                             param.annotations();
@@ -198,7 +198,7 @@ class UnitGenerator extends MethodGenerator {
         jbody.add(JFExpression.NL);
 
         // local variables
-        for (Variable var : code.block().variables) {
+        for (Variable var : element.code().variables) {
             if (var.context == null && var.isPrimitive()) {
 
                 final Class<?> type = codeGenerator.typeOf(var.type());
@@ -209,10 +209,10 @@ class UnitGenerator extends MethodGenerator {
             }
         }
 
-        if (!code.block().variables.isEmpty())
+        if (!element.code().variables.isEmpty())
             jbody.add(JFExpression.NL);
 
-        childElements(childElement(code.element(), "code"))
+        childElements(childElement(element.element(), "code"))
                 .stream()
                 .map(this::code)
                 .filter(Objects::nonNull)

@@ -16,11 +16,11 @@ import static de.dst.fortran.code.Analyzer.*;
  * Date: 14.04.17
  * Time: 17:21
  */
-public class BlockAnalyzer implements BlockElement {
+public class CodeAnalyzer implements CodeElement {
 
     final Analyzer analyzer;
 
-    public final Block block;
+    public final Code block;
 
     public final Element be;
 
@@ -38,10 +38,10 @@ public class BlockAnalyzer implements BlockElement {
         return block.name;
     }
 
-    BlockAnalyzer(Analyzer analyzer, Element be) {
+    CodeAnalyzer(Analyzer analyzer, Element be) {
         this.analyzer = analyzer;
         this.be = be;
-        block = new Block(be.getAttribute("name"));
+        block = new Code(be.getAttribute("name"));
         block.type = be.getNodeName();
         block.returnType = parseType(be.getAttribute("type"), Value.Kind.PROPERTY);
         block.path = Analyzer.getPath(be);
@@ -50,7 +50,7 @@ public class BlockAnalyzer implements BlockElement {
         System.out.format("  define %s:%s\n", block.path, block.name);
     }
 
-    public Block block() {
+    public Code code() {
 
         if (ready == null)
             throw new IllegalStateException("dependeny loop: " + block.name);
@@ -253,7 +253,7 @@ public class BlockAnalyzer implements BlockElement {
 
     private void call(Element e) {
         String name = e.getAttribute("name");
-        Block external = analyzer.block(name);
+        Code external = analyzer.block(name);
 
         if(external==null)
             throw new RuntimeException("missing dependeny: " + name);
@@ -275,7 +275,7 @@ public class BlockAnalyzer implements BlockElement {
                 var.context(Context.INTRINSIC);
 
         } else {
-            Block external = analyzer.block(name);
+            Code external = analyzer.block(name);
             if(external!=null) {
                 args(external, e);
                 return;
@@ -287,7 +287,7 @@ public class BlockAnalyzer implements BlockElement {
         e.setAttribute("scope", "intrinsic");
     }
 
-    private void args(Block external, Element e) {
+    private void args(Code external, Element e) {
         block.blocks.add(external);
 
         e.setAttribute("scope", block.name);

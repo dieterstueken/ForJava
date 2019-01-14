@@ -32,7 +32,9 @@ class Types : TypeMap<KClass<*>>() {
 
         kinds(Type.STR)
                 .define(Value.Kind.INTRINSIC, String::class)
-                .define(Value.Kind.ARRAY, Ch.Arr::class)
+                .define(Value.Kind.PRIMITIVE, String::class)
+                .define(Value.Kind.PROPERTY, Ch.Arr::class)
+                .define(Value.Kind.ARRAY, Ch.Mat::class)
 
         kinds(Type.CH)
                 .define(Value.Kind.INTRINSIC, String::class)

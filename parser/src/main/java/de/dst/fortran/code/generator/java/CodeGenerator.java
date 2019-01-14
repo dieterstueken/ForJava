@@ -140,15 +140,15 @@ public class CodeGenerator {
             return Character.toUpperCase(c) + name.substring(1);
     }
 
-    private void generateUnits(Iterable<? extends BlockElement> blocks) {
+    private void generateUnits(Iterable<? extends CodeElement> blocks) {
 
         blocks.forEach(element -> {
-            final Block block = element.block();
-            JPackage jpkg = subPackage(block.path);
-            String name = camelName(block.name);
+            final Code code = element.code();
+            JPackage jpkg = subPackage(code.path);
+            String name = camelName(code.name);
             JDefinedClass jclass = defineClass(jpkg, name);
             UnitGenerator unit = new UnitGenerator(this, element, jclass);
-            units.put(block.name, unit);
+            units.put(code.name, unit);
         });
 
         units.values().forEach(UnitGenerator::define);

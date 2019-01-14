@@ -26,6 +26,8 @@ interface Ch {
         operator fun set(i : Int, v : Char) {
             arr[index(i)] = v
         }
+
+        constructor() : this(0)
     }
 
     data class Mat (val ni : Int, val nj : Int) {
