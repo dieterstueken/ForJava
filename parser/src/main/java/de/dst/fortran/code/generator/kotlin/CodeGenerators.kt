@@ -1,8 +1,9 @@
 package de.dst.fortran.code.generator.kotlin
 
-import de.dst.fortran.code.*
+import de.dst.fortran.code.Analyzer
+import de.dst.fortran.code.Code
+import de.dst.fortran.code.Common
 import java.io.File
-import kotlin.reflect.KClass
 
 /**
  * version:     $Revision$
@@ -19,14 +20,6 @@ class CodeGenerators(val root : File, val packageRoot : String) {
     val commons = CommonGenerator.blocks(this)
 
     val units = UnitGenerator.blocks(this)
-
-    fun getKlass(variable : Variable) : KClass<*> {
-        return variable.type().getKlass()
-    }
-    
-    fun TypeDef.getKlass() : KClass<*> {
-        return types.get(this)
-    }
 
     fun asProperty(block : Common) = commons.asProperty(block)
     fun asProperty(block : Code) = units.asProperty(block)

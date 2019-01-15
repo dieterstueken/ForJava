@@ -146,7 +146,7 @@ public class Analyzer {
     }
 
     public static List<Element> childElements(Element e, String name) {
-        return childElements(e, ofName(name));
+        return e==null ? Collections.emptyList() : childElements(e, ofName(name));
     }
 
     public static List<Element> childElements(Element e, String ... names) {

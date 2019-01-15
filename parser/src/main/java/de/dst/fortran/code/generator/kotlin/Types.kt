@@ -33,11 +33,11 @@ class Types : TypeMap<KClass<*>>() {
         kinds(Type.STR)
                 .define(Value.Kind.INTRINSIC, String::class)
                 .define(Value.Kind.PRIMITIVE, String::class)
-                .define(Value.Kind.PROPERTY, Ch.Arr::class)
-                .define(Value.Kind.ARRAY, Ch.Mat::class)
+                .define(Value.Kind.PROPERTY, Str::class)
+                .define(Value.Kind.ARRAY, Str.Arr::class)
 
         kinds(Type.CH)
-                .define(Value.Kind.INTRINSIC, String::class)
+                .define(Value.Kind.INTRINSIC, Char::class)
                 .define(Value.Kind.PRIMITIVE, Char::class)
                 .define(Value.Kind.PROPERTY, Ch::class)
                 .define(Value.Kind.ARRAY, Ch.Arr::class)
@@ -45,8 +45,8 @@ class Types : TypeMap<KClass<*>>() {
                 .define(Value.Kind.CUBE, Ch.Cub::class)
 
         kinds(Type.I2)
-                .define(Value.Kind.INTRINSIC, Short::class)
-                .define(Value.Kind.PRIMITIVE, Short::class)
+                .define(Value.Kind.INTRINSIC, Int::class)
+                .define(Value.Kind.PRIMITIVE, Int::class)
                 .define(Value.Kind.PROPERTY, I2::class)
                 .define(Value.Kind.ARRAY, I2.Arr::class)
                 .define(Value.Kind.MATRIX, I2.Mat::class)
@@ -61,8 +61,8 @@ class Types : TypeMap<KClass<*>>() {
                 .define(Value.Kind.CUBE, I4.Cub::class)
 
         kinds(Type.R4)
-                .define(Value.Kind.INTRINSIC, Float::class)
-                .define(Value.Kind.PRIMITIVE, Float::class)
+                .define(Value.Kind.INTRINSIC, Double::class)
+                .define(Value.Kind.PRIMITIVE, Double::class)
                 .define(Value.Kind.PROPERTY, R4::class)
                 .define(Value.Kind.ARRAY, R4.Arr::class)
                 .define(Value.Kind.MATRIX, R4.Mat::class)
@@ -75,6 +75,10 @@ class Types : TypeMap<KClass<*>>() {
                 .define(Value.Kind.ARRAY, R8.Arr::class)
                 .define(Value.Kind.MATRIX, R8.Mat::class)
                 .define(Value.Kind.CUBE, R8.Cub::class)
+
+        kinds(Type.L4)
+                .define(Value.Kind.INTRINSIC, Boolean::class)
+                .define(Value.Kind.PRIMITIVE, Boolean::class)
 
         kinds(Type.CPX)
                 .define(Value.Kind.PROPERTY, Cpx::class)

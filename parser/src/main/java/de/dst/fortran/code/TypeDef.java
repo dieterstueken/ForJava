@@ -23,7 +23,7 @@ public class TypeDef {
         return type;
     }
 
-    Value.Kind getKind() {
+    public Value.Kind getKind() {
         return kind;
     }
 

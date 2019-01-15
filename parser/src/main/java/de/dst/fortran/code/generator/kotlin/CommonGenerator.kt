@@ -11,8 +11,8 @@ import de.dst.fortran.code.Common
  * Date: 13.01.19
  * Time: 19:24
  */
-class CommonGenerator(generators : CodeGenerators, className : ClassName, common : Common)
-    : CodeGenerator<Common>(generators, className, common) {
+class CommonGenerator(generators : CodeGenerators, className : ClassName, val common : Common)
+    : CodeGenerator(generators, className, common.name) {
 
     override val initialize = "common(%T::class)"
 
@@ -40,5 +40,6 @@ class CommonGenerator(generators : CodeGenerators, className : ClassName, common
                 .writeTo(generators.root);
     }
 
-    fun properties() = block.members().map{it.asProperty()}
+    // variables
+    fun properties() = common.members().map{it.asProperty()}
 }

@@ -23,17 +23,17 @@ interface R4 {
         val arr = FloatArray(len)
         fun index(i : Int) = i-1
         operator fun get(i : Int) = arr[index(i)]
-        operator fun set(i : Int, v : Float) {
-            arr[index(i)] = v
+        operator fun set(i : Int, v : Double) {
+            arr[index(i)] = v.toFloat()
         }
     }
 
     data class Mat (val ni : Int, val nj : Int) {
         val arr = FloatArray(ni*nj)
         fun index(i : Int, j : Int) = i-1 + ni*(j-1)
-        operator fun get(i : Int, j : Int) = arr[index(i, j)]
-        operator fun set(i : Int, j : Int, v : Float) {
-            arr[index(i, j)] = v
+        operator fun get(i : Int, j : Int) = arr[index(i, j)].toDouble()
+        operator fun set(i : Int, j : Int, v : Double) {
+            arr[index(i, j)] = v.toFloat()
         }
     }
 
@@ -41,8 +41,8 @@ interface R4 {
         val arr = FloatArray(nx*ny*nz)
         fun index(i : Int, j : Int, k : Int) = i-1 + nx*((j) + ny*(k-1))
         operator fun get(i : Int, j : Int, k : Int) = arr[index(i,j,k)]
-        operator fun set(i : Int, j : Int, k : Int, v : Float) {
-            arr[index(i,j,k)] = v
+        operator fun set(i : Int, j : Int, k : Int, v : Double) {
+            arr[index(i,j,k)] = v.toFloat()
         }
     }
 }

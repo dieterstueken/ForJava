@@ -2,8 +2,10 @@ package de.dst.fortran.code.generator.kotlin
 
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.PropertySpec
-import de.dst.fortran.code.Context
+import de.dst.fortran.code.TypeDef
+import de.dst.fortran.code.Value
 import de.dst.fortran.code.Variable
 import kotlin.reflect.KClass
 
@@ -14,29 +16,57 @@ import kotlin.reflect.KClass
  * Time: 19:00
  */
 
-abstract class CodeGenerator<T : Context>(val generators : CodeGenerators, val className : ClassName, val block : T) {
+abstract class CodeGenerator(val generators : CodeGenerators, val className : ClassName, val name : String) {
 
     abstract fun generate()
 
     abstract val initialize : String
 
-    fun asProperty() = PropertySpec.builder(block.name, className)
+    fun asProperty() : PropertySpec = PropertySpec.builder(name, className)
                 .initializer(initialize, className)
                 .build()
 
+    fun KClass<*>.isPrimitive(): Boolean {
+        return String::class == this || this.javaPrimitiveType != null
+    }
+
+    fun TypeDef.asKlass() : KClass<*> {
+        return generators.types.get(this)
+    }
+
+    fun Variable?.isProperty() = this?.type() == Value.Kind.PROPERTY
+
+    fun Variable.targetName() : String {
+        var target : String? = this.context?.name
+        if(target != null)
+            target += "."
+        else
+            target = ""
+
+        target += name
+
+        if(isProperty())
+            target += ".v"
+
+        return target
+    }
+
     fun Variable.asProperty() : PropertySpec {
-        val type = generators.getKlass(this)
-        return PropertySpec.builder(this.getName(), type)
-                .mutable(type.javaPrimitiveType!=null)
-                .initializer(this.initialize(type))
+        val klass = type().asKlass()
+        return PropertySpec.builder(this.getName(), klass)
+                .mutable(klass.isPrimitive())
+                .initializer(this.initialize(klass))
                 .build()
     }
+
+    fun Variable.asParameter() = ParameterSpec.builder(this.getName(), type().asKlass()).build()
 
     fun Variable.initialize(type : KClass<*>) = when(type) {
         Byte::class, Short::class, Int::class, Long::class -> CodeBlock.of("0")
         Float::class -> CodeBlock.of("0.0F")
         Double::class -> CodeBlock.of("0.0")
-        String::class -> CodeBlock.of("")
+        Char::class -> CodeBlock.of("' '")
+        String::class -> CodeBlock.of("\"\"")
         Boolean::class -> CodeBlock.of("false")
         else -> {
             when(this.dim.size) {

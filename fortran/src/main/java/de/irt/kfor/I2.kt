@@ -22,27 +22,27 @@ interface I2 {
     data class Arr (val len : Int) {
         val arr = ByteArray(len)
         fun index(i : Int) = i-1
-        operator fun get(i : Int) = arr[index(i)]
-        operator fun set(i : Int, v : Byte) {
-            arr[index(i)] = v
+        operator fun get(i : Int) = arr[index(i)].toInt()
+        operator fun set(i : Int, v : Int) {
+            arr[index(i)] = v.toByte()
         }
     }
 
     data class Mat (val ni : Int, val nj : Int) {
         val arr = ByteArray(ni*nj)
         fun index(i : Int, j : Int) = i-1 + ni*(j-1)
-        operator fun get(i : Int, j : Int) = arr[index(i, j)]
-        operator fun set(i : Int, j : Int, v : Byte) {
-            arr[index(i, j)] = v
+        operator fun get(i : Int, j : Int) = arr[index(i, j)].toInt()
+        operator fun set(i : Int, j : Int, v : Integer) {
+            arr[index(i, j)] = v.toByte()
         }
     }
 
     data class Cub (val nx : Int, val ny : Int, val nz : Int) {
         val arr = ByteArray(nx*ny*nz)
         fun index(i : Int, j : Int, k : Int) = i-1 + nx*((j) + ny*(k-1))
-        operator fun get(i : Int, j : Int, k : Int) = arr[index(i,j,k)]
-        operator fun set(i : Int, j : Int, k : Int, v : Byte) {
-            arr[index(i,j,k)] = v
+        operator fun get(i : Int, j : Int, k : Int) = arr[index(i,j,k)].toInt()
+        operator fun set(i : Int, j : Int, k : Int, v : Integer) {
+            arr[index(i,j,k)] = v.toByte()
         }
     }
 }
