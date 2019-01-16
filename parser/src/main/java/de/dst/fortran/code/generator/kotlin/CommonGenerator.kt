@@ -1,7 +1,6 @@
 package de.dst.fortran.code.generator.kotlin
 
 import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.TypeSpec
 import de.dst.fortran.code.Common
 
@@ -11,16 +10,14 @@ import de.dst.fortran.code.Common
  * Date: 13.01.19
  * Time: 19:24
  */
-class CommonGenerator(generators : CodeGenerators, className : ClassName, val common : Common)
-    : CodeGenerator(generators, className, common.name) {
-
-    override val initialize = "common(%T::class)"
+class CommonGenerator(generators : CodeGenerators, val common : Common, className : ClassName)
+    : CodeGenerator(generators, "common", className) {
 
     companion object {
         fun create(generators : CodeGenerators, common : Common) : CommonGenerator {
             val name = common.name.toUpperCase()
             val className = ClassName(generators.packageRoot + ".common", name)
-            return CommonGenerator(generators, className, common)
+            return CommonGenerator(generators, common, className)
         }
 
         fun blocks(generators : CodeGenerators) : CodeBlocks<Common> {
@@ -30,16 +27,15 @@ class CommonGenerator(generators : CodeGenerators, className : ClassName, val co
         }
     }
 
-    override fun generate() {
-        FileSpec.builder(className.packageName, className.simpleName)
-                .addType(TypeSpec.classBuilder(className.simpleName)
-                        .addSuperinterface(de.irt.kfor.Common::class)
-                        .addProperties(properties())
-                        .build())
-                .build()
-                .writeTo(generators.root);
+    override fun TypeSpec.Builder.generate() : TypeSpec.Builder {
+
+        addSuperinterface(de.irt.kfor.Common::class)
+
+        for (member in common.members()) {
+            addProperty(member.asProperty())
+        }
+
+        return this
     }
 
-    // variables
-    fun properties() = common.members().map{it.asProperty()}
 }

@@ -23,7 +23,7 @@ abstract class CodeBlocks<T : Context>(val generators : CodeGenerators) {
 
     protected abstract fun generate(block : T) : CodeGenerator
 
-    fun asProperty(block : Context) = blocks.get(block.name)!!.asProperty()
+    fun asProperty(block : Context) = blocks.get(block.name)!!.property
 
     fun generate() {
         blocks.values.forEach(CodeGenerator::generate)

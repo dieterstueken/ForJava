@@ -5,7 +5,6 @@ import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.ParameterSpec
 import de.dst.fortran.code.Context
 import de.dst.fortran.code.Entities
-import de.dst.fortran.code.TypeDef
 import de.dst.fortran.code.Variable
 import org.w3c.dom.Element
 import kotlin.reflect.KClass
@@ -18,12 +17,14 @@ import kotlin.reflect.KClass
  * modified on: $Date$
  */
 
-class MethodGenerator(val generator : UnitGenerator, variable : Variable) {
+class MethodGenerator(val generator : UnitGenerator, name : String, type : KClass<*>) {
+
+    constructor(generator : UnitGenerator, variable : Variable) : this(generator, variable.name, generator.asKlass(variable.type()))
 
     // function parameters
     val parameters = Entities<Variable>(::Variable)
 
-    val builder = FunSpec.builder(variable.name).returns(variable.asKlass())
+    val builder = FunSpec.builder(name).returns(type)
 
     fun build() = builder.build()
 
@@ -37,11 +38,9 @@ class MethodGenerator(val generator : UnitGenerator, variable : Variable) {
 
     fun getVariable(el : Element) = getVariable(el.name)
 
-    fun TypeDef.asKlass() : KClass<*> = with(generator) {this@asKlass.asKlass()}
+    fun Variable.asKlass() : KClass<*> = generator.asKlass(type())
 
-    fun Variable.asKlass() : KClass<*> = type().asKlass()
-
-    fun addParameters(el : Element) : MethodGenerator {
+    fun addParameters(el : Element?) : MethodGenerator {
 
         for (arg in el.all("arg")) {
             val v = parameters.get(arg["var"]!!.name)
@@ -52,14 +51,11 @@ class MethodGenerator(val generator : UnitGenerator, variable : Variable) {
         return this;
     }
 
-    fun defineFunction(el : Element) : MethodGenerator {
-        val name = el.name
+    fun localFunction(el : Element) : MethodGenerator {
+        val variable = getVariable(el.name)
 
-        val variable = getVariable(name)
         if (variable.context !== Context.FUNCTION)
-            throw IllegalArgumentException("undefined function: $name")
-
-        val type = variable.type().asKlass()
+            throw IllegalArgumentException("undefined function: ${el.name}")
 
         val assarr = el["assarr"]
 
@@ -76,7 +72,28 @@ class MethodGenerator(val generator : UnitGenerator, variable : Variable) {
         return this;
     }
 
+    fun mainFunction(el : Element) : MethodGenerator {
 
+        val type = generator.getKlass()
+        val code = CodeBlock.builder()
+
+        if(Unit::class!=type) {
+            builder.returns(type)
+            val variable = getVariable(el.name)
+            code.add("var ${el.name} = ")
+                    .add(variable.initialize(type))
+                    .add("\n")
+            
+        }
+
+        addParameters(el["args"])
+
+        code.add("return ${el.name}")
+
+        builder.addCode(code.build())
+
+        return this;
+    }
 
     fun CodeBlock.Builder.exprs(exprs : Element) : CodeBlock.Builder {
         return exprs(exprs.children())
@@ -99,7 +116,7 @@ class MethodGenerator(val generator : UnitGenerator, variable : Variable) {
             "expr","while" -> exprs(expr)
 
             "arg" -> arg(expr)
-            "var" -> getVariable(expr)
+            "var" -> variable(expr)
             "val" -> value(expr)
             "fun" -> call(expr)
             "string" -> addString(expr)
@@ -134,17 +151,15 @@ class MethodGenerator(val generator : UnitGenerator, variable : Variable) {
         return exprs(expr)
     }
 
-    fun CodeBlock.Builder.getVariable(expr : Element) : CodeBlock.Builder {
-        val name = expr.getAttribute("name")
-        // todo: arguments must have precedence
-        val target = getVariable(name).targetName() ?: name
+    fun CodeBlock.Builder.variable(expr : Element) : CodeBlock.Builder {
+        val target = getVariable(expr).targetName()
         add(target)
         return this
     }
 
     fun CodeBlock.Builder.call(expr : Element) : CodeBlock.Builder {
 
-        var name = expr.getAttribute("name")
+        var name = expr.name
 
         // conversions
         when(name) {

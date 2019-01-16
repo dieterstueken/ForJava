@@ -1,11 +1,15 @@
 package de.dst.fortran.code.generator.kotlin
 
-import com.squareup.kotlinpoet.*
+import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.TypeSpec
 import de.dst.fortran.code.CodeElement
 import de.dst.fortran.code.Variable
 import de.irt.kfor.Fortran
 import de.irt.kfor.Units
 import org.w3c.dom.Element
+import kotlin.reflect.KClass
 
 /**
  * Created by IntelliJ IDEA.
@@ -14,29 +18,30 @@ import org.w3c.dom.Element
  * Time: 18:17
  */
 
-class UnitGenerator(generators : CodeGenerators, className : ClassName, val block : CodeElement)
-    : CodeGenerator(generators, className, block.name) {
-    override val initialize = "function(%T::class)"
+fun CodeElement.camelName(): String {
+
+    var name = this.code().name;
+
+    var c = name[0];
+    if (c.isUpperCase())
+        return name;
+
+    return c.toUpperCase() + name.substring(1)
+}
+
+class UnitGenerator(generators : CodeGenerators, val block : CodeElement, className : ClassName)
+    : CodeGenerator(generators, "function", className) {
 
     var lineNumber = "";
 
     val code = block.code()
 
+    fun getKlass() : KClass<*> = asKlass(code.type())
+
     companion object {
         fun create(generators: CodeGenerators, element: CodeElement): UnitGenerator {
             val className = ClassName(generators.packageRoot + '.' + element.code().path, element.camelName())
-            return UnitGenerator(generators, className, element)
-        }
-
-        fun CodeElement.camelName(): String {
-
-            var name = this.code().name;
-
-            var c = name[0];
-            if (c.isUpperCase())
-                return name;
-
-            return c.toUpperCase() + name.substring(1)
+            return UnitGenerator(generators, element, className)
         }
 
         fun blocks(generators: CodeGenerators): CodeBlocks<CodeElement> {
@@ -46,16 +51,15 @@ class UnitGenerator(generators : CodeGenerators, className : ClassName, val bloc
         }
     }
 
-
     override fun generate() {
         try {
-            generateUnit();
+            super.generate();
         } catch(error : Throwable) {
             throw RuntimeException("error building ${code.name} at line $lineNumber  ", error);
         }
     }
 
-    fun generateUnit() {
+    override fun TypeSpec.Builder.generate() : TypeSpec.Builder {
 
         val properties = code.commons.asSequence().map(generators::asProperty).asIterable()
 
@@ -73,22 +77,21 @@ class UnitGenerator(generators : CodeGenerators, className : ClassName, val bloc
                 .map(::asFunction)
                 .asIterable()
 
-        FileSpec.builder(className.packageName, className.simpleName)
-                .addType(TypeSpec.classBuilder(className.simpleName)
-                        .superclass(Fortran::class)
-                        .primaryConstructor(FunSpec.constructorBuilder()
-                                .addParameter("units", Units::class)
-                                .build())
-                        .addSuperclassConstructorParameter(CodeBlock.of("units"))
-                        .addProperties(properties)
-                        .addProperties(units)
-                        .addProperties(members)
-                        .addFunctions(functions)
-                        .build()
-                )
-                .build()
-                .writeTo(generators.root)
+        return superclass(Fortran::class)
+                .primaryConstructor(FunSpec.constructorBuilder()
+                        .addParameter("units", Units::class)
+                        .build())
+                .addSuperclassConstructorParameter(CodeBlock.of("units"))
+                .addProperties(properties)
+                .addProperties(units)
+                .addProperties(members)
+                .addFunctions(functions)
+                .addFunction(mainFunction())
     }
+
+    fun mainFunction() : FunSpec = MethodGenerator(this, block.name, getKlass())
+            .mainFunction(block.element())
+            .build()
 
     fun getVariable(name : String)  = code.variables.find(name)!!
 
@@ -96,7 +99,7 @@ class UnitGenerator(generators : CodeGenerators, className : ClassName, val bloc
 
         val generator = MethodGenerator(this, getVariable(el.name))
 
-        return generator.defineFunction(el).build()
+        return generator.localFunction(el).build()
     }
 }
 
