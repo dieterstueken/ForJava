@@ -16,6 +16,19 @@ import kotlin.reflect.KClass
  * Time: 19:00
  */
 
+fun Variable?.isProperty() = this?.type() == Value.Kind.PROPERTY
+
+fun Variable.targetName() : String {
+    var target : String = if(context!=null) ".${context.name}" else ""
+
+    target += name
+
+    if(isProperty())
+        target += ".v"
+
+    return target
+}
+
 abstract class CodeGenerator(val generators : CodeGenerators, val className : ClassName, val name : String) {
 
     abstract fun generate()
@@ -26,30 +39,9 @@ abstract class CodeGenerator(val generators : CodeGenerators, val className : Cl
                 .initializer(initialize, className)
                 .build()
 
-    fun KClass<*>.isPrimitive(): Boolean {
-        return String::class == this || this.javaPrimitiveType != null
-    }
+    fun TypeDef.asKlass() : KClass<*> = generators.types.get(this)
 
-    fun TypeDef.asKlass() : KClass<*> {
-        return generators.types.get(this)
-    }
-
-    fun Variable?.isProperty() = this?.type() == Value.Kind.PROPERTY
-
-    fun Variable.targetName() : String {
-        var target : String? = this.context?.name
-        if(target != null)
-            target += "."
-        else
-            target = ""
-
-        target += name
-
-        if(isProperty())
-            target += ".v"
-
-        return target
-    }
+    fun Variable.asKlass() : KClass<*> = type().asKlass()
 
     fun Variable.asProperty() : PropertySpec {
         val klass = type().asKlass()

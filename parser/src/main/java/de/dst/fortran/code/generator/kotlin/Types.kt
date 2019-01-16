@@ -7,6 +7,10 @@ import de.dst.fortran.code.Value
 import de.irt.kfor.*
 import kotlin.reflect.KClass
 
+fun KClass<*>.isPrimitive(): Boolean {
+    return String::class == this || this.javaPrimitiveType != null
+}
+
 /**
  * Created by IntelliJ IDEA.
  * User: stueken
