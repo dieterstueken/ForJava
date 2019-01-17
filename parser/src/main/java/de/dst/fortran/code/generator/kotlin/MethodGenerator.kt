@@ -3,8 +3,6 @@ package de.dst.fortran.code.generator.kotlin
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.ParameterSpec
-import de.dst.fortran.code.Context
-import de.dst.fortran.code.Entities
 import de.dst.fortran.code.Variable
 import org.w3c.dom.Element
 import kotlin.reflect.KClass
@@ -17,98 +15,48 @@ import kotlin.reflect.KClass
  * modified on: $Date$
  */
 
-class MethodGenerator(val generator : UnitGenerator, name : String, type : KClass<*>) {
+open class MethodGenerator(val generator : UnitGenerator, val builder : FunSpec.Builder) {
 
-    constructor(generator : UnitGenerator, variable : Variable) : this(generator, variable.name, generator.asKlass(variable.type()))
+    constructor(generator : UnitGenerator, name : String, type : KClass<*>)
+            : this(generator, FunSpec.builder(name).returns(type))
 
-    // function parameters
-    val parameters = Entities<Variable>(::Variable)
-
-    var retval : Variable? = null
-
-    init {
-        val variable = generator.getVariable(generator.code.name)
-        if(variable!=null) {
-            val r = Variable("retval")
-            r.type = variable.type
-            retval = r
-        }
-    }
-
-    val builder = FunSpec.builder(name).returns(type)
-
-    fun build() = builder.build()
+    open fun build() = builder.build()
 
     /**
-     * Either local or by generator
+     * lookup a variable within an expression
      */
-    fun getVariable(name : String) : Variable {
-        val parameter : Variable? = parameters.find(name)
+    open fun getVariable(name : String) : Variable {
+        return generator.getVariable(name)
+    }
 
-        todo: create?: getParameter()
-
-        return parameter ?: generator.getVariable(name)
+    /**
+     * Lookup variable as function argument
+     */
+    open fun getParameter(name : String) : Variable {
+        return generator.getVariable(name)
     }
 
     fun getVariable(el : Element) = getVariable(el.name)
 
-    fun Variable.asKlass() : KClass<*> = generator.asKlass(type())
+    fun Variable.asKlass(): KClass<*> = generator.getKlass(this.type())
 
     fun addParameters(el : Element?) : MethodGenerator {
 
         for (arg in el.all("arg")) {
-            val v = parameters.get(arg["var"]!!.name)
-            val spec = ParameterSpec.builder(v.getName(), v.asKlass()).build()
+            val param = getParameter(arg["var"]!!.name)
+            val type = generator.getKlass(param.type())
+            val spec = ParameterSpec.builder(param.getName(), type).build()
             builder.addParameter(spec)
         }
 
         return this;
     }
 
-    fun localFunction(el : Element) : MethodGenerator {
-        val variable = getVariable(el.name)
-
-        if (variable.context !== Context.FUNCTION)
-            throw IllegalArgumentException("undefined function: ${el.name}")
-
-        val assarr = el["assarr"]
-
-        addParameters(assarr["args"])
-        
-        val body = CodeBlock.builder()
-                .add("« return ")
-                .expr(assarr["expr"])
-                .add("\n»")
-                .build()
-
-        builder.addCode(body)
-
-        return this;
-    }
-
-    fun mainFunction(el : Element) : MethodGenerator {
-
-        val klass = generator.getKlass()
-        val code = CodeBlock.builder()
-
-        if(Unit::class!=klass) {
-            builder.returns(klass)
-            val variable = getVariable(el.name)
-            code.add("var retval = ")
-                    .add(variable.initialize(klass))
-                    .add("\n")
-            
-        }
-
-        addParameters(el["args"])
-
-        if(Unit::class!=klass) {
-            code.add("return retval\n")
-        }
-
-        builder.addCode(code.build())
-
-        return this;
+    fun CodeBlock.Builder.declVariable(v : Variable) : CodeBlock.Builder {
+        add("var %N = ", v.name)
+        add(v.initialize(v.asKlass()))
+        add("\n")
+        return this
     }
 
     fun CodeBlock.Builder.exprs(exprs : Element) : CodeBlock.Builder {
@@ -252,6 +200,11 @@ class MethodGenerator(val generator : UnitGenerator, name : String, type : KClas
         add("// ?? ")
         add(expr.getTextContent())
         add("\n");
+        return this;
+    }
+
+    fun CodeBlock.Builder.code(expr : Element) : CodeBlock.Builder {
+        add("\n// code\n\n")
         return this;
     }
 }

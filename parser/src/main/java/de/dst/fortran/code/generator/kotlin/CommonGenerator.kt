@@ -11,7 +11,7 @@ import de.dst.fortran.code.Common
  * Time: 19:24
  */
 class CommonGenerator(generators : CodeGenerators, val common : Common, className : ClassName)
-    : CodeGenerator(generators, "common", className) {
+    : ClassGenerator(generators, "common", className) {
 
     companion object {
         fun create(generators : CodeGenerators, common : Common) : CommonGenerator {

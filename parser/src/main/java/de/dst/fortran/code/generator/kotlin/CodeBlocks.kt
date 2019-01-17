@@ -12,7 +12,7 @@ import de.dst.fortran.code.Context
 
 abstract class CodeBlocks<T : Context>(val generators : CodeGenerators) {
 
-    val blocks = mutableMapOf<String, CodeGenerator>()
+    val blocks = mutableMapOf<String, ClassGenerator>()
 
     fun add(block : T) {
         val replaced = blocks.put(block.name, generate(block))
@@ -21,11 +21,11 @@ abstract class CodeBlocks<T : Context>(val generators : CodeGenerators) {
             throw RuntimeException("duplicate fortran unit: $block.name");
     }
 
-    protected abstract fun generate(block : T) : CodeGenerator
+    protected abstract fun generate(block : T) : ClassGenerator
 
     fun asProperty(block : Context) = blocks.get(block.name)!!.property
 
     fun generate() {
-        blocks.values.forEach(CodeGenerator::generate)
+        blocks.values.forEach(ClassGenerator::generate)
     }
 }

@@ -5,6 +5,8 @@ import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.TypeSpec
 import de.dst.fortran.code.CodeElement
+import de.dst.fortran.code.Context
+import de.dst.fortran.code.Entities
 import de.dst.fortran.code.Variable
 import de.irt.kfor.Fortran
 import de.irt.kfor.Units
@@ -30,13 +32,15 @@ fun CodeElement.camelName(): String {
 }
 
 class UnitGenerator(generators : CodeGenerators, val block : CodeElement, className : ClassName)
-    : CodeGenerator(generators, "function", className) {
+    : ClassGenerator(generators, "function", className) {
 
     var lineNumber = block.line
 
     val code = block.code()
 
-    fun getKlass() : KClass<*> = asKlass(code.type())
+    fun getKlass(): KClass<*> = getKlass(code.type())
+
+    fun Variable.asKlass(): KClass<*> = getKlass(this.type())
 
     companion object {
         fun create(generators: CodeGenerators, element: CodeElement): UnitGenerator {
@@ -54,54 +58,128 @@ class UnitGenerator(generators : CodeGenerators, val block : CodeElement, classN
     override fun generate() {
         try {
             super.generate();
-        } catch(error : Throwable) {
+        } catch (error: Throwable) {
             throw RuntimeException("error building ${code.path}.${code.name} at line $lineNumber  ", error);
         }
     }
 
-    fun isMember(v: Variable): Boolean = v.context == null && !v.isPrimitive() && v.name!=code.name
+    fun getVariable(name: String) = code.variables.find(name)!!
 
-    override fun TypeSpec.Builder.generate() : TypeSpec.Builder {
+    fun Variable.isMember(): Boolean = context == null && !isPrimitive() && name != code.name
 
-        val properties = code.commons.asSequence().map(generators::asProperty).asIterable()
+    override fun TypeSpec.Builder.generate(): TypeSpec.Builder {
 
-        val units = code.blocks.asSequence().map(generators::asProperty).asIterable()
+        superclass(Fortran::class)
 
-        val members = code.variables.asSequence()
-                .filter{isMember(it)}
-                .map { it.asProperty() }
-                .asIterable()
+        primaryConstructor(FunSpec.constructorBuilder()
+                .addParameter("units", Units::class)
+                .build())
 
-        // instrinsic functions
-        val functions = block.element()
-                .get("functions")
-                .all("function")
-                .map(::asFunction)
-                .asIterable()
+        addSuperclassConstructorParameter(CodeBlock.of("units"))
 
-        return superclass(Fortran::class)
-                .primaryConstructor(FunSpec.constructorBuilder()
-                        .addParameter("units", Units::class)
+        for (common in code.commons) {
+            addProperty(generators.asProperty(common))
+        }
+
+        for (unit in code.blocks) {
+            addProperty(generators.asProperty(unit))
+        }
+
+        for (variable in code.variables) {
+            if (variable.isMember())
+                addProperty(variable.asProperty())
+        }
+
+        for (function in block.element()["functions"].all("function")) {
+            addFunction(localFunction(function))
+        }
+
+        addFunction(mainFunction())
+
+        return this;
+    }
+
+    fun localFunction(el: Element): FunSpec {
+
+        val variable = getVariable(el.name)
+
+        if (variable.context !== Context.FUNCTION)
+            throw IllegalArgumentException("undefined function: ${el.name}")
+
+        val assarr = el["assarr"]
+
+        return object : MethodGenerator(this, el.name, getVariable(el.name).asKlass()) {
+
+            // function parameters
+            val parameters = Entities<Variable>(::Variable)
+
+            override fun getParameter(name: String) = parameters.get(name)
+
+            override fun getVariable(name: String) = parameters.find(name) ?: this@UnitGenerator.getVariable(name)
+
+            override fun build(): FunSpec {
+
+                addParameters(assarr["args"])
+
+                builder.addCode(CodeBlock.builder()
+                        .add("« return ")
+                        .expr(assarr["expr"])
+                        .add("\n»")
                         .build())
-                .addSuperclassConstructorParameter(CodeBlock.of("units"))
-                .addProperties(properties)
-                .addProperties(units)
-                .addProperties(members)
-                .addFunctions(functions)
-                .addFunction(mainFunction())
+
+                return super.build();
+            }
+        }.build()
     }
 
-    fun mainFunction() : FunSpec = MethodGenerator(this, "invoke", getKlass())
-            .mainFunction(block.element())
-            .build()
+    fun mainFunction() : FunSpec {
 
-    fun getVariable(name : String)  = code.variables.find(name)!!
+        val element = block.element()
+        val type = getKlass()
 
-    fun asFunction(el : Element) : FunSpec {
+        // variable
+        val retval : Variable? = if(Unit::class==type) null else
+            Variable("retval")
+                .type(code.type().type)
+                .prop(Variable.Prop.ASSIGNED)
+                .prop(Variable.Prop.RETURNED)
 
-        val generator = MethodGenerator(this, getVariable(el.name))
+        return object : MethodGenerator(this, "invoke", type) {
 
-        return generator.localFunction(el).build()
+            override fun getVariable(name: String): Variable {
+
+                // replace by functions retval
+                if(name == element.name)
+                    return retval!!
+
+                return this@UnitGenerator.getVariable(name)
+            }
+
+            override fun build(): FunSpec {
+
+                val el = block.element()
+
+                addParameters(el["args"])
+
+                val code = CodeBlock.builder()
+
+                if (retval!=null) {
+                    builder.returns(type)
+                    code.declVariable(retval)
+                }
+
+                code.code(el["code"])
+
+                if (retval!=null) {
+                    code.add("return retval\n")
+                }
+
+                builder.addCode(code.build())
+
+                return super.build();
+            }
+        }.build()
     }
+
 }
 

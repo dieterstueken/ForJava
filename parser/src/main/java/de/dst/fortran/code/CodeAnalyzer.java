@@ -134,10 +134,10 @@ public class CodeAnalyzer implements CodeElement {
                     childElements(ce).forEach(de -> {
                         // plain value
                         if ("var".equals(de.getNodeName())) {
-                            variable(de).type(type);
+                            variable(de).decl(type);
                         } else if ("arr".equals(de.getNodeName())) {
                             // array or matrix definition
-                            array(de, block.variables::get).type(type);
+                            array(de, block.variables::get).decl(type);
                         }
                     });
                     break;

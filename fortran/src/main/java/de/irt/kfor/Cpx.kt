@@ -8,15 +8,20 @@ package de.irt.kfor
  */
 interface Cpx {
 
-    var re : Float
+    var re : Double
 
-    var im : Float
+    var im : Double
 
     companion object {
-        operator fun invoke(re : Float, im : Float) : Cpx {
+
+        operator fun invoke() : Cpx {
+            return invoke(0.0, 0.0)
+        }
+
+        operator fun invoke(re : Double, im : Double) : Cpx {
             return object : Cpx {
-                override var re: Float = re
-                override var im: Float = im
+                override var re: Double = re
+                override var im: Double = im
             }
         }
     }

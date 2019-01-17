@@ -19,7 +19,7 @@ public class Code extends Entity {
 
     public TypeDef type() {
         if(!this.type.equals("function"))
-            return null;
+            return null;  // subroutine
 
         return this.returnType != null ? this.returnType : Type.intrinsic(name).primitive();
     }

@@ -11,7 +11,7 @@ import java.util.*;
  */
 public class Variable extends Entity implements Value {
 
-    enum Prop {EXPLICIT, ARGUMENT, ASSIGNED, REFERENCED};
+    public enum Prop {EXPLICIT, ARGUMENT, ASSIGNED, REFERENCED, RETURNED};
 
     public final Set<Prop> props = EnumSet.noneOf(Prop.class);
 
@@ -167,8 +167,17 @@ public class Variable extends Entity implements Value {
     public Variable type(Type type) {
         this.type = type;
         this.toString = null;
-        props.add(Prop.EXPLICIT);
         return this;
+    }
+
+    public Variable prop(Prop prop) {
+        props.add(prop);
+        this.toString = null;
+        return this;
+    }
+
+    public Variable decl(Type type) {
+        return type(type).prop(Prop.EXPLICIT);
     }
 
     public String contextName() {

@@ -43,17 +43,17 @@ fun Variable.initialize(type : KClass<*>) = when(type) {
     }
 }
 
-abstract class CodeGenerator(val generators : CodeGenerators, val className : ClassName, val property : PropertySpec) {
+abstract class ClassGenerator(val generators : CodeGenerators, val className : ClassName, val property : PropertySpec) {
 
     constructor(generators : CodeGenerators, type : String, className : ClassName)
             : this(generators, className, PropertySpec.builder(className.simpleName.toLowerCase(), className)
                                         .initializer("$type(%T::class)", className)
                                         .build())
 
-    fun asKlass(type : TypeDef?) : KClass<*> = generators.types.get(type)
+    fun getKlass(type : TypeDef?) : KClass<*> = generators.types.get(type)
 
     fun Variable.asProperty() : PropertySpec {
-        val klass = asKlass(type())
+        val klass = getKlass(type())
         return PropertySpec.builder(name, klass)
                 .mutable(klass.isPrimitive())
                 .initializer(this.initialize(klass))

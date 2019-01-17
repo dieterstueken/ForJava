@@ -19,7 +19,7 @@ public class TypeDef {
         this.kind = kind;
     }
 
-    Type getType() {
+    public Type getType() {
         return type;
     }
 
