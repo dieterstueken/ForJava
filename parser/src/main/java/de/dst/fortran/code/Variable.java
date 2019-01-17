@@ -34,10 +34,6 @@ public class Variable extends Entity implements Value {
         this.context = context;
     }
 
-    public boolean isMember() {
-        return context==null && isPrimitive();
-    }
-
     public boolean isArray() {
         if(!dim.isEmpty())
             return true;

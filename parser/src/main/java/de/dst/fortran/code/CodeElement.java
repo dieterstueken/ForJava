@@ -15,6 +15,8 @@ public interface CodeElement extends Context {
 
     Element element();
 
+    String getLine();
+
     default String getName() {
         return code().getName();
     }

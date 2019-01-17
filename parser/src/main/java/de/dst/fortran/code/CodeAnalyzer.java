@@ -34,6 +34,11 @@ public class CodeAnalyzer implements CodeElement {
     }
 
     @Override
+    public String getLine() {
+        return line;
+    }
+
+    @Override
     public String toString() {
         return block.name;
     }
@@ -43,7 +48,7 @@ public class CodeAnalyzer implements CodeElement {
         this.be = be;
         block = new Code(be.getAttribute("name"));
         block.type = be.getNodeName();
-        block.returnType = parseType(be.getAttribute("type"), Value.Kind.PROPERTY);
+        block.returnType = parseType(be.getAttribute("type"), Value.Kind.PRIMITIVE);
         block.path = Analyzer.getPath(be);
         be.setAttribute("path", block.path);
 

@@ -32,7 +32,7 @@ fun CodeElement.camelName(): String {
 class UnitGenerator(generators : CodeGenerators, val block : CodeElement, className : ClassName)
     : CodeGenerator(generators, "function", className) {
 
-    var lineNumber = "";
+    var lineNumber = block.line
 
     val code = block.code()
 
@@ -55,9 +55,11 @@ class UnitGenerator(generators : CodeGenerators, val block : CodeElement, classN
         try {
             super.generate();
         } catch(error : Throwable) {
-            throw RuntimeException("error building ${code.name} at line $lineNumber  ", error);
+            throw RuntimeException("error building ${code.path}.${code.name} at line $lineNumber  ", error);
         }
     }
+
+    fun isMember(v: Variable): Boolean = v.context == null && !v.isPrimitive() && v.name!=code.name
 
     override fun TypeSpec.Builder.generate() : TypeSpec.Builder {
 
@@ -66,7 +68,7 @@ class UnitGenerator(generators : CodeGenerators, val block : CodeElement, classN
         val units = code.blocks.asSequence().map(generators::asProperty).asIterable()
 
         val members = code.variables.asSequence()
-                .filter(Variable::isMember)
+                .filter{isMember(it)}
                 .map { it.asProperty() }
                 .asIterable()
 
@@ -89,7 +91,7 @@ class UnitGenerator(generators : CodeGenerators, val block : CodeElement, classN
                 .addFunction(mainFunction())
     }
 
-    fun mainFunction() : FunSpec = MethodGenerator(this, block.name, getKlass())
+    fun mainFunction() : FunSpec = MethodGenerator(this, "invoke", getKlass())
             .mainFunction(block.element())
             .build()
 

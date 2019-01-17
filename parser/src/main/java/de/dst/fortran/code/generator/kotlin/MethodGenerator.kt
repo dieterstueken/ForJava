@@ -24,6 +24,17 @@ class MethodGenerator(val generator : UnitGenerator, name : String, type : KClas
     // function parameters
     val parameters = Entities<Variable>(::Variable)
 
+    var retval : Variable? = null
+
+    init {
+        val variable = generator.getVariable(generator.code.name)
+        if(variable!=null) {
+            val r = Variable("retval")
+            r.type = variable.type
+            retval = r
+        }
+    }
+
     val builder = FunSpec.builder(name).returns(type)
 
     fun build() = builder.build()
@@ -33,6 +44,9 @@ class MethodGenerator(val generator : UnitGenerator, name : String, type : KClas
      */
     fun getVariable(name : String) : Variable {
         val parameter : Variable? = parameters.find(name)
+
+        todo: create?: getParameter()
+
         return parameter ?: generator.getVariable(name)
     }
 
@@ -74,21 +88,23 @@ class MethodGenerator(val generator : UnitGenerator, name : String, type : KClas
 
     fun mainFunction(el : Element) : MethodGenerator {
 
-        val type = generator.getKlass()
+        val klass = generator.getKlass()
         val code = CodeBlock.builder()
 
-        if(Unit::class!=type) {
-            builder.returns(type)
+        if(Unit::class!=klass) {
+            builder.returns(klass)
             val variable = getVariable(el.name)
-            code.add("var ${el.name} = ")
-                    .add(variable.initialize(type))
+            code.add("var retval = ")
+                    .add(variable.initialize(klass))
                     .add("\n")
             
         }
 
         addParameters(el["args"])
 
-        code.add("return ${el.name}")
+        if(Unit::class!=klass) {
+            code.add("return retval\n")
+        }
 
         builder.addCode(code.build())
 
@@ -153,7 +169,7 @@ class MethodGenerator(val generator : UnitGenerator, name : String, type : KClas
 
     fun CodeBlock.Builder.variable(expr : Element) : CodeBlock.Builder {
         val target = getVariable(expr).targetName()
-        add(target)
+        add("%N", target)
         return this
     }
 
