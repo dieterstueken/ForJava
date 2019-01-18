@@ -17,6 +17,9 @@ interface Str {
                 override var v = value
             }
         }
+
+        fun ref(v : String) = Str(v)
+        fun arr(ni : Int) = I2.Arr(ni)
     }
 
     data class Arr (val len : Int) {

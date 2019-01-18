@@ -11,7 +11,7 @@ import java.util.*;
  */
 public class Variable extends Entity implements Value {
 
-    public enum Prop {EXPLICIT, ARGUMENT, ASSIGNED, REFERENCED, RETURNED};
+    public enum Prop {EXPLICIT, ARGUMENT, ASSIGNED, REFERENCED, RETURNED, ALLOCATABLE};
 
     public final Set<Prop> props = EnumSet.noneOf(Prop.class);
 

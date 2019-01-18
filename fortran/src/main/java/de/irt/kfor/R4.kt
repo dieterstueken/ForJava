@@ -8,40 +8,34 @@ package de.irt.kfor
  * modified on: $Date$
  */
 interface R4 {
-    var v : Double
 
     companion object {
-        operator fun invoke(value: Double = 0.0): R4 {
-            var v: Double = value
-            return object : R4 {
-                override var v = value
-            }
-        }
+        fun ref(i : Int) = IRef(i)
+        fun arr(ni : Int) = Arr(ni)
+        fun mat(ni : Int,nj : Int) = Mat(ni, nj)
+        fun cub(ni : Int,nj : Int, nk : Int) = Cub(ni, nj, nk)
     }
 
-    data class Arr (val len : Int) {
+    data class Arr(override val ni : Int) : RArr {
         val arr = FloatArray(len)
-        fun index(i : Int) = i-1
-        operator fun get(i : Int) = arr[index(i)]
-        operator fun set(i : Int, v : Double) {
+        override fun get(i : Int) = arr[index(i)].toDouble()
+        override fun set(i : Int, v : Double) {
             arr[index(i)] = v.toFloat()
         }
     }
 
-    data class Mat (val ni : Int, val nj : Int) {
-        val arr = FloatArray(ni*nj)
-        fun index(i : Int, j : Int) = i-1 + ni*(j-1)
-        operator fun get(i : Int, j : Int) = arr[index(i, j)].toDouble()
-        operator fun set(i : Int, j : Int, v : Double) {
+    data class Mat (override val ni : Int, override val nj : Int) : RMat {
+        val arr = FloatArray(len)
+        override fun get(i : Int, j : Int) = arr[index(i, j)].toDouble()
+        override fun set(i : Int, j : Int, v : Double) {
             arr[index(i, j)] = v.toFloat()
         }
     }
 
-    data class Cub (val nx : Int, val ny : Int, val nz : Int) {
-        val arr = FloatArray(nx*ny*nz)
-        fun index(i : Int, j : Int, k : Int) = i-1 + nx*((j) + ny*(k-1))
-        operator fun get(i : Int, j : Int, k : Int) = arr[index(i,j,k)]
-        operator fun set(i : Int, j : Int, k : Int, v : Double) {
+    data class Cub (override val ni : Int, override val nj : Int, override val nk : Int) : RCub {
+        val arr = FloatArray(len)
+        override fun get(i : Int, j : Int, k : Int) = arr[index(i,j,k)].toDouble()
+        override fun set(i : Int, j : Int, k : Int, v : Double) {
             arr[index(i,j,k)] = v.toFloat()
         }
     }

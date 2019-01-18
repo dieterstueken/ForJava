@@ -8,65 +8,35 @@ package de.irt.kfor
  * modified on: $Date$
  */
 interface I4 {
-    var v : Int
 
     companion object {
-        operator fun invoke(value: Int = 0): I4 {
-            var v: Int = value
-            return object : I4 {
-                override var v = value
-            }
-        }
+        fun ref(i : Int) = IRef(i)
+        fun arr(ni : Int) = Arr(ni)
+        fun mat(ni : Int,nj : Int) = Mat(ni, nj)
+        fun cub(ni : Int,nj : Int, nk : Int) = Cub(ni, nj, nk)
     }
 
-    data class Arr (val len : Int) {
+    data class Arr(override val ni : Int) : IArr {
         val arr = IntArray(len)
-        fun index(i : Int) = i-1
-        operator fun get(i : Int) = arr[index(i)]
-        operator fun set(i : Int, value : Int) {
-            arr[index(i)] = value
-        }
-
-        operator fun invoke(i: Int): I4 {
-            return object : I4 {
-                override var v: Int
-                    get() = this@Arr.get(i)
-                    set(value) {this@Arr.set(i, value)}
-            }
+        override operator fun get(i : Int) = arr[index(i)]
+        override operator fun set(i : Int, v : Int) {
+            arr[index(i)] = v
         }
     }
 
-    data class Mat (val ni : Int, val nj : Int) {
-        val arr = IntArray(ni*nj)
-        fun index(i : Int, j : Int) = i-1 + ni*(j-1)
-        operator fun get(i : Int, j : Int) = arr[index(i, j)]
-        operator fun set(i : Int, j : Int, v : Int) {
-            arr[index(i, j)] = v
-        }
-
-        operator fun invoke(i: Int, j : Int): I4 {
-            return object : I4 {
-                override var v: Int
-                    get() = this@Mat.get(i, j)
-                    set(value) {this@Mat.set(i, j, value)}
-            }
+    class Mat(override val ni : Int, override val nj : Int) : IMat {
+        val arr = IntArray(len)
+        override operator fun get(i : Int, j : Int) : Int = arr[index(i,j)]
+        override operator fun set(i : Int, j : Int, v : Int) {
+            arr[index(i,j)] = v
         }
     }
 
-    data class Cub (val nx : Int, val ny : Int, val nz : Int) {
-        val arr = IntArray(nx*ny*nz)
-        fun index(i : Int, j : Int, k : Int) = i-1 + nx*((j) + ny*(k-1))
-        operator fun get(i : Int, j : Int, k : Int) = arr[index(i,j,k)]
-        operator fun set(i : Int, j : Int, k : Int, v : Int) {
+    class Cub(override val ni : Int, override val nj : Int,  override val nk : Int) : ICub {
+        val arr = IntArray(len)
+        override operator fun get(i : Int, j : Int, k : Int) : Int = arr[index(i,j,k)]
+        override operator fun set(i : Int, j : Int, k : Int, v : Int) {
             arr[index(i,j,k)] = v
-        }
-
-        operator fun invoke(i : Int, j : Int, k : Int): I4 {
-            return object : I4 {
-                override var v: Int
-                    get() = this@Cub.get(i, j, k)
-                    set(value) {this@Cub.set(i, j, k, value)}
-            }
         }
     }
 }

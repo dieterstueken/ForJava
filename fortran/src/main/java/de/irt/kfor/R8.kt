@@ -8,40 +8,34 @@ package de.irt.kfor
  * modified on: $Date$
  */
 interface R8 {
-    var v : Float
 
     companion object {
-        operator fun invoke(value: Float = 0F): R8 {
-            var v: Float = value
-            return object : R8 {
-                override var v = value
-            }
-        }
+        fun ref(i : Int) = IRef(i)
+        fun arr(ni : Int) = I4.Arr(ni)
+        fun mat(ni : Int,nj : Int) = I4.Mat(ni, nj)
+        fun cub(ni : Int,nj : Int, nk : Int) = I4.Cub(ni, nj, nk)
     }
 
-    data class Arr (val len : Int) {
+    data class Arr (override val ni : Int) : RArr {
         val arr = DoubleArray(len)
-        fun index(i : Int) = i-1
-        operator fun get(i : Int) = arr[index(i)]
-        operator fun set(i : Int, v : Double) {
+        override fun get(i : Int) = arr[index(i)]
+        override fun set(i : Int, v : Double) {
             arr[index(i)] = v
         }
     }
 
-    data class Mat (val ni : Int, val nj : Int) {
-        val arr = DoubleArray(ni*nj)
-        fun index(i : Int, j : Int) = i-1 + ni*(j-1)
-        operator fun get(i : Int, j : Int) = arr[index(i, j)]
-        operator fun set(i : Int, j : Int, v : Double) {
+    data class Mat (override val ni : Int, override val nj : Int) : RMat {
+        val arr = DoubleArray(len)
+        override fun get(i : Int, j : Int) = arr[index(i, j)]
+        override fun set(i : Int, j : Int, v : Double) {
             arr[index(i, j)] = v
         }
     }
 
-    data class Cub (val nx : Int, val ny : Int, val nz : Int) {
-        val arr = DoubleArray(nx*ny*nz)
-        fun index(i : Int, j : Int, k : Int) = i-1 + nx*((j) + ny*(k-1))
-        operator fun get(i : Int, j : Int, k : Int) = arr[index(i,j,k)]
-        operator fun set(i : Int, j : Int, k : Int, v : Double) {
+    data class Cub (override val ni : Int, override val nj : Int, override val nk : Int) : RCub {
+        val arr = DoubleArray(len)
+        override fun get(i : Int, j : Int, k : Int) = arr[index(i,j,k)]
+        override fun set(i : Int, j : Int, k : Int, v : Double) {
             arr[index(i,j,k)] = v
         }
     }

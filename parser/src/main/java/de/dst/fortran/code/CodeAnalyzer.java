@@ -439,6 +439,7 @@ public class CodeAnalyzer implements CodeElement {
                 arr.dim(new Constant(n));
             } else if ("range".equals(name)) {
                 arr.dim(Value.UNDEF);
+                arr.prop(Variable.Prop.ALLOCATABLE);
             }
         });
 

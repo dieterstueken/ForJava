@@ -8,41 +8,35 @@ package de.irt.kfor
  * modified on: $Date$
  */
 interface I2 {
-    var v : Byte
 
     companion object {
-        operator fun invoke(value: Byte = 0): I2 {
-            var v: Byte = value
-            return object : I2 {
-                override var v = value
-            }
+        fun ref(i : Int) = IRef(i)
+        fun arr(ni : Int) = Arr(ni)
+        fun mat(ni : Int,nj : Int) = Mat(ni, nj)
+        fun cub(ni : Int,nj : Int, nk : Int) = Cub(ni, nj, nk)
+    }
+
+    data class Arr (override val ni : Int) : IArr {
+        val arr = ShortArray(len)
+        override fun get(i : Int) = arr[index(i)].toInt()
+        override fun set(i : Int, v : Int) {
+            arr[index(i)] = v.toShort()
         }
     }
 
-    data class Arr (val len : Int) {
-        val arr = ByteArray(len)
-        fun index(i : Int) = i-1
-        operator fun get(i : Int) = arr[index(i)].toInt()
-        operator fun set(i : Int, v : Int) {
-            arr[index(i)] = v.toByte()
+    data class Mat (override val ni : Int, override val nj : Int) : IMat {
+        val arr = ShortArray(len)
+        override fun get(i : Int, j : Int) = arr[index(i, j)].toInt()
+        override fun set(i : Int, j : Int, v : Int) {
+            arr[index(i, j)] = v.toShort()
         }
     }
 
-    data class Mat (val ni : Int, val nj : Int) {
-        val arr = ByteArray(ni*nj)
-        fun index(i : Int, j : Int) = i-1 + ni*(j-1)
-        operator fun get(i : Int, j : Int) = arr[index(i, j)].toInt()
-        operator fun set(i : Int, j : Int, v : Integer) {
-            arr[index(i, j)] = v.toByte()
-        }
-    }
-
-    data class Cub (val nx : Int, val ny : Int, val nz : Int) {
-        val arr = ByteArray(nx*ny*nz)
-        fun index(i : Int, j : Int, k : Int) = i-1 + nx*((j) + ny*(k-1))
-        operator fun get(i : Int, j : Int, k : Int) = arr[index(i,j,k)].toInt()
-        operator fun set(i : Int, j : Int, k : Int, v : Integer) {
-            arr[index(i,j,k)] = v.toByte()
+    data class Cub (override val ni : Int, override val nj : Int, override val nk : Int) : ICub {
+        val arr = ShortArray(len)
+        override fun get(i : Int, j : Int, k : Int) = arr[index(i,j,k)].toInt()
+        override fun set(i : Int, j : Int, k : Int, v : Int) {
+            arr[index(i,j,k)] = v.toShort()
         }
     }
 }

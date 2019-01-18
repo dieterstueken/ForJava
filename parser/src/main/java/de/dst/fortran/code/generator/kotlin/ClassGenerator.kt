@@ -1,9 +1,11 @@
 package de.dst.fortran.code.generator.kotlin
 
 import com.squareup.kotlinpoet.*
+import de.dst.fortran.code.Type
 import de.dst.fortran.code.TypeDef
 import de.dst.fortran.code.Value
 import de.dst.fortran.code.Variable
+import de.irt.kfor.*
 import kotlin.reflect.KClass
 
 /**
@@ -26,7 +28,20 @@ fun Variable.targetName() : String {
     return target
 }
 
-fun Variable.initialize(type : KClass<*>) = when(type) {
+fun TypeDef.baseType() : KClass<*> =
+        when(type) {
+            Type.R8 -> R8::class
+            Type.R4 -> R4::class
+            Type.I4 -> I4::class
+            Type.I2 -> I2::class
+            Type.CH -> Ch::class
+            Type.STR -> Str::class
+            Type.CPX -> Cpx::class
+            else ->
+                throw RuntimeException(this.toString())
+        }
+
+fun Variable.initialize(klass : KClass<*>) = when(klass) {
     Byte::class, Short::class, Int::class, Long::class -> CodeBlock.of("0")
     Float::class -> CodeBlock.of("0.0F")
     Double::class -> CodeBlock.of("0.0")
@@ -34,12 +49,16 @@ fun Variable.initialize(type : KClass<*>) = when(type) {
     String::class -> CodeBlock.of("\"\"")
     Boolean::class -> CodeBlock.of("false")
     else -> {
-        when(this.dim.size) {
-            1 -> CodeBlock.of("%T(%L)", type, this.dim[0])
-            2 -> CodeBlock.of("%T(%L, %L)", type, this.dim[0], this.dim[1])
-            3 -> CodeBlock.of("%T(%L, %L, %L)", type, this.dim[0], this.dim[1], this.dim[2])
-            else -> CodeBlock.of("%T()", type)
-        }
+        val type = this.type().baseType()
+        if(this.props.contains(Variable.Prop.ALLOCATABLE))
+            CodeBlock.of("%T.$type.allocated()", klass)
+        else
+            when (this.dim.size) {
+                1 -> CodeBlock.of("%T.arr(%L)", type, this.dim[0])
+                2 -> CodeBlock.of("%T.mat(%L, %L)", type, this.dim[0], this.dim[1])
+                3 -> CodeBlock.of("%T.cub(%L, %L, %L)", type, this.dim[0], this.dim[1], this.dim[2])
+                else -> CodeBlock.of("%T()", type)
+            }
     }
 }
 

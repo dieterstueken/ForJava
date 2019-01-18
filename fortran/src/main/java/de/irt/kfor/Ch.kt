@@ -17,6 +17,11 @@ interface Ch {
                 override var v = value
             }
         }
+
+        fun ref(i : Int) = IRef(i)
+        fun arr(ni : Int) = Arr(ni)
+        fun mat(ni : Int,nj : Int) = Mat(ni, nj)
+        fun cub(ni : Int,nj : Int, nk : Int) = Cub(ni, nj, nk)
     }
 
     data class Arr (val len : Int) {

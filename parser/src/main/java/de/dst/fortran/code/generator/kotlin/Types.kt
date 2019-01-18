@@ -11,12 +11,8 @@ fun KClass<*>.isPrimitive(): Boolean {
     return String::class == this || this.javaPrimitiveType != null
 }
 
-/**
- * Created by IntelliJ IDEA.
- * User: stueken
- * Date: 12.01.19
- * Time: 18:01
- */
+
+
 class Types : TypeMap<KClass<*>>() {
 
     override fun get(type: TypeDef?): KClass<*> {
@@ -34,51 +30,44 @@ class Types : TypeMap<KClass<*>>() {
 
     init {
 
-        kinds(Type.STR)
-                .define(Value.Kind.INTRINSIC, String::class)
-                .define(Value.Kind.PRIMITIVE, String::class)
-                .define(Value.Kind.PROPERTY, Str::class)
-                .define(Value.Kind.ARRAY, Str.Arr::class)
-
         kinds(Type.CH)
                 .define(Value.Kind.INTRINSIC, Char::class)
                 .define(Value.Kind.PRIMITIVE, Char::class)
                 .define(Value.Kind.PROPERTY, Ch::class)
                 .define(Value.Kind.ARRAY, Ch.Arr::class)
                 .define(Value.Kind.MATRIX, Ch.Mat::class)
-                .define(Value.Kind.CUBE, Ch.Cub::class)
 
         kinds(Type.I2)
                 .define(Value.Kind.INTRINSIC, Int::class)
                 .define(Value.Kind.PRIMITIVE, Int::class)
-                .define(Value.Kind.PROPERTY, I2::class)
-                .define(Value.Kind.ARRAY, I2.Arr::class)
-                .define(Value.Kind.MATRIX, I2.Mat::class)
-                .define(Value.Kind.CUBE, I2.Cub::class)
+                .define(Value.Kind.PROPERTY, IRef::class)
+                .define(Value.Kind.ARRAY, IArr::class)
+                .define(Value.Kind.MATRIX, IMat::class)
+                .define(Value.Kind.CUBE, ICub::class)
 
         kinds(Type.I4)
                 .define(Value.Kind.INTRINSIC, Int::class)
                 .define(Value.Kind.PRIMITIVE, Int::class)
-                .define(Value.Kind.PROPERTY, I4::class)
-                .define(Value.Kind.ARRAY, I4.Arr::class)
-                .define(Value.Kind.MATRIX, I4.Mat::class)
-                .define(Value.Kind.CUBE, I4.Cub::class)
+                .define(Value.Kind.PROPERTY, IRef::class)
+                .define(Value.Kind.ARRAY, IArr::class)
+                .define(Value.Kind.MATRIX, IMat::class)
+                .define(Value.Kind.CUBE, ICub::class)
 
         kinds(Type.R4)
                 .define(Value.Kind.INTRINSIC, Double::class)
                 .define(Value.Kind.PRIMITIVE, Double::class)
-                .define(Value.Kind.PROPERTY, R4::class)
-                .define(Value.Kind.ARRAY, R4.Arr::class)
-                .define(Value.Kind.MATRIX, R4.Mat::class)
-                .define(Value.Kind.CUBE, R4.Cub::class)
+                .define(Value.Kind.PROPERTY, Ref::class)
+                .define(Value.Kind.ARRAY, RArr::class)
+                .define(Value.Kind.MATRIX, RMat::class)
+                .define(Value.Kind.CUBE, RCub::class)
 
         kinds(Type.R8)
                 .define(Value.Kind.INTRINSIC, Double::class)
                 .define(Value.Kind.PRIMITIVE, Double::class)
-                .define(Value.Kind.PROPERTY, R8::class)
-                .define(Value.Kind.ARRAY, R8.Arr::class)
-                .define(Value.Kind.MATRIX, R8.Mat::class)
-                .define(Value.Kind.CUBE, R8.Cub::class)
+                .define(Value.Kind.PROPERTY, Ref::class)
+                .define(Value.Kind.ARRAY, RArr::class)
+                .define(Value.Kind.MATRIX, RMat::class)
+                .define(Value.Kind.CUBE, RCub::class)
 
         kinds(Type.L4)
                 .define(Value.Kind.INTRINSIC, Boolean::class)
@@ -86,6 +75,12 @@ class Types : TypeMap<KClass<*>>() {
 
         kinds(Type.CPX)
                 .define(Value.Kind.PROPERTY, Cpx::class)
+
+        kinds(Type.STR)
+                .define(Value.Kind.INTRINSIC, String::class)
+                .define(Value.Kind.PRIMITIVE, String::class)
+                .define(Value.Kind.PROPERTY, Str::class)
+                .define(Value.Kind.ARRAY, Str.Arr::class)
     }
 
     fun MutableMap<Value.Kind, KClass<*>>.define(kind : Value.Kind, type : KClass<*>) : MutableMap<Value.Kind, KClass<*>> {
