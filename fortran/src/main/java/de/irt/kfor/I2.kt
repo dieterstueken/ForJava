@@ -10,9 +10,12 @@ package de.irt.kfor
 interface I2 {
 
     companion object {
-        fun ref(i : Int) = IRef(i)
+        operator fun invoke(v : Int = 0) = IRef(v)
+
         fun arr(ni : Int) = Arr(ni)
+        fun arr() = arr(0)
         fun mat(ni : Int,nj : Int) = Mat(ni, nj)
+        fun mat() = mat(0,0)
         fun cub(ni : Int,nj : Int, nk : Int) = Cub(ni, nj, nk)
     }
 
@@ -22,6 +25,7 @@ interface I2 {
         override fun set(i : Int, v : Int) {
             arr[index(i)] = v.toShort()
         }
+        override fun allocate(ni : Int) = if(this.ni==ni) this else I4.Arr(ni)
     }
 
     data class Mat (override val ni : Int, override val nj : Int) : IMat {

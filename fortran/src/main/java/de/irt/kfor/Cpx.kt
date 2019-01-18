@@ -14,11 +14,7 @@ interface Cpx {
 
     companion object {
 
-        operator fun invoke() : Cpx {
-            return invoke(0.0, 0.0)
-        }
-
-        operator fun invoke(re : Double, im : Double) : Cpx {
+        operator fun invoke(re : Double = 0.0, im : Double = 0.0) : Cpx {
             return object : Cpx {
                 override var re: Double = re
                 override var im: Double = im

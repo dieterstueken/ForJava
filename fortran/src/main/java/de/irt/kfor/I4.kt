@@ -10,7 +10,7 @@ package de.irt.kfor
 interface I4 {
 
     companion object {
-        fun ref(i : Int) = IRef(i)
+        operator fun invoke(v : Int = 0) = IRef(v)
         fun arr(ni : Int) = Arr(ni)
         fun mat(ni : Int,nj : Int) = Mat(ni, nj)
         fun cub(ni : Int,nj : Int, nk : Int) = Cub(ni, nj, nk)
@@ -22,6 +22,7 @@ interface I4 {
         override operator fun set(i : Int, v : Int) {
             arr[index(i)] = v
         }
+        override fun allocate(ni : Int) = if(this.ni==ni) this else Arr(ni)
     }
 
     class Mat(override val ni : Int, override val nj : Int) : IMat {

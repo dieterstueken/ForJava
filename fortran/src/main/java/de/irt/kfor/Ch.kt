@@ -20,19 +20,21 @@ interface Ch {
 
         fun ref(i : Int) = IRef(i)
         fun arr(ni : Int) = Arr(ni)
+        fun mat() = mat(0,0)
         fun mat(ni : Int,nj : Int) = Mat(ni, nj)
         fun cub(ni : Int,nj : Int, nk : Int) = Cub(ni, nj, nk)
     }
 
-    data class Arr (val len : Int) {
+    data class Arr (override val ni : Int) : de.irt.kfor.Arr {
         val arr = CharArray(len)
-        fun index(i : Int) = i-1
         operator fun get(i : Int) = arr[index(i)]
         operator fun set(i : Int, v : Char) {
             arr[index(i)] = v
         }
 
         constructor() : this(0)
+
+        fun allocate(ni : Int) = if(this.len==ni) this else Arr(ni)
     }
 
     data class Mat (val ni : Int, val nj : Int) {

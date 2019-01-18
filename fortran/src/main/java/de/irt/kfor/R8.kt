@@ -10,8 +10,8 @@ package de.irt.kfor
 interface R8 {
 
     companion object {
-        fun ref(i : Int) = IRef(i)
-        fun arr(ni : Int) = I4.Arr(ni)
+        operator fun invoke(v : Double = 0.0) = Ref(v)
+        fun arr(ni : Int) = Arr(ni)
         fun mat(ni : Int,nj : Int) = I4.Mat(ni, nj)
         fun cub(ni : Int,nj : Int, nk : Int) = I4.Cub(ni, nj, nk)
     }

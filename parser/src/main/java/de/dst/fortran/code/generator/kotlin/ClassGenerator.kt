@@ -51,7 +51,12 @@ fun Variable.initialize(klass : KClass<*>) = when(klass) {
     else -> {
         val type = this.type().baseType()
         if(this.props.contains(Variable.Prop.ALLOCATABLE))
-            CodeBlock.of("%T.$type.allocated()", klass)
+            when (this.dim.size) {
+                1 -> CodeBlock.of("%T.arr()", type)
+                2 -> CodeBlock.of("%T.mat()", type)
+                3 -> CodeBlock.of("%T.cub()", type)
+                else -> CodeBlock.of("%T()", type)
+            }
         else
             when (this.dim.size) {
                 1 -> CodeBlock.of("%T.arr(%L)", type, this.dim[0])
@@ -73,10 +78,18 @@ abstract class ClassGenerator(val generators : CodeGenerators, val className : C
 
     fun Variable.asProperty() : PropertySpec {
         val klass = getKlass(type())
-        return PropertySpec.builder(name, klass)
-                .mutable(klass.isPrimitive())
-                .initializer(this.initialize(klass))
-                .build()
+
+        val isAllocated = props.contains(Variable.Prop.ALLOCATABLE)
+
+        //var typeName = klass.asTypeName()
+        //if(isAllocated)
+        //    typeName = typeName.copy(true)
+
+        val builder = PropertySpec.builder(name, klass)
+                .mutable(klass.isMutable() || isAllocated)
+                .initializer(initialize(klass))
+
+        return builder.build()
     }
 
     open fun generate() {
