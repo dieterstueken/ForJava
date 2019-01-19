@@ -34,7 +34,7 @@ fun CodeElement.camelName(): String {
 class UnitGenerator(generators : CodeGenerators, val block : CodeElement, className : ClassName)
     : ClassGenerator(generators, "function", className) {
 
-    var lineNumber = block.line
+    var lineNumber : Any = block.line
 
     val code = block.code()
 

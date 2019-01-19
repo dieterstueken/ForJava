@@ -71,7 +71,7 @@ open class MethodGenerator(val generator : UnitGenerator, val builder : FunSpec.
     fun CodeBlock.Builder.expr(expr : Element) : CodeBlock.Builder {
 
         when(expr.getTagName()) {
-            "F" -> generator.lineNumber = expr.getAttribute("line");
+            "F" -> generator.lineNumber = expr["line"]
 
             "c" -> comment(expr)
 
@@ -206,5 +206,71 @@ open class MethodGenerator(val generator : UnitGenerator, val builder : FunSpec.
     fun CodeBlock.Builder.code(expr : Element) : CodeBlock.Builder {
         add("\n// code\n\n")
         return this;
+    }
+
+    fun CodeBlock.Builder.body(code : Element) : CodeBlock.Builder {
+
+        when(code.getTagName()) {
+            "F" -> generator.lineNumber = code["line"]
+
+            "c" -> comment(code)
+
+            "assvar" -> assvar(code)
+
+            "assarr" -> assarr(code)
+
+            "call" -> call(code)
+
+            "goto" -> _goto(code)
+
+            "if" -> _if(code)
+
+            "do"->  _do(code)
+
+            "cycle" -> cycle()
+
+            "exit" -> _exit()
+
+            "return" -> _return()
+
+        }
+
+        return this
+    }
+
+    fun CodeBlock.Builder.assvar(expr : Element) {
+
+    }
+
+
+    fun CodeBlock.Builder.assarr(expr : Element) {
+
+    }
+
+
+    fun CodeBlock.Builder._goto(expr : Element) {
+
+    }
+
+
+    fun CodeBlock.Builder._if(expr : Element) {
+
+    }
+
+
+    fun CodeBlock.Builder.cycle() {
+
+    }
+
+    fun CodeBlock.Builder._exit() {
+
+    }
+
+    fun CodeBlock.Builder._return() {
+
+    }
+
+    fun CodeBlock.Builder._do(expr : Element) {
+
     }
 }
