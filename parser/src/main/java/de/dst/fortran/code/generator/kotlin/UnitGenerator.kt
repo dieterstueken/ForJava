@@ -5,8 +5,6 @@ import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.TypeSpec
 import de.dst.fortran.code.CodeElement
-import de.dst.fortran.code.Context
-import de.dst.fortran.code.Entities
 import de.dst.fortran.code.Variable
 import de.irt.kfor.Fortran
 import de.irt.kfor.Units
@@ -55,11 +53,16 @@ class UnitGenerator(generators : CodeGenerators, val block : CodeElement, classN
         }
     }
 
+    override fun toString() : String = "${code.path}.${code.name}:${lineNumber}"
+
     override fun generate() {
         try {
-            super.generate();
+            if(block.name == "chgcor")
+                super.generate();
+            else
+                super.generate();
         } catch (error: Throwable) {
-            throw RuntimeException("error building ${code.path}.${code.name} at line $lineNumber  ", error);
+            throw RuntimeException("error building ${this}", error)
         }
     }
 
@@ -90,8 +93,8 @@ class UnitGenerator(generators : CodeGenerators, val block : CodeElement, classN
                 addProperty(variable.asProperty())
         }
 
-        for (function in block.element()["functions"].all("function")) {
-            addFunction(localFunction(function))
+        for (func in block.element()["functions"].all("function")) {
+            addFunction(localFunction(func))
         }
 
         addFunction(mainFunction())
@@ -99,87 +102,8 @@ class UnitGenerator(generators : CodeGenerators, val block : CodeElement, classN
         return this;
     }
 
-    fun localFunction(el: Element): FunSpec {
+    fun localFunction(func: Element) = LocalFunction(this, func).build();
 
-        val variable = getVariable(el.name)
-
-        if (variable.context !== Context.FUNCTION)
-            throw IllegalArgumentException("undefined function: ${el.name}")
-
-        val assarr = el["assarr"]
-
-        return object : MethodGenerator(this, el.name, getVariable(el.name).asKlass()) {
-
-            // function parameters
-            val parameters = Entities<Variable>(::Variable)
-
-            override fun getParameter(name: String) = parameters.get(name)
-
-            override fun getVariable(name: String) = parameters.find(name) ?: this@UnitGenerator.getVariable(name)
-
-            override fun build(): FunSpec {
-
-                addParameters(assarr["args"])
-
-                builder.addCode(CodeBlock.builder()
-                        .add("« return ")
-                        .expr(assarr["expr"])
-                        .add("\n»")
-                        .build())
-
-                return super.build();
-            }
-        }.build()
-    }
-
-    fun mainFunction() : FunSpec {
-
-        val element = block.element()
-        val type = getKlass()
-
-        // variable
-        val retval : Variable? = if(Unit::class==type) null else
-            Variable("retval")
-                .type(code.type().type)
-                .prop(Variable.Prop.ASSIGNED)
-                .prop(Variable.Prop.RETURNED)
-
-        return object : MethodGenerator(this, "invoke", type) {
-
-            override fun getVariable(name: String): Variable {
-
-                // replace by functions retval
-                if(name == element.name)
-                    return retval!!
-
-                return this@UnitGenerator.getVariable(name)
-            }
-
-            override fun build(): FunSpec {
-
-                val el = block.element()
-
-                addParameters(el["args"])
-
-                val code = CodeBlock.builder()
-
-                if (retval!=null) {
-                    builder.returns(type)
-                    code.declVariable(retval)
-                }
-
-                code.code(el["code"])
-
-                if (retval!=null) {
-                    code.add("return retval\n")
-                }
-
-                builder.addCode(code.build())
-
-                return super.build();
-            }
-        }.build()
-    }
-
+    fun mainFunction() = MainFunction(this).build()
 }
 

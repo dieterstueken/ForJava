@@ -15,17 +15,9 @@ import kotlin.reflect.KClass
  * Time: 19:00
  */
 
-fun Variable?.isProperty() = this?.type() == Value.Kind.PROPERTY
-
-fun Variable.targetName() : String {
-    var target : String = if(context!=null) ".${context.name}" else ""
-
-    target += name
-
-    if(isProperty())
-        target += ".v"
-
-    return target
+fun Variable?.isProperty() : Boolean {
+    val type = this?.type()
+    return type?.kind == Value.Kind.PROPERTY
 }
 
 fun TypeDef.baseType() : KClass<*> =

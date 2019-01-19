@@ -36,6 +36,22 @@ open class MethodGenerator(val generator : UnitGenerator, val builder : FunSpec.
         return generator.getVariable(name)
     }
 
+    fun targetName(variable : Variable, asReference: Boolean) : String {
+        var target = ""
+
+        if(variable.context!=null) {
+            if(variable.context!=generator.code)
+                target = "${variable.context.name}."
+        }
+
+        target += variable.name
+
+        if(!asReference && variable.isProperty())
+            target += ".v"
+
+        return target
+    }
+
     fun getVariable(el : Element) = getVariable(el.name)
 
     fun Variable.asKlass(): KClass<*> = generator.getKlass(this.type())
@@ -59,25 +75,25 @@ open class MethodGenerator(val generator : UnitGenerator, val builder : FunSpec.
         return this
     }
 
-    fun CodeBlock.Builder.exprs(exprs : Element) : CodeBlock.Builder {
-        return exprs(exprs.children())
-    }
-
-    fun CodeBlock.Builder.exprs(exprs : Iterable<Element>) : CodeBlock.Builder {
-        exprs.forEach{expr(it)}
+    fun CodeBlock.Builder.addExpr(exprs : Iterable<Element>) : CodeBlock.Builder {
+        for (expr in exprs) {
+            addExpr(expr)
+        }
         return this
     }
 
-    fun CodeBlock.Builder.expr(expr : Element) : CodeBlock.Builder {
+    fun CodeBlock.Builder.addExpr(expr : Element) : CodeBlock.Builder {
 
-        when(expr.getTagName()) {
-            "F" -> generator.lineNumber = expr["line"]
-
+        val tag = expr.getTagName()
+        when(tag) {
+            "F" -> codeLine(expr)
+            "f"  -> contLine(expr)
             "c" -> comment(expr)
+            "C" -> commentLine(expr)
 
             "b" -> braced(expr)
 
-            "expr","while" -> exprs(expr)
+            "expr","while" -> addExpr(expr.children())
 
             "arg" -> arg(expr)
             "var" -> variable(expr)
@@ -101,7 +117,7 @@ open class MethodGenerator(val generator : UnitGenerator, val builder : FunSpec.
 
             "and" -> add(" && ")
             "or" -> add(" || ")
-            "f"  -> add("\n")
+
 
             else -> unknown(expr)
         }
@@ -112,39 +128,41 @@ open class MethodGenerator(val generator : UnitGenerator, val builder : FunSpec.
     fun CodeBlock.Builder.arg(expr : Element) : CodeBlock.Builder {
         // ? assigned function argument
         //val assigned = "true".equals(expr.getAttribute("returned"))
-        return exprs(expr)
+        return addExpr(expr.children())
     }
 
     fun CodeBlock.Builder.variable(expr : Element) : CodeBlock.Builder {
-        val target = getVariable(expr).targetName()
+        val asReference = expr.attributes["returned"]=="true"
+        val target = targetName(getVariable(expr), asReference)
         add("%N", target)
         return this
     }
 
     fun CodeBlock.Builder.call(expr : Element) : CodeBlock.Builder {
 
-        var name = expr.name
+        var name : String = expr.name
 
         // conversions
         when(name) {
-            "float" -> name = "_float"
-            "int" -> name = "_int"
-            "cmplx" -> name = "_cpx"
+            "float" -> name = "toReal"
+            "int" -> name = "toInt"
+            "cmplx" -> name = "toComplex"
         }
 
-        var args = expr.all("arg")
+        if(expr.attributes["scope"] == "array") {
+            name = targetName(getVariable(name), true)
+            return add("%N[", name).addArgs(expr).add("]")
+        } else
+            return add("%N(", name).addArgs(expr).add(")")
+    }
 
-        add("${name}(")
+    fun CodeBlock.Builder.addArgs(args : Element) : CodeBlock.Builder {
         var sep = ""
-
-        for (arg in args) {
+        for (arg in args.all("arg")) {
             add(sep)
-            expr(arg)
+            addExpr(arg)
             sep = ", "
         }
-
-        add(")")
-
         return this;
     }
 
@@ -182,95 +200,40 @@ open class MethodGenerator(val generator : UnitGenerator, val builder : FunSpec.
         return this;
     }
 
+    open fun buildCodeLine(builder : CodeBlock.Builder, el : Element) {
+        val ln : String = el.getAttribute("line")
+        generator.lineNumber = ln
+    }
+
+    fun CodeBlock.Builder.codeLine(el : Element) = buildCodeLine(this, el)
+
+    fun CodeBlock.Builder.contLine(el : Element) = add("\n    ")
+
     fun CodeBlock.Builder.comment(expr : Element) : CodeBlock.Builder {
-        add("//")
-        add(expr.getTextContent())
-        add("\n");
+        var text : String? = expr.getTextContent()
+        if(text!=null && text.isNotEmpty()) {
+            add("//%L\n", text)
+        } else
+            add("\n");
+
         return this;
+    }
+
+    fun CodeBlock.Builder.commentLine(expr : Element) : CodeBlock.Builder {
+        return comment(expr)
     }
 
     fun CodeBlock.Builder.braced(expr : Element) : CodeBlock.Builder {
         add("(")
-        exprs(expr)
+        addExpr(expr.children())
         add(")")
         return this
     }
 
     fun CodeBlock.Builder.unknown(expr : Element) : CodeBlock.Builder {
-        add("// ?? ")
-        add(expr.getTextContent())
-        add("\n");
+        add("/*< ")
+        add(expr.name)
+        add(">*/");
         return this;
-    }
-
-    fun CodeBlock.Builder.code(expr : Element) : CodeBlock.Builder {
-        add("\n// code\n\n")
-        return this;
-    }
-
-    fun CodeBlock.Builder.body(code : Element) : CodeBlock.Builder {
-
-        when(code.getTagName()) {
-            "F" -> generator.lineNumber = code["line"]
-
-            "c" -> comment(code)
-
-            "assvar" -> assvar(code)
-
-            "assarr" -> assarr(code)
-
-            "call" -> call(code)
-
-            "goto" -> _goto(code)
-
-            "if" -> _if(code)
-
-            "do"->  _do(code)
-
-            "cycle" -> cycle()
-
-            "exit" -> _exit()
-
-            "return" -> _return()
-
-        }
-
-        return this
-    }
-
-    fun CodeBlock.Builder.assvar(expr : Element) {
-
-    }
-
-
-    fun CodeBlock.Builder.assarr(expr : Element) {
-
-    }
-
-
-    fun CodeBlock.Builder._goto(expr : Element) {
-
-    }
-
-
-    fun CodeBlock.Builder._if(expr : Element) {
-
-    }
-
-
-    fun CodeBlock.Builder.cycle() {
-
-    }
-
-    fun CodeBlock.Builder._exit() {
-
-    }
-
-    fun CodeBlock.Builder._return() {
-
-    }
-
-    fun CodeBlock.Builder._do(expr : Element) {
-
     }
 }

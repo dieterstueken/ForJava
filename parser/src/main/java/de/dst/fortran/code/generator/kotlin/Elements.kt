@@ -14,7 +14,7 @@ import org.w3c.dom.NamedNodeMap
 
 operator fun Element.get(name : String) = Analyzer.childElement(this, name)
 
-fun Element.children() : List<Element> = Analyzer.childElements(this)
+fun Element.children() : MutableList<Element> = Analyzer.childElements(this)
 
 fun Element?.all(name : String) = Analyzer.childElements(this, name)
 

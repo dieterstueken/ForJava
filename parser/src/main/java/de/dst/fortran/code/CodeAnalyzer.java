@@ -4,11 +4,13 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
 import static de.dst.fortran.code.Analyzer.*;
+import static de.dst.fortran.code.Variable.Prop.MODIFIED;
 
 /**
  * Created by IntelliJ IDEA.
@@ -27,6 +29,28 @@ public class CodeAnalyzer implements CodeElement {
     Boolean ready = false;
 
     String line = "";
+
+    // assigned variables
+    List<String> assigned = new ArrayList<>();
+
+    private boolean isAssigned(String name) {
+        for (String ass : assigned) {
+            if(ass.equals(name))
+                return true;
+        }
+        return false;
+    }
+
+    // return true for new assignments
+    private boolean assign(String name) {
+
+        if(!isAssigned(name)) {
+            assigned.add(name);
+            return false;
+        }
+
+        return true;
+    }
 
     @Override
     public Element element() {
@@ -205,7 +229,15 @@ public class CodeAnalyzer implements CodeElement {
     }
 
     private void codeLines(Element e) {
+
+        int nass = assigned.size();
+
         childElements(e).forEach(this::codeLine);
+
+        // drop local variables
+        List<String> drop = assigned.subList(nass, assigned.size());
+        if(!drop.isEmpty())
+            drop.clear();
     }
 
     private boolean codeLine(Element e) {
@@ -213,7 +245,7 @@ public class CodeAnalyzer implements CodeElement {
         switch(name) {
             case "assvar":
                 // tag statement functions
-                variable(e).isAssigned(true);
+                assVar(e);
                 parseExpr(childElements(e));
                 break;
 
@@ -224,21 +256,21 @@ public class CodeAnalyzer implements CodeElement {
                 call(e);
                 break;
 
-            case "if":
-            case "do":
-                codeLines(e);
+            case "cond":
+                parseExpr(childElements(e));
                 break;
 
+            case "for":
+                variable(e, block.variables::get).isAssigned(true);
+                break;
+
+            case "if":
+            case "do":
             case "then":
             case "else":
                 codeLines(e);
                 break;
 
-            case "for":
-                variable(e);
-                break;
-
-            case "cond":
             case "elif":
             case "while":
                 parseExpr(childElements(e));
@@ -460,10 +492,26 @@ public class CodeAnalyzer implements CodeElement {
         return arr;
     }
 
+    // access variable
     Variable variable(Element e) {
-        if(e!=null)
-            return variable(e, block.variables::get);
+        if(e!=null) {
+            // define new one
+             Variable v = variable(e, block.variables::get);
+             // test if variable was assigned
+             if(!isAssigned(v.name))  // not already assigned: make top level var
+                 v.prop(MODIFIED);
+
+             return v;
+        }
         return null;
+    }
+
+    void assVar(Element e) {
+        Variable variable = variable(e, block.variables::get);
+        variable.isAssigned(true);
+
+        if(variable.isLocal())
+            assign(variable.name);
     }
 
     // extract single variable or null if an expression or constant

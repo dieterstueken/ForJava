@@ -36,7 +36,7 @@ fun main(args: Array<String>) {
     val analyzer = Analyzer.analyze(document)
 
     val root = File("irt3d/src/main/kotlin")
-    val generator = CodeGenerators(root, "de.irt.jfor.irt3d")
+    val generator = CodeGenerators(root, "de.irt.kfor.irt3d")
 
     analyzer.commons().forEach(generator.commons::add)
     analyzer.units().forEach(generator.units::add)

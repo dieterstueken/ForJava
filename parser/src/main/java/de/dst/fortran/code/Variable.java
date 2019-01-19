@@ -2,6 +2,8 @@ package de.dst.fortran.code;
 
 import java.util.*;
 
+import static de.dst.fortran.code.Variable.Prop.MODIFIED;
+
 /**
  * version:     $Revision$
  * created by:  dst
@@ -11,7 +13,7 @@ import java.util.*;
  */
 public class Variable extends Entity implements Value {
 
-    public enum Prop {EXPLICIT, ARGUMENT, ASSIGNED, REFERENCED, RETURNED, ALLOCATABLE};
+    public enum Prop {EXPLICIT, ARGUMENT, ASSIGNED, MODIFIED, REFERENCED, RETURNED, ALLOCATABLE};
 
     public final Set<Prop> props = EnumSet.noneOf(Prop.class);
 
@@ -66,6 +68,15 @@ public class Variable extends Entity implements Value {
         return true;
     }
 
+    public boolean isLocal() {
+        return context==null && type==null;
+    }
+
+    public boolean wasModified() {
+        return props.contains(MODIFIED);
+    }
+
+
     public TypeDef type() {
         Type type = this.type != null ? this.type : Type.intrinsic(name);
 
@@ -73,7 +84,8 @@ public class Variable extends Entity implements Value {
             return type.primitive();
         }
 
-        return type.dim(dim.size());
+        TypeDef tmp = type.dim(dim.size());
+        return tmp;
     }
 
     public String getRefName() {
@@ -134,7 +146,9 @@ public class Variable extends Entity implements Value {
 
     public Variable isAssigned(boolean assigned) {
         if(assigned)
-            props.add(Prop.ASSIGNED);
+            if(!props.add(Prop.ASSIGNED))
+                props.add(MODIFIED);
+
         return this;
     }
 
@@ -202,9 +216,9 @@ public class Variable extends Entity implements Value {
     @Override
     public int hashCode() {
         int result = super.hashCode();
-        result = 31 * result + type.hashCode();
+        result = 31 * result + Objects.hashCode(type);
         result = 31 * result + dim.hashCode();
-        result = 31 * result + context.hashCode();
+        result = 31 * result + Objects.hashCode(context);
         return result;
     }
 }
