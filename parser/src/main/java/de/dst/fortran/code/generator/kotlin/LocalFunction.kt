@@ -44,14 +44,14 @@ class LocalFunction(generator : UnitGenerator, val element : Element, type : KCl
         addParameters(assarr["args"])
 
         val code = with(ExpressionBuilder(this)) {
-            builder.add("« return ")
-            builder.addExpr(assarr["expr"])
-            builder.add("\n»")
+            code.add("« return ")
+            addExpr(assarr["expr"])
+            code.add("\n»")
 
             build();
         }
 
-        builder.addCode(code)
+        function.addCode(code)
 
         return super.build();
     }

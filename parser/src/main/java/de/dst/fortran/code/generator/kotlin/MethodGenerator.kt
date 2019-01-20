@@ -15,12 +15,12 @@ import kotlin.reflect.KClass
  * modified on: $Date$
  */
 
-open class MethodGenerator(val generator : UnitGenerator, val builder : FunSpec.Builder) {
+open class MethodGenerator(val generator : UnitGenerator, val function : FunSpec.Builder) {
 
     constructor(generator : UnitGenerator, name : String, type : KClass<*>)
             : this(generator, FunSpec.builder(name).returns(type))
 
-    open fun build() = builder.build()
+    open fun build() = function.build()
 
     open fun buildCodeLine(builder : CodeBlock.Builder, el : Element) {
         generator.setLineNumber(el.getAttribute("line"))
@@ -52,7 +52,7 @@ open class MethodGenerator(val generator : UnitGenerator, val builder : FunSpec.
             val param = getParameter(arg["var"]!!.name)
             val type = generator.getKlass(param.type())
             val spec = ParameterSpec.builder(param.getName(), type).build()
-            builder.addParameter(spec)
+            function.addParameter(spec)
         }
 
         return this;

@@ -19,7 +19,7 @@ class MainFunction(generator : UnitGenerator, val type : KClass<*>)
     constructor(generator : UnitGenerator) : this(generator, generator.getKlass())
 
     init {
-        builder.addModifiers(KModifier.OPERATOR)
+        function.addModifiers(KModifier.OPERATOR)
     }
 
     // variable
@@ -47,11 +47,16 @@ class MainFunction(generator : UnitGenerator, val type : KClass<*>)
         val code = with(CodeBuilder(this)) {
 
             if (retval != null) {
-                this@MainFunction.builder.returns(type)
-                builder.declVariable(retval)
+                function.returns(type)
+                declVariable(retval)
             }
 
-            builder.body(el["code"])
+            for (variable in generator.code.variables) {
+                if(variable.isLocal() && variable.isModified && variable.name!=generator.block.name)
+                    declVariable(variable)
+            }
+
+            body(el["code"])
 
             build()
         }
@@ -59,7 +64,7 @@ class MainFunction(generator : UnitGenerator, val type : KClass<*>)
         //    code.add("return retval\n")
         //}
 
-        builder.addCode(code)
+        function.addCode(code)
 
         return super.build();
     }

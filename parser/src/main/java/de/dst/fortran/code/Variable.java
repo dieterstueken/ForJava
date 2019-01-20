@@ -72,7 +72,7 @@ public class Variable extends Entity implements Value {
         return context==null && type==null;
     }
 
-    public boolean wasModified() {
+    public boolean isModified() {
         return props.contains(MODIFIED);
     }
 

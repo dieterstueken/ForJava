@@ -26,20 +26,42 @@ class CodeBuilder(method: MethodGenerator) : ExpressionBuilder(method) {
         return true;
     }
 
-    fun CodeBlock.Builder.body(elem : Element) : CodeBlock.Builder {
-        return addCode(elem.children())
+    fun isDefined(variable : Variable) = !variable.isLocal() || isAssigned(variable)
+
+    fun declVariable(v : Variable) {
+        code.add("var %N = ", v.name)
+        code.add(v.initialize(v.asKlass()))
+        code.add("\n")
+        assign(v)
     }
 
-    fun CodeBlock.Builder.addCode(code : Iterable<Element>) : CodeBlock.Builder {
+    fun assvar(el : Element) {
+        val variable = getVariable(el.name);
+        val target = targetName(variable, false)
+
+        val def = when {
+            isDefined(variable) -> "«%N = "
+            variable.isModified() -> "«var %N = "
+            else -> "«val %N = "
+        }
+
+        code.add(def, target)
+        addExpr(el.children())
+        code.add("\n»")
+    }
+    
+    fun body(elem : Element) {
+         addCode(elem.children())
+    }
+
+    fun addCode(code : Iterable<Element>) {
 
         for (child in code) {
             addCode(child)
         }
-
-        return this;
     }
 
-    fun CodeBlock.Builder.addCode(elem : Element) : CodeBlock.Builder {
+    fun addCode(elem : Element) {
         val tag = elem.getTagName()
         when(tag) {
             "F" -> codeLine(elem)
@@ -53,7 +75,7 @@ class CodeBuilder(method: MethodGenerator) : ExpressionBuilder(method) {
 
             "call" -> call(elem)
 
-            "goto" -> _goto(elem)
+            "goto" -> addGoto(elem)
 
             "if" -> addIf(elem)
             "do"->  addDo(elem)
@@ -66,39 +88,22 @@ class CodeBuilder(method: MethodGenerator) : ExpressionBuilder(method) {
 
             else -> unknown(elem)
         }
-
-        return this
     }
 
-
-    fun isUndefined(variable : Variable) = variable.isLocal() && assign(variable)
-
-    fun CodeBlock.Builder.assvar(el : Element) {
-        val variable = getVariable(el.name);
-        val target = targetName(variable, false)
-
-        val def = when {
-            !isUndefined(variable) -> "«%N = "
-            variable.wasModified() -> "«var %N = "
-            else -> "«val %N = "
-        }
-
-        add(def, target)
-                .addExpr(el.children())
-                .add("\n»")
-    }
-
-    fun CodeBlock.Builder.assarr(el : Element) {
+    fun assarr(el : Element) {
         val target = targetName(getVariable(el.name), true)
-        add("«%N[", target).addArgs(el["args"]).add("] = ")
-        addExpr(el["expr"]).add("\n»")
+        code.add("«%N[", target)
+        addArgs(el["args"])
+        code.add("] = ")
+        addExpr(el["expr"])
+        code.add("\n»")
     }
 
-    fun CodeBlock.Builder._goto(el : Element) {
-        add("/* goto */)")
+    fun addGoto(el : Element) {
+        code.add("/* goto */)")
     }
 
-    fun CodeBlock.Builder.addCodeBlock(code : Iterable<Element>) : CodeBlock.Builder {
+    fun addCodeBlock(code : Iterable<Element>) {
 
         val count = assigned.size
 
@@ -108,41 +113,43 @@ class CodeBuilder(method: MethodGenerator) : ExpressionBuilder(method) {
 
         if(drop.isNotEmpty())
             drop.clear()
-
-        return this;
     }
 
-    fun CodeBlock.Builder.addIf(el : Element) : CodeBlock.Builder {
+    fun addIf(el : Element){
         val elements = el.children()
         val cond = elements.removeAt(0)
 
         addIf(cond, elements)
 
-        return this
     }
 
-    fun CodeBlock.Builder.addIf(cond : Element, elements : MutableList<Element> ) : CodeBlock.Builder {
+    fun addIf(cond : Element, elements : MutableList<Element> ) {
 
-        add("if(")
+        code.add("if(")
         addExpr(cond.children())
-        beginControlFlow(")")
+        code.beginControlFlow(")")
 
         while(elements.isNotEmpty()) {
             val e = elements.removeAt(0)
             val name = e.tagName
             when(name) {
                 "then" -> addCodeBlock(e.children())
-                "else" -> nextControlFlow(" else ").addCodeBlock(e.children())
-                "elif" -> unindent().add("} else if(").addExpr(e.children()).beginControlFlow(")")
+                "else" -> {
+                    code.nextControlFlow(" else ")
+                    addCodeBlock(e.children())
+                }
+                "elif" -> {
+                    code.unindent().add("} else if(")
+                    addExpr(e.children())
+                    code.beginControlFlow(")")
+                }
             }
         }
 
-        endControlFlow()
-
-        return this
+        code.endControlFlow()
     }
 
-    fun CodeBlock.Builder.addDo(el : Element) : CodeBlock.Builder {
+    fun addDo(el : Element)  {
         val elements = el.children()
         val cond = elements.removeAt(0)
 
@@ -153,41 +160,42 @@ class CodeBuilder(method: MethodGenerator) : ExpressionBuilder(method) {
             "for" -> addFor(cond, elements)
             else -> throw RuntimeException(type)
         }
-
-        return this
     }
 
-    fun CodeBlock.Builder.addFor(cond : Element, elements : MutableList<Element>) : CodeBlock.Builder {
+    fun addFor(cond : Element, elements : MutableList<Element>) {
 
         var args = cond.all("arg")
 
-        add("for(%N in ", cond.name).addExpr(args[0]).add("..").addExpr(args[1])
-        if(args.size>2)
-            add(" step ").addExpr(args[2])
+        code.add("for(%N in ", cond.name)
+        addExpr(args[0])
+        code.add("..")
+        addExpr(args[1])
 
-        beginControlFlow(")")
+        if(args.size>2) {
+            code.add(" step ")
+            addExpr(args[2])
+        }
+
+        code.beginControlFlow(")")
         addCodeBlock(elements)
-        endControlFlow()
-
-        return this
+        code.endControlFlow()
     }
 
-    fun CodeBlock.Builder.addWhile(cond : Element, elements : MutableList<Element>) : CodeBlock.Builder {
-        add("while (").addExpr(cond)
-        beginControlFlow(")")
+    fun addWhile(cond : Element, elements : MutableList<Element>) {
+        code.add("while (")
+        addExpr(cond)
+        code.beginControlFlow(")")
         addCodeBlock(elements)
-        endControlFlow()
-        return this
+        code.endControlFlow()
     }
 
-    fun CodeBlock.Builder.addCycle() {
-
-    }
-
-    fun CodeBlock.Builder.addExit() {
+    fun addCycle() {
 
     }
 
-    fun CodeBlock.Builder.addReturn() : CodeBlock.Builder = method.addReturn(this)
+    fun addExit() {
 
+    }
+
+    fun addReturn() : CodeBlock.Builder = method.addReturn(code)
 }

@@ -7,9 +7,9 @@ import kotlin.reflect.KClass
 
 open class ExpressionBuilder(val method: MethodGenerator) {
 
-    val builder = CodeBlock.builder()
+    val code = CodeBlock.builder()
 
-    fun build() = builder.build()
+    fun build() = code.build()
 
     /**
      * lookup a variable within an expression
@@ -36,22 +36,13 @@ open class ExpressionBuilder(val method: MethodGenerator) {
         return target
     }
 
-
-    fun CodeBlock.Builder.declVariable(v : Variable) : CodeBlock.Builder {
-        add("var %N = ", v.name)
-        add(v.initialize(v.asKlass()))
-        add("\n")
-        return this
-    }
-
-    fun CodeBlock.Builder.addExpr(exprs : Iterable<Element>) : CodeBlock.Builder {
+    fun addExpr(exprs : Iterable<Element>) {
         for (expr in exprs) {
             addExpr(expr)
         }
-        return this
     }
 
-    fun CodeBlock.Builder.addExpr(expr : Element) : CodeBlock.Builder {
+    fun addExpr(expr : Element) {
 
         val tag = expr.getTagName()
         when(tag) {
@@ -70,44 +61,40 @@ open class ExpressionBuilder(val method: MethodGenerator) {
             "fun" -> call(expr)
             "string" -> addString(expr)
 
-            "add" -> add("+")
-            "sub" -> add("-")
-            "neg" -> add("-")
-            "mul" -> add("*")
-            "div" -> add("/")
-            "pow" -> add(" pow ")
+            "add" -> code.add("+")
+            "sub" -> code.add("-")
+            "neg" -> code.add("-")
+            "mul" -> code.add("*")
+            "div" -> code.add("/")
+            "pow" -> code.add(" pow ")
 
-            "eq" -> add("==")
-            "ne" -> add("!=")
-            "le" -> add("<=")
-            "lt" -> add("<")
-            "ge" -> add(">=")
-            "gt" -> add(">")
+            "eq" -> code.add("==")
+            "ne" -> code.add("!=")
+            "le" -> code.add("<=")
+            "lt" -> code.add("<")
+            "ge" -> code.add(">=")
+            "gt" -> code.add(">")
 
-            "and" -> add(" && ")
-            "or" -> add(" || ")
-
+            "and" -> code.add(" && ")
+            "or" -> code.add(" || ")
 
             else -> unknown(expr)
         }
-
-        return this
     }
 
-    fun CodeBlock.Builder.arg(expr : Element) : CodeBlock.Builder {
+    fun arg(expr : Element) {
         // ? assigned function argument
         //val assigned = "true".equals(expr.getAttribute("returned"))
         return addExpr(expr.children())
     }
 
-    fun CodeBlock.Builder.variable(expr : Element) : CodeBlock.Builder {
+    fun variable(expr : Element) {
         val asReference = expr.attributes["returned"]=="true"
         val target = targetName(method.getVariable(expr), asReference)
-        add("%N", target)
-        return this
+        code.add("%N", target)
     }
 
-    fun CodeBlock.Builder.call(expr : Element) : CodeBlock.Builder {
+    fun call(expr : Element) {
 
         var name : String = expr.name
 
@@ -120,85 +107,81 @@ open class ExpressionBuilder(val method: MethodGenerator) {
 
         if(expr.attributes["scope"] == "array") {
             name = targetName(getVariable(name), true)
-            return add("%N[", name).addArgs(expr).add("]")
-        } else
-            return add("%N(", name).addArgs(expr).add(")")
+            code.add("%N[", name)
+            addArgs(expr)
+            code.add("]")
+        } else {
+            code.add("%N(", name)
+            addArgs(expr)
+            code.add(")")
+        }
     }
 
-    fun CodeBlock.Builder.addArgs(args : Element) : CodeBlock.Builder {
+    fun addArgs(args : Element) {
         var sep = ""
         for (arg in args.all("arg")) {
-            add(sep)
+            code.add(sep)
             addExpr(arg)
             sep = ", "
         }
-        return this;
     }
 
     /**
      * parse a constant value
      */
-    fun CodeBlock.Builder.value(expr : Element) : CodeBlock.Builder {
+    fun value(expr : Element) {
         var value = expr.textContent
 
         when(value) {
-            "true" -> add("%L", true)
-            "false" -> add("%L", false)
+            "true" -> code.add("%L", true)
+            "false" -> code.add("%L", false)
             else -> {
                 if(value.contains('.')) {
                     if(value.contains('d')) {
                         value = value.replace('d', 'E')
-                        add("%L", value.toDouble())
+                        code.add("%L", value.toDouble())
                     } else
-                        add("%L", value.toFloat())
+                        code.add("%L", value.toFloat())
                 } else
-                    add("%L", value.toInt())
+                    code.add("%L", value.toInt())
             }
         }
-
-        return this;
     }
 
-    fun CodeBlock.Builder.addString(expr : Element) : CodeBlock.Builder {
+    fun addString(expr : Element) {
         val text = expr.textContent
         if(text.length==1)
-            add("%L", text[0])
+            code.add("%L", text[0])
         else
-            add("%S", text)
-
-        return this;
+            code.add("%S", text)
     }
 
-    fun CodeBlock.Builder.codeLine(el : Element) = method.buildCodeLine(this, el)
+    fun codeLine(el : Element) = method.buildCodeLine(code, el)
 
-    fun CodeBlock.Builder.contLine(el : Element) = add("\n    ")
+    fun contLine(el : Element) = code.add("\n    ")
 
-    fun CodeBlock.Builder.comment(expr : Element) : CodeBlock.Builder {
+    fun comment(expr : Element) {
         var text : String? = expr.getTextContent()
         if(text!=null && text.isNotEmpty()) {
-            add("//%L\n", text)
+            code.add("//%L\n", text)
         } else
-            add("\n");
-
-        return this;
+            code.add("\n");
     }
 
-    fun CodeBlock.Builder.commentLine(expr : Element) : CodeBlock.Builder {
+    fun commentLine(expr : Element) {
         return comment(expr)
     }
 
-    fun CodeBlock.Builder.braced(expr : Element) : CodeBlock.Builder {
-        add("(")
+    fun braced(expr : Element) {
+        code.add("(")
         addExpr(expr.children())
-        add(")")
-        return this
+        code.add(")")
     }
 
-    fun CodeBlock.Builder.unknown(expr : Element) : CodeBlock.Builder {
-        add("/*< ")
-        add(expr.tagName)
-        add(">*/");
-        return this;
+    fun unknown(expr : Element) {
+        code.add("/*< ")
+        code.add(expr.tagName)
+        code.add(">*/");
     }
 
 }
