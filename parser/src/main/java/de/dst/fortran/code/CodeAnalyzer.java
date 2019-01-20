@@ -256,6 +256,13 @@ public class CodeAnalyzer implements CodeElement {
                 call(e);
                 break;
 
+            case "if":
+            case "do":
+                codeBlock(e);
+                break;
+
+            case "elif":
+            case "while":
             case "cond":
                 parseExpr(childElements(e));
                 break;
@@ -265,17 +272,9 @@ public class CodeAnalyzer implements CodeElement {
                 blockVariable(e).isAssigned(true);
                 break;
 
-            case "if":
-            case "do":
-                codeBlock(e);
-                break;
-
             case "then":
             case "else":
-            case "elif":
-            case "while":
-                parseExpr(childElements(e));
-                break;
+                codeBlock(e);
 
             case "F":
                 line = e.getAttribute("line");
