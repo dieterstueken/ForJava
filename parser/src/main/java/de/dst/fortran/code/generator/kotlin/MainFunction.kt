@@ -224,7 +224,7 @@ class MainFunction(generator : UnitGenerator, val type : KClass<*>)
 
         add("for(%N in ", cond.name).addExpr(args[0]).add("..").addExpr(args[1])
         if(args.size>2)
-            add("step ").addExpr(args[2])
+            add(" step ").addExpr(args[2])
 
         beginControlFlow(")")
         addCodeBlock(elements)

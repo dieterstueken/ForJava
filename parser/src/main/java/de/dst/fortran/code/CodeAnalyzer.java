@@ -141,7 +141,7 @@ public class CodeAnalyzer implements CodeElement {
     }
 
     Variable arg(Element e) {
-        return variable(e, block.arguments::get);
+        return contextVariable(e, block.arguments::get);
     }
 
     private void decl(Element e) {
@@ -158,7 +158,7 @@ public class CodeAnalyzer implements CodeElement {
                     childElements(ce).forEach(de -> {
                         // plain value
                         if ("var".equals(de.getNodeName())) {
-                            variable(de).decl(type);
+                            blockVariable(de).decl(type);
                         } else if ("arr".equals(de.getNodeName())) {
                             // array or matrix definition
                             array(de, block.variables::get).decl(type);
@@ -178,7 +178,7 @@ public class CodeAnalyzer implements CodeElement {
         Analyzer.childElements(e).forEach(ce -> {
             switch(ce.getNodeName()) {
                 case "var":
-                    variable(ce, common.members::get);
+                    contextVariable(ce, common.members::get);
                     break;
 
                 case "arr":
@@ -228,7 +228,7 @@ public class CodeAnalyzer implements CodeElement {
             newLine(functions);
     }
 
-    private void codeLines(Element e) {
+    private void codeBlock(Element e) {
 
         int nass = assigned.size();
 
@@ -261,16 +261,17 @@ public class CodeAnalyzer implements CodeElement {
                 break;
 
             case "for":
-                variable(e, block.variables::get).isAssigned(true);
+                // mark loop index assigned
+                blockVariable(e).isAssigned(true);
                 break;
 
             case "if":
             case "do":
-            case "then":
-            case "else":
-                codeLines(e);
+                codeBlock(e);
                 break;
 
+            case "then":
+            case "else":
             case "elif":
             case "while":
                 parseExpr(childElements(e));
@@ -331,6 +332,7 @@ public class CodeAnalyzer implements CodeElement {
 
         List<Element> args = Analyzer.childElements(e, "arg");
 
+        // lookup external argumen types
         if(external.arguments.size()!=args.size()) {
             String message = String.format("argument mismatch for %s.%s: got: %d expected: %d",
                     block.name, external.name, args.size(), external.arguments.size());
@@ -343,10 +345,10 @@ public class CodeAnalyzer implements CodeElement {
             boolean returned = vex.isAssigned() || vex.isReferenced();
 
             Element arg = args.get(i);
-            Element var = getVariable(arg);
+            Element var = getVariableElement(arg);
 
             if(var!=null) {
-                Variable v = variable(var);
+                Variable v = readVariable(var);
 
                 if(vex.isAssigned()) {
                     v.isAssigned(true);
@@ -374,7 +376,7 @@ public class CodeAnalyzer implements CodeElement {
             switch (name) {
 
                 case "var":
-                    variable(e);
+                    readVariable(e);
                     break;
 
                 case "fun":
@@ -446,8 +448,9 @@ public class CodeAnalyzer implements CodeElement {
         return v;
     }
 
-    Variable variable(Element e, Function<String, Variable> variables) {
+    Variable contextVariable(Element e, Function<String, Variable> variables) {
         final String name = e.getAttribute("name");
+
         if(name==null || name.isEmpty())
             throw new IllegalArgumentException("no name");
 
@@ -455,15 +458,35 @@ public class CodeAnalyzer implements CodeElement {
         return setup(e, var);
     }
 
+    Variable blockVariable(Element e) {
+        return contextVariable(e, block.variables::get);
+    }
+
+    // access variable
+    Variable readVariable(Element e) {
+        if(e==null)
+            return null;
+
+        // possibly define new one
+        Variable v = blockVariable(e);
+
+        // test if variable was previously assigned
+        if(!isAssigned(v.name))
+            v.prop(MODIFIED);  // not already assigned: needs top level var
+
+        return v;
+    }
+
+
     Variable array(Element e, Function<String, Variable> variables) {
-        Variable arr = variable(e, variables);
+        Variable arr = contextVariable(e, variables);
 
         Analyzer.childElements(e, "arg").stream()
                 .flatMap(ce -> childElements(ce).stream())
                 .forEach(ce -> {
             String name = ce.getNodeName();
             if ("var".equals(name)) {
-                Variable v = variable(ce);
+                Variable v = readVariable(ce);
                 arr.dim(v);
                 setup(ce, arr);
             } else if ("val".equals(name)) {
@@ -479,7 +502,7 @@ public class CodeAnalyzer implements CodeElement {
     }
 
     Variable assarr(Element e) {
-        Variable arr = variable(e);
+        Variable arr = blockVariable(e);
 
         if(!arr.isArray()) {
             arr.context(Context.FUNCTION);
@@ -492,22 +515,8 @@ public class CodeAnalyzer implements CodeElement {
         return arr;
     }
 
-    // access variable
-    Variable variable(Element e) {
-        if(e!=null) {
-            // define new one
-             Variable v = variable(e, block.variables::get);
-             // test if variable was assigned
-             if(!isAssigned(v.name))  // not already assigned: make top level var
-                 v.prop(MODIFIED);
-
-             return v;
-        }
-        return null;
-    }
-
     void assVar(Element e) {
-        Variable variable = variable(e, block.variables::get);
+        Variable variable = contextVariable(e, block.variables::get);
         variable.isAssigned(true);
 
         if(variable.isLocal())
@@ -515,7 +524,7 @@ public class CodeAnalyzer implements CodeElement {
     }
 
     // extract single variable or null if an expression or constant
-    Element getVariable(Element e) {
+    Element getVariableElement(Element e) {
         Element var = null;
 
         NodeList nodes = e.getChildNodes();
