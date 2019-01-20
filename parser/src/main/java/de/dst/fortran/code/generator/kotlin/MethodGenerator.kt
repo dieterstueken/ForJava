@@ -201,8 +201,7 @@ open class MethodGenerator(val generator : UnitGenerator, val builder : FunSpec.
     }
 
     open fun buildCodeLine(builder : CodeBlock.Builder, el : Element) {
-        val ln : String = el.getAttribute("line")
-        generator.lineNumber = ln
+        generator.setLineNumber(el.getAttribute("line"))
     }
 
     fun CodeBlock.Builder.codeLine(el : Element) = buildCodeLine(this, el)
@@ -232,7 +231,7 @@ open class MethodGenerator(val generator : UnitGenerator, val builder : FunSpec.
 
     fun CodeBlock.Builder.unknown(expr : Element) : CodeBlock.Builder {
         add("/*< ")
-        add(expr.name)
+        add(expr.tagName)
         add(">*/");
         return this;
     }

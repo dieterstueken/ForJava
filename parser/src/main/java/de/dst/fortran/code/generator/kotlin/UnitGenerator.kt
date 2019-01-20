@@ -32,7 +32,19 @@ fun CodeElement.camelName(): String {
 class UnitGenerator(generators : CodeGenerators, val block : CodeElement, className : ClassName)
     : ClassGenerator(generators, "function", className) {
 
-    var lineNumber : Any = block.line
+    var lineNumber : Int = block.line.toInt()
+
+    fun setLineNumber(line : String?) {
+        lineNumber = if(line==null || line.isEmpty()) 0 else line.toInt()
+        debug(lineNumber)
+    }
+
+    fun debug(linenum : Int) : Boolean {
+        if(block.name == "corfa" && lineNumber==42)
+            return true
+        else
+            return false
+    }
 
     val code = block.code()
 
@@ -57,10 +69,7 @@ class UnitGenerator(generators : CodeGenerators, val block : CodeElement, classN
 
     override fun generate() {
         try {
-            if(block.name == "chgcor")
-                super.generate();
-            else
-                super.generate();
+            super.generate();
         } catch (error: Throwable) {
             throw RuntimeException("error building ${this}", error)
         }

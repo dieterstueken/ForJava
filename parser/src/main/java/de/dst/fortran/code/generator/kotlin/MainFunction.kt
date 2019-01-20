@@ -64,10 +64,7 @@ class MainFunction(generator : UnitGenerator, val type : KClass<*>)
     }
     
     fun CodeBlock.Builder.body(elem : Element) : CodeBlock.Builder {
-        if(generator.block.name == "chgcor")
-            return addCode(elem.children())
-        else
-            return addCode(elem.children())
+        return addCode(elem.children())
     }
 
     fun CodeBlock.Builder.addCode(code : Iterable<Element>) : CodeBlock.Builder {
@@ -111,9 +108,7 @@ class MainFunction(generator : UnitGenerator, val type : KClass<*>)
     }
 
     override fun buildCodeLine(builder : CodeBlock.Builder, el : Element) {
-        val line = el.getTextContent()
         super.buildCodeLine(builder, el)
-        //builder.commentLine(el)
     }
 
     var assigned = mutableListOf<String>()
@@ -154,8 +149,8 @@ class MainFunction(generator : UnitGenerator, val type : KClass<*>)
     
     fun CodeBlock.Builder.assarr(el : Element) {
         val target = targetName(getVariable(el.name), true)
-        add("«%N[", target).addArgs(el).add("] = ")
-        addExpr(el.children()).add("\n»")
+        add("«%N[", target).addArgs(el["args"]).add("] = ")
+        addExpr(el["expr"]).add("\n»")
     }
 
     fun CodeBlock.Builder._goto(el : Element) {
@@ -181,7 +176,10 @@ class MainFunction(generator : UnitGenerator, val type : KClass<*>)
     fun CodeBlock.Builder._if(el : Element) : CodeBlock.Builder {
         val elements = el.children()
         val cond = elements.removeAt(0)
-        return _if(cond, elements)
+
+        _if(cond, elements)
+
+        return this
     }
 
     fun CodeBlock.Builder._if(cond : Element, elements : MutableList<Element> ) : CodeBlock.Builder {
@@ -196,7 +194,7 @@ class MainFunction(generator : UnitGenerator, val type : KClass<*>)
             when(name) {
                 "then" -> addCodeBlock(e.children())
                 "else" -> nextControlFlow(" else ").addCodeBlock(e.children())
-                "elif" -> nextControlFlow(" else ")._if(e)
+                "elif" -> unindent().add("} else if(").addExpr(e.children()).beginControlFlow(")")
             }
         }
 
