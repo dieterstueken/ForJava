@@ -89,6 +89,7 @@ abstract class ClassGenerator(val generators : CodeGenerators, val className : C
         val spec = TypeSpec.classBuilder(className.simpleName).generate()
 
         FileSpec.builder(className.packageName, className.simpleName)
+                //.addImport("kotlin.math", "*")
                 .addType(spec.build())
                 .build()
                 .writeTo(generators.root);

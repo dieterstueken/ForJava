@@ -9,7 +9,7 @@ open class ExpressionBuilder(val method: MethodGenerator) {
 
     val code = CodeBlock.builder()
 
-    fun build() = code.build()
+    open fun build() = code.build()
 
     /**
      * lookup a variable within an expression
@@ -58,7 +58,7 @@ open class ExpressionBuilder(val method: MethodGenerator) {
             "arg" -> arg(expr)
             "var" -> variable(expr)
             "val" -> value(expr)
-            "fun" -> call(expr)
+            "fun" -> function(expr)
             "string" -> addString(expr)
 
             "add" -> code.add("+")
@@ -94,7 +94,7 @@ open class ExpressionBuilder(val method: MethodGenerator) {
         code.add("%N", target)
     }
 
-    fun call(expr : Element) {
+    fun function(expr : Element) {
 
         var name : String = expr.name
 

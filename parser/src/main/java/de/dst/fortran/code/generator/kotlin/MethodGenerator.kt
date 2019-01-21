@@ -42,10 +42,6 @@ open class MethodGenerator(val generator : UnitGenerator, val function : FunSpec
 
     fun getVariable(el : Element) = getVariable(el.name)
 
-    fun Variable.asKlass(): KClass<*> = generator.getKlass(this.type())
-
-    open fun addReturn(code : CodeBlock.Builder) = code.add("return\n")
-
     fun addParameters(el : Element?) : MethodGenerator {
 
         for (arg in el.all("arg")) {

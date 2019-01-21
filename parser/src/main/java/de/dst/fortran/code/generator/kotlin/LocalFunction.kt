@@ -1,5 +1,6 @@
 package de.dst.fortran.code.generator.kotlin
 
+import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import de.dst.fortran.code.Context
 import de.dst.fortran.code.Entities
@@ -24,7 +25,7 @@ class LocalFunction(generator : UnitGenerator, val element : Element, type : KCl
                 throw IllegalArgumentException("undefined function: ${element.name}")
 
             // ask generator
-            val type = with(generator) {variable.asKlass()}
+            val type = generator.getKlass(variable.type())
 
             return LocalFunction(generator, element, type)
         }
@@ -35,7 +36,7 @@ class LocalFunction(generator : UnitGenerator, val element : Element, type : KCl
 
     override fun getParameter(name: String) = parameters.get(name)
 
-    override fun getVariable(name: String) = parameters.find(name) ?: generator.getVariable(name)
+    override fun getVariable(name: String) = parameters.find(name)!!// ?: generator.getVariable(name)
 
     override fun build(): FunSpec {
 
@@ -43,15 +44,16 @@ class LocalFunction(generator : UnitGenerator, val element : Element, type : KCl
 
         addParameters(assarr["args"])
 
-        val code = with(ExpressionBuilder(this)) {
-            code.add("« return ")
-            addExpr(assarr["expr"])
-            code.add("\n»")
-
-            build();
+        val code = object : ExpressionBuilder(this) {
+            override fun build() : CodeBlock {
+                code.add("«return ")
+                addExpr(assarr["expr"])
+                code.add("\n»")
+                return super.build()
+            }
         }
 
-        function.addCode(code)
+        function.addCode(code.build())
 
         return super.build();
     }

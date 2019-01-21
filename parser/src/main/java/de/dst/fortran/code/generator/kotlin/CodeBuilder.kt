@@ -1,10 +1,9 @@
 package de.dst.fortran.code.generator.kotlin
 
-import com.squareup.kotlinpoet.CodeBlock
 import de.dst.fortran.code.Variable
 import org.w3c.dom.Element
 
-class CodeBuilder(method: MethodGenerator) : ExpressionBuilder(method) {
+open class CodeBuilder(method: MethodGenerator) : ExpressionBuilder(method) {
 
     var assigned = mutableListOf<String>()
 
@@ -29,9 +28,9 @@ class CodeBuilder(method: MethodGenerator) : ExpressionBuilder(method) {
     fun isDefined(variable : Variable) = !variable.isLocal() || isAssigned(variable)
 
     fun declVariable(v : Variable) {
-        code.add("var %N = ", v.name)
+        code.add("«var %N = ", v.name)
         code.add(v.initialize(v.asKlass()))
-        code.add("\n")
+        code.add("\n»")
         assign(v)
     }
 
@@ -90,6 +89,13 @@ class CodeBuilder(method: MethodGenerator) : ExpressionBuilder(method) {
         }
     }
 
+    fun call(expr : Element) {
+        var name : String = expr.name
+        code.add("«%N(", name)
+        addArgs(expr)
+        code.add(")\n»")
+    }
+
     fun assarr(el : Element) {
         val target = targetName(getVariable(el.name), true)
         code.add("«%N[", target)
@@ -139,7 +145,7 @@ class CodeBuilder(method: MethodGenerator) : ExpressionBuilder(method) {
                     addCodeBlock(e.children())
                 }
                 "elif" -> {
-                    code.unindent().add("} else if(")
+                    code.add("⇤} else if(")
                     addExpr(e.children())
                     code.beginControlFlow(")")
                 }
@@ -197,5 +203,11 @@ class CodeBuilder(method: MethodGenerator) : ExpressionBuilder(method) {
 
     }
 
-    fun addReturn() : CodeBlock.Builder = method.addReturn(code)
+    fun addReturn() {
+        val retval = method.generator.retval
+        if(retval==null)
+            code.addStatement("return")
+        else
+            code.addStatement("return %N", retval.name)
+    }
 }

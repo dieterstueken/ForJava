@@ -32,26 +32,6 @@ fun CodeElement.camelName(): String {
 class UnitGenerator(generators : CodeGenerators, val block : CodeElement, className : ClassName)
     : ClassGenerator(generators, "function", className) {
 
-    var lineNumber : Int = block.line.toInt()
-
-    fun setLineNumber(line : String?) {
-        lineNumber = if(line==null || line.isEmpty()) 0 else line.toInt()
-        debug(lineNumber)
-    }
-
-    fun debug(linenum : Int) : Boolean {
-        if(block.name == "corfa" && lineNumber==42)
-            return true
-        else
-            return false
-    }
-
-    val code = block.code()
-
-    fun getKlass(): KClass<*> = getKlass(code.type())
-
-    fun Variable.asKlass(): KClass<*> = getKlass(this.type())
-
     companion object {
         fun create(generators: CodeGenerators, element: CodeElement): UnitGenerator {
             val className = ClassName(generators.packageRoot + '.' + element.code().path, element.camelName())
@@ -65,6 +45,41 @@ class UnitGenerator(generators : CodeGenerators, val block : CodeElement, classN
         }
     }
 
+    var lineNumber : Int = block.line.toInt()
+
+    fun setLineNumber(line : String?) {
+        lineNumber = if(line==null || line.isEmpty()) 0 else line.toInt()
+        //debug(lineNumber)
+    }
+
+    fun debug(linenum : Int) : Boolean {
+        if(block.name == "corfa" && lineNumber==42)
+            return true
+        else
+            return false
+    }
+
+    val code = block.code()
+
+    val type : KClass<*> = getKlass(code.type())
+
+    // variable
+    val retval : Variable? = if(Unit::class==type) null else
+        Variable("retval")
+                .type(code.type().type)
+                .prop(Variable.Prop.ASSIGNED)
+                .prop(Variable.Prop.RETURNED)
+
+    fun getVariable(name: String) : Variable {
+
+        if(name == block.name)
+            return retval!!
+
+        return code.variables.find(name)!!
+    }
+
+    fun Variable.isMember(): Boolean = context == null && !isPrimitive() && name != code.name
+
     override fun toString() : String = "${code.path}.${code.name}:${lineNumber}"
 
     override fun generate() {
@@ -74,10 +89,6 @@ class UnitGenerator(generators : CodeGenerators, val block : CodeElement, classN
             throw RuntimeException("error building ${this}", error)
         }
     }
-
-    fun getVariable(name: String) = code.variables.find(name)!!
-
-    fun Variable.isMember(): Boolean = context == null && !isPrimitive() && name != code.name
 
     override fun TypeSpec.Builder.generate(): TypeSpec.Builder {
 
