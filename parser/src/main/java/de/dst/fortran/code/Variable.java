@@ -13,7 +13,7 @@ import static de.dst.fortran.code.Variable.Prop.MODIFIED;
  */
 public class Variable extends Entity implements Value {
 
-    public enum Prop {EXPLICIT, ARGUMENT, ASSIGNED, MODIFIED, REFERENCED, RETURNED, ALLOCATABLE};
+    public enum Prop {EXPLICIT, ARGUMENT, ASSIGNED, MODIFIED, REFERENCED, RETURNED, ALLOCATABLE};;
 
     public final Set<Prop> props = EnumSet.noneOf(Prop.class);
 

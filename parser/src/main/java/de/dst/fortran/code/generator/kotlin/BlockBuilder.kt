@@ -1,9 +1,20 @@
 package de.dst.fortran.code.generator.kotlin
 
+import com.squareup.kotlinpoet.CodeBlock
+import de.dst.fortran.code.Local
 import de.dst.fortran.code.Variable
 import org.w3c.dom.Element
 
-open class CodeBuilder(method: MethodGenerator) : ExpressionBuilder(method) {
+open class BlockBuilder(method: MethodGenerator) : ExpressionBuilder(method) {
+
+    var locals = mutableMapOf<String, Local>()
+
+    fun locals(element : Element) {
+        element.all("variables").forEach{
+            val local = Local(it.name, it.attributes["type"])
+            locals.put(local.name, local)
+        }
+    }
 
     var assigned = mutableListOf<String>()
 
@@ -53,16 +64,31 @@ open class CodeBuilder(method: MethodGenerator) : ExpressionBuilder(method) {
          addCode(elem.children())
     }
 
-    fun addCode(code : Iterable<Element>) {
+    fun addCode(elements : Iterable<Element>) {
 
-        for (child in code) {
+        for (child in elements) {
             addCode(child)
         }
+    }
+
+
+    fun addCodeBlock(elements : Iterable<Element>) {
+
+        val block = object : BlockBuilder(method) {
+
+            override fun build() : CodeBlock {
+                addCode(elements)
+                return super.build()
+            }
+        }
+
+        code.add(block.build())
     }
 
     fun addCode(elem : Element) {
         val tag = elem.getTagName()
         when(tag) {
+            "locals" -> locals(elem)
             "F" -> codeLine(elem)
             "f"  -> contLine(elem)
             "c" -> comment(elem)
@@ -107,18 +133,6 @@ open class CodeBuilder(method: MethodGenerator) : ExpressionBuilder(method) {
 
     fun addGoto(el : Element) {
         code.add("/* goto */)")
-    }
-
-    fun addCodeBlock(code : Iterable<Element>) {
-
-        val count = assigned.size
-
-        addCode(code)
-
-        var drop = assigned.subList(count, assigned.size)
-
-        if(drop.isNotEmpty())
-            drop.clear()
     }
 
     fun addIf(el : Element){

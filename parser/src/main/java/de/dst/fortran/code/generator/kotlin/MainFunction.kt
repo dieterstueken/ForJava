@@ -28,7 +28,7 @@ class MainFunction(generator : UnitGenerator)
 
         addParameters(el["args"])
 
-        val code = object : CodeBuilder(this) {
+        val code = object : BlockBuilder(this) {
             init {
                 for (variable in generator.code.variables) {
 
