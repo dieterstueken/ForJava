@@ -171,11 +171,22 @@ public class MethodGenerator {
 
     private IJStatement _if(Element code) {
         List<Element> elements = childElements(code);
-        Element cond = elements.remove(0);
-        if(!"cond".equals(cond.getTagName()))
-            throw new IllegalArgumentException("condition expected, got: " + cond.getTagName());
 
-        return _if(expr(childElements(cond)), elements);
+        while(!elements.isEmpty()) {
+
+            Element cond = elements.remove(0);
+            String type = cond.getTagName();
+
+            if("locals".equals(type))
+                continue;   // skip
+
+            if (!"cond".equals(cond.getTagName()))
+                throw new IllegalArgumentException("condition expected, got: " + cond.getTagName());
+
+            return _if(expr(childElements(cond)), elements);
+        }
+
+        throw new IllegalStateException("broken if block");
     }
 
     // populate given conditional
@@ -217,18 +228,26 @@ public class MethodGenerator {
     private IJStatement _do(Element code) {
         List<Element> body = childElements(code);
 
-        Element cond = body.remove(0);
+        while(!body.isEmpty()) {
+            Element cond = body.remove(0);
+            final String type = cond.getTagName();
 
-        final String type = cond.getTagName();
-        switch(type) {
-            case "while":
-                return _while(cond, body);
+            switch (type) {
+                case "while":
+                    return _while(cond, body);
 
-            case "for":
-                return _for(cond, body);
+                case "for":
+                    return _for(cond, body);
+
+                case "locals":
+                    break; // skip
+
+                default:
+                    throw new IllegalArgumentException("unknown do loop statement: " + type);
+            }
         }
 
-        throw new IllegalArgumentException("unknown do loop statement: " + type);
+        throw new IllegalStateException("broken do loop");
     }
 
     private IJStatement _while(Element cond, List<Element> body) {

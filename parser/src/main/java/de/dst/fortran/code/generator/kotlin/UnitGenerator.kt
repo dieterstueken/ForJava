@@ -65,7 +65,7 @@ class UnitGenerator(generators : CodeGenerators, val block : CodeElement, classN
 
     // variable
     val retval : Variable? = if(Unit::class==type) null else
-        Variable("retval")
+        Variable(block.name)
                 .type(code.type().type)
                 .prop(Variable.Prop.ASSIGNED)
                 .prop(Variable.Prop.RETURNED)

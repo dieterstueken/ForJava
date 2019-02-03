@@ -36,11 +36,29 @@ open class ExpressionBuilder(val method: MethodGenerator) {
         return target
     }
 
-    fun addExpr(exprs : Iterable<Element>) {
-        for (expr in exprs) {
-            addExpr(expr)
+    fun addExpr(expr : List<Element>) {
+
+        var add : (Element) -> Unit = this::addExpr
+
+        for (elem in expr) {
+            if(elem.getTagName().equals("pow")) {
+                code.add(".pow")
+                add = {
+                    if (it.getTagName() == "b")
+                        braced(it)
+                    else {
+                        code.add("(")
+                        addExpr(it)
+                        code.add(")")
+                    }
+                    // return to normal procedure
+                    add = this::addExpr
+                }
+            } else
+                add(elem)
         }
     }
+
 
     fun addExpr(expr : Element) {
 
@@ -107,9 +125,15 @@ open class ExpressionBuilder(val method: MethodGenerator) {
 
         if(expr.attributes["scope"] == "array") {
             name = targetName(getVariable(name), true)
-            code.add("%N[", name)
-            addArgs(expr)
-            code.add("]")
+            if(expr.attributes["ref"]=="true") {
+                code.add("%N(", name)
+                addArgs(expr)
+                code.add(")")
+            } else {
+                code.add("%N[", name)
+                addArgs(expr)
+                code.add("]")
+            }
         } else {
             code.add("%N(", name)
             addArgs(expr)

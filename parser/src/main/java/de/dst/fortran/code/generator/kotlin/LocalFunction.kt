@@ -1,6 +1,5 @@
 package de.dst.fortran.code.generator.kotlin
 
-import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import de.dst.fortran.code.Context
 import de.dst.fortran.code.Entities
@@ -44,16 +43,13 @@ class LocalFunction(generator : UnitGenerator, val element : Element, type : KCl
 
         addParameters(assarr["args"])
 
-        val code = object : ExpressionBuilder(this) {
-            override fun build() : CodeBlock {
-                code.add("«return ")
-                addExpr(assarr["expr"])
-                code.add("\n»")
-                return super.build()
-            }
-        }
+        val expr = ExpressionBuilder(this)
 
-        function.addCode(code.build())
+        expr.code.add("«return ")
+        expr.addExpr(assarr["expr"])
+        expr.code.add("\n»")
+
+        function.addCode(expr.build())
 
         return super.build();
     }

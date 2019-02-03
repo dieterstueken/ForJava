@@ -1,8 +1,8 @@
 package de.dst.fortran.code.generator.kotlin
 
-import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
+import de.dst.fortran.code.Local
 
 /**
  * Created by IntelliJ IDEA.
@@ -28,26 +28,26 @@ class MainFunction(generator : UnitGenerator)
 
         addParameters(el["args"])
 
-        val code = object : BlockBuilder(this) {
+        val main = object : BlockBuilder(this) {
             init {
-                for (variable in generator.code.variables) {
-
-                    if(variable.isLocal() && variable.isModified)
-                        if(variable.name==generator.block.name)
-                            declVariable(generator.retval!!)
-                        else
-                            declVariable(variable)
+                if(generator.retval!=null) {
+                    locals.put(generator.retval.name, Local(generator.retval.name, Local.Stat.M))
+                    //declVariable(generator.retval)
                 }
-            }
 
-            override fun build() : CodeBlock {
-                body(el["code"])
-                return super.build()
+                //for (variable in generator.code.variables) {
+                //
+                //    if(variable.isLocal() && variable.isModified)
+                //        if(variable.name==generator.block.name)
+                //            declVariable(generator.retval!!)
+                //        else
+                //            declVariable(variable)
+                //}
             }
         }
 
-        function.addCode(code.build())
-
-        return super.build();
+        main.addCode(el["code"].children())
+        function.addCode(main.build())
+        return super.build()
     }
 }

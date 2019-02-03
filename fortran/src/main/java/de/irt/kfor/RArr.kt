@@ -11,6 +11,14 @@ interface RArr : Arr {
     operator fun get(i : Int) : Double
     operator fun set(i : Int, v : Double)
 
+    operator fun invoke(i : Int) : Ref {
+        return object : Ref {
+            override var v: Double
+                get() = this@RArr.get(i)
+                set(value) = this@RArr.set(i, value)
+        }
+    }
+
     companion object {
         fun r4(ni : Int) = R4.Arr(ni)
         fun r8(ni : Int) = R8.Arr(ni)

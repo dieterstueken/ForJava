@@ -49,7 +49,7 @@ public class CodeAnalyzer implements CodeElement {
 
     @Override
     public String toString() {
-        return block.name;
+        return block.name + ":" + line;
     }
 
     CodeAnalyzer(Analyzer analyzer, Element be) {
@@ -271,34 +271,64 @@ public class CodeAnalyzer implements CodeElement {
 
         final Map<String, Local> locals = new HashMap<>();
 
-        // get current status
-        Local getLocal(String name) {
+        // get current or define new unused
+        Local defLocal(String name) {
             return locals.computeIfAbsent(name, Local::new);
         }
 
+        Local readLocal(String name) {
+            return defLocal(name).read();
+        }
+
+        Local writeLocal(String name) {
+            return defLocal(name).write();
+        }
+
+        /**
+         * Create nested code block.
+         * @param e element to parse
+         */
         void codeBlock(Element e) {
 
-            CodeBlock block = new CodeBlock(e).process();
+            CodeBlock block = new CodeBlock(e);
 
-            // analyze / propagate local variables
-            block.locals.values().forEach(l->{
+            // advertise all variables
+            locals.values().forEach(it->block.defLocal(it.name));
 
-                boolean used = locals.containsKey(l.name);
-                Local local = getLocal(l.name);
+            block.process();
 
-                // elevate on second access
-                if(used && l.isExpected())
-                    local.read();
+            // analyze / elevate local variables
+            block.locals.values().forEach(local->{
 
-                if(l.isModified())
-                    local.modified();
+                // find any current variable
+                Local current = locals.get(local.name);
+
+                if(current==null) {
+                    // advertise all new variables
+                    defLocal(local.name);
+                } else if(local.isExpected()) {     // R M RM
+                    if(current.isUnused()) {        // u -> r(m)
+                        // mark advertised variable as required
+                        current.stat = local.stat;
+                    } else if(local.isModified()) {
+                        // propagate modification
+                        current.write();        // x -> xm
+                    }
+                } else if(local.isAssigned()) {
+
+                    if(!current.isUnused())
+                        current.write();            // mark modified
+                    else if(!local.isRead()) {
+                        // export pending read  ?
+                    }
+                }
             });
         }
 
         Variable readVariable(Element e) {
             Variable variable = CodeAnalyzer.this.readVariable(e);
             if (variable.isLocal())
-                getLocal(variable.name).read();
+                readLocal(variable.name);
 
             return variable;
         }
@@ -308,7 +338,7 @@ public class CodeAnalyzer implements CodeElement {
             variable.isAssigned(true);
 
             if (variable.isLocal())
-                getLocal(variable.name).write();
+                writeLocal(variable.name);
         }
 
         CodeBlock(Element code) {
@@ -331,7 +361,7 @@ public class CodeAnalyzer implements CodeElement {
 
                     element.setAttribute("name", local.name);
 
-                    if(local.stat!=Local.Stat.USE)
+                    if(!local.isUnused())
                         element.setAttribute("type", local.stat.name());
 
                     variables.appendChild(element);
@@ -365,7 +395,7 @@ public class CodeAnalyzer implements CodeElement {
 
                 case "if":
                 case "do":
-                    codeLines(e);
+                    codeBlock(e);
                     break;
 
                 case "elif":
@@ -376,7 +406,9 @@ public class CodeAnalyzer implements CodeElement {
 
                 case "for":
                     // mark loop index assigned
-                    blockVariable(e).isAssigned(true);
+                    Variable index = blockVariable(e);
+                    index.isAssigned(true);
+                    writeLocal(index.name);
                     break;
 
                 case "then":
@@ -412,6 +444,10 @@ public class CodeAnalyzer implements CodeElement {
                 Variable var = block.variables.get(name);
                 if (var.isArray()) {
                     e.setAttribute("scope", "array");
+                    Node parent = e.getParentNode();
+                    if(parent instanceof Element)
+                        if(((Element)parent).getAttribute("returned").equals("true"))
+                            e.setAttribute("ref", "true");
                     return;
                 } else if (var.context == null)
                     var.context(Context.INTRINSIC);

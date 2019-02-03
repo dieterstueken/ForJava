@@ -5,8 +5,6 @@ import kotlin.math.roundToInt
 import kotlin.reflect.KClass
 
 
-
-infix fun Double.pow(p : Double) = Math.pow(this, p)
 open class Fortran(val units : Units) {
 
     fun <U:Common> common(type : KClass<U>) : U = units.unit(type.java)
@@ -30,9 +28,18 @@ open class Fortran(val units : Units) {
         }
 
         fun min(a : Double, b: Double) : Double = kotlin.math.min(a,b)
+        fun min0(a : Int, b: Int) : Int = kotlin.math.min(a,b)
+        fun amin0(a : Int, b: Int) : Int = kotlin.math.min(a,b)
         fun amin1(a : Double, b: Double) : Double = kotlin.math.min(a,b)
 
         fun max(a : Double, b: Double) : Double = kotlin.math.max(a,b)
+        fun max(a : Double, b: Double, c:Double) : Double = kotlin.math.max(kotlin.math.max(a,b), c)
         fun amax1(a : Double, b: Double) : Double = kotlin.math.max(a,b)
+
+        fun tanh(a : Double) : Double = Math.tanh(a)
+        fun exp(a : Double) : Double = Math.exp(a)
+
+        fun Double.pow(b: Int) : Double = Math.pow(this, b.toDouble())
+        fun Double.pow(b: Double) : Double = Math.pow(this, b)
     }
 }
