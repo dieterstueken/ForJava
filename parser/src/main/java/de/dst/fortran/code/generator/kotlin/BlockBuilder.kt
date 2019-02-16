@@ -1,99 +1,70 @@
 package de.dst.fortran.code.generator.kotlin
 
 import com.squareup.kotlinpoet.CodeBlock
-import de.dst.fortran.code.Local
+import de.dst.fortran.code.Locals
+import de.dst.fortran.code.VStat
 import de.dst.fortran.code.Variable
 import org.w3c.dom.Element
 
-open class BlockBuilder(method: MethodGenerator) : ExpressionBuilder(method) {
+open class BlockBuilder(method: MethodGenerator, bel : Element) : ExpressionBuilder(method) {
 
-    open fun parent() = this
-    
-    var locals = mutableMapOf<String, Local>()
+    // forward definition saved by previous scan
+    var forwards = Locals()
+
+    // actual locals
+    var locals = Locals()
+
+    init {
+        bel["locals"].all("var").forEach{
+            val name = it.name;
+            val stat = VStat.of(it.attributes["type"])
+            forwards.put(name, stat)
+        }
+    }
+
+    fun Locals.isDefined(name : String) = get(name)!=null
+    fun Locals.isAssigned(name : String) = get(name)?.isAssigned?:false
+    fun Locals.isModified(name : String) = get(name)?.isModified?:false
+    fun Locals.isExpected(name : String) = get(name)?.isExpected?:false
 
     fun locals(element : Element) {
-        element.all("variable").forEach{
-            val local = Local(it.name, it.attributes["type"])
-            if(local.isAssigned) {
-                if(local.isModified)
-                    local.stat = Local.Stat.M
-                else
-                    local.stat = Local.Stat.U
-            }
-            local(local)
-        }
+        // done
     }
 
-    fun Local.assign() {
-        if(!isAssigned)
-            stat = if(isModified) Local.Stat.A else Local.Stat.AM
-        else
-            write()
-    }
-
-    open fun local(local : Local) {
-
-        code.add("// ${local.name}: ${local.stat}\n")
-
-        locals.put(local.name, local)
-    }
-
-    open inner class Block : BlockBuilder(method) {
-
-        override fun parent() = this@BlockBuilder
+    open inner class Block(bel : Element) : BlockBuilder(method, bel) {
 
         init {
-            // copy local variables
-            this@BlockBuilder.locals.values.forEach{it->locals.put(it.name, it)}
+            // copy context
+            forwards.names.forEach(this@BlockBuilder::advertizeVariable)
+            locals.putAll(this@BlockBuilder.locals)
         }
 
-        override fun local(local : Local) {
-            code.add("// ${local.name}: ${local.stat}\n")
-
-            // lookup external context
-            val ext = locals.get(local.name)
-
-            if(ext!=null) {
-                if(ext.isExpected) {
-                    ext.stat = Local.Stat.A;
-                    if (!ext.isModified) // always a var
-                        ext.write()
-
-                    // declare as var
-                    parent().declVariable(getVariable(local.name))
-                }
-                locals.put(ext.name, ext)
-                code.add("// ${ext.name} -> ${ext.stat}\n")
-
-            } else
-                locals.put(local.name, local)
+        override fun build(): CodeBlock {
+            locals.applyTo(this@BlockBuilder.locals)
+            return super.build()
         }
     }
 
-    fun isAssigned(variable : Variable) = locals.get(variable.name)?.isAssigned?:false
-    fun isModified(variable : Variable) = locals.get(variable.name)?.isModified?:false
+    fun addCodeBlock(bel : Element) {
 
-    fun assignLocal(name : String) : Local{
-        var local = locals.get(name)
-        if(local==null)
-            local = Local(name, Local.Stat.A)
-        else
-            local.assign()
-
-        return local
+        code.add(Block(bel)
+                .addCode(bel.children())
+                .build())
     }
 
-    fun isDefined(variable : Variable) = !variable.isLocal() || isAssigned(variable)
+    fun advertizeVariable(name : String) {
+        if (forwards.isExpected(name))
+            if(!locals.isDefined(name)) {
+                val v = getVariable(name)
+                declVariable(v)
+            }
+    }
 
     fun declVariable(v : Variable) {
         code.add("«var %N = ", v.name)
         code.add(v.initialize(v.asKlass()))
-        code.add("\n»")
-        assignLocal(v.name).write()
-    }
-
-    override fun getVariable(name: String): Variable {
-        return super.getVariable(name)
+        code.add("  // generated\n»")
+        locals.write(v.name)
     }
 
     fun assvar(el : Element) {
@@ -101,16 +72,16 @@ open class BlockBuilder(method: MethodGenerator) : ExpressionBuilder(method) {
         val target = targetName(variable, false)
 
         val def = when {
-            isDefined(variable) -> "«%N = "
-            isModified(variable) -> "«var %N = "
+            locals.isDefined(variable.name) -> "«%N = "
+            forwards.isModified(variable.name) -> "«var %N = "
             else -> "«val %N = "
         }
-
-        assignLocal(variable.name)
 
         code.add(def, target)
         addExpr(el.children())
         code.add("\n»")
+
+        locals.write(variable.name)
     }
 
     fun addCode(elements : Iterable<Element>) : BlockBuilder {
@@ -120,13 +91,6 @@ open class BlockBuilder(method: MethodGenerator) : ExpressionBuilder(method) {
         }
 
         return this
-    }
-
-    fun addCodeBlock(elements : Iterable<Element>) {
-
-        code.add(Block()
-                .addCode(elements)
-                .build())
     }
 
     open fun addCode(elem : Element) {
@@ -181,7 +145,7 @@ open class BlockBuilder(method: MethodGenerator) : ExpressionBuilder(method) {
 
     fun addIf(el : Element) {
 
-        val block = object : Block() {
+        val block = object : Block(el) {
 
             override fun addCode(elem : Element) {
                 val tag = elem.getTagName()
@@ -191,10 +155,10 @@ open class BlockBuilder(method: MethodGenerator) : ExpressionBuilder(method) {
                         addExpr(elem.children())
                         code.beginControlFlow(")")
                     }
-                    "then" -> addCodeBlock(elem.children())
+                    "then" -> addCodeBlock(elem)
                     "else" -> {
                         code.nextControlFlow(" else ")
-                        addCodeBlock(elem.children())
+                        addCodeBlock(elem)
                     }
                     "elif" -> {
                         code.add("⇤} else if(")
@@ -215,7 +179,7 @@ open class BlockBuilder(method: MethodGenerator) : ExpressionBuilder(method) {
 
     fun addDo(el : Element)  {
 
-        val block = object : Block() {
+        val block = object : Block(el) {
 
             override fun addCode(elem : Element) {
                 val tag = elem.getTagName()

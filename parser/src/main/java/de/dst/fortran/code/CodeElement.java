@@ -13,7 +13,7 @@ public interface CodeElement extends Context {
 
     Code code();
 
-    Element element();
+    Element getElement();
 
     String getLine();
 

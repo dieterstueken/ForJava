@@ -2,7 +2,6 @@ package de.dst.fortran.code.generator.kotlin
 
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
-import de.dst.fortran.code.Local
 
 /**
  * Created by IntelliJ IDEA.
@@ -24,17 +23,14 @@ class MainFunction(generator : UnitGenerator)
 
     override fun build(): FunSpec {
 
-        val el = generator.block.element()
+        val el = generator.block.element
 
         addParameters(el["args"])
 
-        val main = object : BlockBuilder(this) {
-            init {
-                if(generator.retval!=null) {
-                    locals.put(generator.retval.name, Local(generator.retval.name, Local.Stat.M))
-                    //declVariable(generator.retval)
-                }
+        val cel = el["code"]
 
+        val main = object : BlockBuilder(this, cel) {
+            init {
                 //for (variable in generator.code.variables) {
                 //
                 //    if(variable.isLocal() && variable.isModified)
@@ -46,7 +42,7 @@ class MainFunction(generator : UnitGenerator)
             }
         }
 
-        main.addCode(el["code"].children())
+        main.addCode(cel.children())
         function.addCode(main.build())
         return super.build()
     }

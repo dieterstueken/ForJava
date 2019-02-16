@@ -92,6 +92,11 @@ class UnitGenerator(generators : CodeGenerators, val block : CodeElement, classN
 
     override fun TypeSpec.Builder.generate(): TypeSpec.Builder {
 
+        val name = block.element.name
+
+        block.element["decl"].all("C")
+                .forEach{e -> addKdoc(e.textContent.replace("%", "%%") + "\n")}
+
         superclass(Fortran::class)
 
         primaryConstructor(FunSpec.constructorBuilder()
@@ -113,7 +118,7 @@ class UnitGenerator(generators : CodeGenerators, val block : CodeElement, classN
                 addProperty(variable.asProperty())
         }
 
-        for (func in block.element()["functions"].all("function")) {
+        for (func in block.element["functions"].all("function")) {
             addFunction(localFunction(func))
         }
 

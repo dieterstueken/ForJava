@@ -7,10 +7,8 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import java.io.File;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 
 import static de.dst.fortran.code.Analyzer.*;
@@ -34,7 +32,7 @@ public class CodeAnalyzer implements CodeElement {
     String line = "";
 
     @Override
-    public Element element() {
+    public Element getElement() {
         return be;
     }
 
@@ -269,20 +267,8 @@ public class CodeAnalyzer implements CodeElement {
 
         final Element code;
 
-        final Map<String, Local> locals = new HashMap<>();
-
-        // get current or define new unused
-        Local defLocal(String name) {
-            return locals.computeIfAbsent(name, Local::new);
-        }
-
-        Local readLocal(String name) {
-            return defLocal(name).read();
-        }
-
-        Local writeLocal(String name) {
-            return defLocal(name).write();
-        }
+        // status of variables used within this block
+        Locals locals = new Locals();
 
         /**
          * Create nested code block.
@@ -292,43 +278,19 @@ public class CodeAnalyzer implements CodeElement {
 
             CodeBlock block = new CodeBlock(e);
 
-            // advertise all variables
-            locals.values().forEach(it->block.defLocal(it.name));
+            // propagate all variables
+            block.locals.putAll(locals);
 
             block.process();
 
             // analyze / elevate local variables
-            block.locals.values().forEach(local->{
-
-                // find any current variable
-                Local current = locals.get(local.name);
-
-                if(current==null) {
-                    // advertise all new variables
-                    defLocal(local.name);
-                } else if(local.isExpected()) {     // R M RM
-                    if(current.isUnused()) {        // u -> r(m)
-                        // mark advertised variable as required
-                        current.stat = local.stat;
-                    } else if(local.isModified()) {
-                        // propagate modification
-                        current.write();        // x -> xm
-                    }
-                } else if(local.isAssigned()) {
-
-                    if(!current.isUnused())
-                        current.write();            // mark modified
-                    else if(!local.isRead()) {
-                        // export pending read  ?
-                    }
-                }
-            });
+            block.locals.applyTo(locals);
         }
 
         Variable readVariable(Element e) {
             Variable variable = CodeAnalyzer.this.readVariable(e);
             if (variable.isLocal())
-                readLocal(variable.name);
+                locals.read(variable.name);
 
             return variable;
         }
@@ -338,7 +300,7 @@ public class CodeAnalyzer implements CodeElement {
             variable.isAssigned(true);
 
             if (variable.isLocal())
-                writeLocal(variable.name);
+                locals.write(variable.name);
         }
 
         CodeBlock(Element code) {
@@ -356,13 +318,13 @@ public class CodeAnalyzer implements CodeElement {
                 code.insertBefore(variables, code.getFirstChild());
                 newLine(variables);
 
-                locals.values().forEach(local -> {
-                    Element element = createElement("variable");
+                locals.forEach((name, stat) -> {
+                    Element element = createElement("var");
 
-                    element.setAttribute("name", local.name);
+                    element.setAttribute("name", name);
 
-                    if(!local.isUnused())
-                        element.setAttribute("type", local.stat.name());
+                    if(!stat.isUnused())
+                        element.setAttribute("type", stat.name());
 
                     variables.appendChild(element);
                     newLine(variables);
@@ -381,8 +343,8 @@ public class CodeAnalyzer implements CodeElement {
             switch (name) {
                 case "assvar":
                     // tag statement functions
-                    assVar(e);
                     parseExpr(childElements(e));
+                    assVar(e);
                     break;
 
                 case "assarr":
@@ -408,7 +370,7 @@ public class CodeAnalyzer implements CodeElement {
                     // mark loop index assigned
                     Variable index = blockVariable(e);
                     index.isAssigned(true);
-                    writeLocal(index.name);
+                    locals.write(index.name);
                     break;
 
                 case "then":

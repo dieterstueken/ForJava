@@ -108,7 +108,7 @@ class UnitGenerator extends MethodGenerator {
     }
 
     void func() {
-        Element functions = childElement(element.element(), "functions");
+        Element functions = childElement(element.getElement(), "functions");
         childElements(functions, "function").forEach(this::function);
     }
 
@@ -158,10 +158,10 @@ class UnitGenerator extends MethodGenerator {
 
         method(JMod.PUBLIC, element.code().type(), "call");
 
-        header(childElement(element.element(), "decl"));
+        header(childElement(element.getElement(), "decl"));
 
         // prepare arguments
-        for (Element arg : childElements(childElement(element.element(), "args"), "arg")) {
+        for (Element arg : childElements(childElement(element.getElement(), "args"), "arg")) {
 
             boolean nl = false;
             for (Element ce : childElements(arg)) {
@@ -212,7 +212,7 @@ class UnitGenerator extends MethodGenerator {
         if (!element.code().variables.isEmpty())
             jbody.add(JFExpression.NL);
 
-        childElements(childElement(element.element(), "code"))
+        childElements(childElement(element.getElement(), "code"))
                 .stream()
                 .map(this::code)
                 .filter(Objects::nonNull)
