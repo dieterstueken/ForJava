@@ -22,6 +22,10 @@ interface Str {
         fun arr(ni : Int) = Arr(ni)
     }
 
+    operator fun invoke(i : Int, j : Int) = object : Str {
+        override var v = this@Str.v.substring(i, j)
+    }
+
     data class Arr(override val ni : Int) : de.irt.kfor.Arr {
         val arr = mutableListOf<String>()
         operator fun get(i : Int) = arr[index(i)]

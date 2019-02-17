@@ -59,13 +59,16 @@ public class Locals {
     // apply locals to the enclosing context
     public void applyTo(Locals context) {
         vars.forEach((name, stat)->{
-            context.define(name);     // x -> U
+            VStat cstat = context.define(name);     // x -> U
 
-            if(stat.isExpected())
-                context.read(name);
+            // propagate changes
+            if(cstat!=stat) {
+                if (stat.isExpected())
+                    context.read(name);
 
-            if(stat.isProvided())
-                context.write(name);
+                if (stat.isProvided())
+                    context.write(name);
+            }
         });
     }
 }

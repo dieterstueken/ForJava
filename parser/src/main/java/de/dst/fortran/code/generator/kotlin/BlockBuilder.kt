@@ -72,6 +72,7 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : ExpressionBuil
         val target = targetName(variable, false)
 
         val def = when {
+            !variable.isLocal() -> "«%N = "
             locals.isDefined(variable.name) -> "«%N = "
             forwards.isModified(variable.name) -> "«var %N = "
             else -> "«val %N = "
