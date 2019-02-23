@@ -294,13 +294,23 @@ public class CodeAnalyzer implements CodeElement {
 
             return variable;
         }
-
+        
         void assVar(Element e) {
-            Variable variable = contextVariable(e, block.variables::get);
+            Variable variable = blockVariable(e);
             variable.isAssigned(true);
 
             if (variable.isLocal())
                 locals.write(variable.name);
+        }
+
+        private void readData(Element e) {
+            for (Element var : childElements(e, "var")) {
+                Variable variable = blockVariable(var);
+                variable.isAssigned(true);
+
+                if (variable.isLocal())
+                    locals.write(variable.name);
+            }
         }
 
         CodeBlock(Element code) {
@@ -354,6 +364,9 @@ public class CodeAnalyzer implements CodeElement {
                 case "call":
                     call(e);
                     break;
+
+                case "read":
+                    readData(e);
 
                 case "if":
                 case "do":
@@ -450,7 +463,7 @@ public class CodeAnalyzer implements CodeElement {
                 Element var = getVariableElement(arg);
 
                 if (var != null) {
-                    Variable v = readVariable(var);
+                    Variable v = blockVariable(var);
 
                     if (vex.isAssigned()) {
                         v.isAssigned(true);
@@ -462,6 +475,10 @@ public class CodeAnalyzer implements CodeElement {
                     }
 
                     arg.setAttribute("type", "var");
+
+                    if (v.isLocal())
+                        locals.read(v.name);
+
                 } else {
                     arg.setAttribute("type", "expr");
                     if (returned)

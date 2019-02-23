@@ -25,7 +25,7 @@ public enum Type {
             case "integer*2": return I2;
             case "integer*4": return I4;
             case "logical*4": return L4;
-            case "real": return R4;
+            case "real": return R8;
             case "real*4": return R4;
             case "real*8": return R8;
             case "complex": return CPX;
@@ -40,11 +40,19 @@ public enum Type {
     }
 
     public static Type intrinsic(String name) {
-        return "ijklmn".indexOf(Character.toLowerCase(name.charAt(0)))>=0 ? I4 : R4;
+        return "ijklmn".indexOf(Character.toLowerCase(name.charAt(0)))>=0 ? I4 : R8;
     }
 
     public TypeDef kind(Value.Kind kind) {
         return kinds.get(kind);
+    }
+
+    public boolean isInt() {
+        return this==I2 || this==I4;
+    }
+
+    public boolean isReal() {
+        return this==R4 || this==R8;
     }
 
     public TypeDef primitive() {

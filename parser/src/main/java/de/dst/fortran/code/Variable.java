@@ -88,6 +88,18 @@ public class Variable extends Entity implements Value {
         return tmp;
     }
 
+    public boolean isInt() {
+        return type().getType().isInt();
+    }
+
+    public boolean isReal() {
+        return type().getType().isReal();
+    }
+
+    public boolean isCpx() {
+        return type().getType().equals(Type.CPX);
+    }
+
     public String getRefName() {
         return ref!=null ? ref.getName() : getName();
     }

@@ -61,26 +61,38 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : ExpressionBuil
     }
 
     fun declVariable(v : Variable) {
-        code.add("«var %N = ", v.name)
+        val type = if(v.isInt()) Int::class else Double::class
+        code.add("«var %N : %T = ", v.name, type)
         code.add(v.initialize(v.asKlass()))
         code.add("  // generated\n»")
         locals.write(v.name)
     }
 
-    fun assvar(el : Element) {
-        val variable = getVariable(el.name);
+    fun assVar(el : Element) {
+        val variable = getVariable(el.name)
+        var name = variable.name
         val target = targetName(variable, false)
 
-        val def = when {
-            !variable.isLocal() -> "«%N = "
-            locals.isDefined(variable.name) -> "«%N = "
-            forwards.isModified(variable.name) -> "«var %N = "
-            else -> "«val %N = "
+        when {
+            variable.isCpx -> code.add("«$target assign ", name)
+            !variable.isLocal() -> code.add("«$target = ", name)
+            locals.isDefined(variable.name) -> code.add("«$target = ", name)
+            forwards.isModified(variable.name) -> code.add("«var $target = ", name)
+            else -> code.add("«val $target = ", name)
         }
 
-        code.add(def, target)
+        when {
+            variable.isInt() -> code.add("( ")
+            variable.isReal() -> code.add("( ")
+        }
+
         addExpr(el.children())
-        code.add("\n»")
+
+        when {
+            variable.isInt() -> code.add(" ).toInt()\n»")
+            variable.isReal() -> code.add(" ).toDouble()\n»")
+            else -> code.add("\n»")
+        }
 
         locals.write(variable.name)
     }
@@ -103,19 +115,17 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : ExpressionBuil
             "c" -> comment(elem)
             "C" -> commentLine(elem)
 
-            "assvar" -> assvar(elem)
+            "assvar" -> assVar(elem)
+            "assarr" -> assArr(elem)
 
-            "assarr" -> assarr(elem)
-
-            "call" -> call(elem)
-
+            "call" -> addCall(elem)
+            "print" -> addPrint(elem)
             "goto" -> addGoto(elem)
 
             "if" -> addIf(elem)
             "do"->  addDo(elem)
 
             "cycle" -> addCycle()
-
             "exit" -> addExit()
 
             "return" -> addReturn()
@@ -124,21 +134,32 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : ExpressionBuil
         }
     }
 
-    fun call(expr : Element) {
-        var name : String = expr.name
+    fun addCall(args : Element) {
+        var name : String = args.name
         code.add("«%N(", name)
-        addArgs(expr)
+        addArgs(args)
         code.add(")\n»")
     }
 
-    fun assarr(el : Element) {
-        val target = targetName(getVariable(el.name), true)
-        code.add("«%N[", target)
+    fun addPrint(args : Element) {
+        code.add("«println(")
+
+        addArgs(args.children(), " + ")
+
+        code.add(")\n»")
+    }
+
+    fun assArr(el : Element) {
+        val variable = getVariable(el.name)
+        val target = targetName(variable, true)
+        code.add("«$target[", variable.name)
         addArgs(el["args"])
         code.add("] = ")
         addExpr(el["expr"])
         code.add("\n»")
     }
+
+
 
     fun addGoto(el : Element) {
         code.add("/* goto */)")
@@ -202,13 +223,13 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : ExpressionBuil
                 var args = expr.all("arg")
 
                 code.add("for(%N in ", expr.name)
-                addExpr(args[0])
+                arg(args[0])
                 code.add("..")
-                addExpr(args[1])
+                arg(args[1])
 
                 if(args.size>2) {
                     code.add(" step ")
-                    addExpr(args[2])
+                    arg(args[2])
                 }
 
                 code.beginControlFlow(")")
@@ -221,7 +242,7 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : ExpressionBuil
                      throw RuntimeException("unexpected $expr.name")
 
                 code.add("while (")
-                addExpr(expr)
+                addExpr(expr.children())
                 code.beginControlFlow(")")
 
                 seen = true

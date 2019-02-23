@@ -1,6 +1,7 @@
 package de.dst.fortran.code.generator.kotlin
 
 import com.squareup.kotlinpoet.CodeBlock
+import de.dst.fortran.code.Type
 import de.dst.fortran.code.Variable
 import org.w3c.dom.Element
 import kotlin.reflect.KClass
@@ -28,9 +29,9 @@ open class ExpressionBuilder(val method: MethodGenerator) {
                 target = "${variable.context.name}."
         }
 
-        target += variable.name
+        target += "%N"
 
-        if(!asReference && variable.isProperty())
+        if(!asReference && variable.isProperty() && !variable.isCpx())
             target += ".v"
 
         return target
@@ -71,13 +72,14 @@ open class ExpressionBuilder(val method: MethodGenerator) {
 
             "b" -> braced(expr)
 
-            "expr","while" -> addExpr(expr.children())
+            "expr"-> addExpr(expr.children())
 
             "arg" -> arg(expr)
             "var" -> variable(expr)
             "val" -> value(expr)
             "fun" -> function(expr)
             "string" -> addString(expr)
+            "cat" -> concat(expr)
 
             "add" -> code.add("+")
             "sub" -> code.add("-")
@@ -107,9 +109,10 @@ open class ExpressionBuilder(val method: MethodGenerator) {
     }
 
     fun variable(expr : Element) {
-        val asReference = expr.attributes["returned"]=="true"
-        val target = targetName(method.getVariable(expr), asReference)
-        code.add("%N", target)
+        val variable = method.getVariable(expr)
+        val asReference = expr.attributes["returned"]=="true" || variable.type().type== Type.STR
+        val target = targetName(variable, asReference)
+        code.add("$target", variable.name)
     }
 
     fun function(expr : Element) {
@@ -120,17 +123,19 @@ open class ExpressionBuilder(val method: MethodGenerator) {
         when(name) {
             "float" -> name = "toReal"
             "int" -> name = "toInt"
-            "cmplx" -> name = "toComplex"
+            "cmplx" -> name = "Cpx"
         }
 
         if(expr.attributes["scope"] == "array") {
-            name = targetName(getVariable(name), true)
+            val variable = getVariable(name)
+            name = variable.name
+            val target = targetName(variable, true)
             if(expr.attributes["ref"]=="true") {
-                code.add("%N(", name)
+                code.add("$target(", name)
                 addArgs(expr)
                 code.add(")")
             } else {
-                code.add("%N[", name)
+                code.add("$target[", name)
                 addArgs(expr)
                 code.add("]")
             }
@@ -142,11 +147,15 @@ open class ExpressionBuilder(val method: MethodGenerator) {
     }
 
     fun addArgs(args : Element) {
-        var sep = ""
-        for (arg in args.all("arg")) {
-            code.add(sep)
+        addArgs(args.all("arg"))
+    }
+
+    fun addArgs(args : List<Element>, sep : String = ", ") {
+        var s = ""
+        for (arg in args) {
+            code.add(s)
             addExpr(arg)
-            sep = ", "
+            s = sep
         }
     }
 
@@ -175,9 +184,14 @@ open class ExpressionBuilder(val method: MethodGenerator) {
     fun addString(expr : Element) {
         val text = expr.textContent
         if(text.length==1)
-            code.add("%L", text[0])
+            code.add("'%L'", text[0])
         else
             code.add("%S", text)
+    }
+
+    fun concat(expr : Element) {
+        code.add(" + ");
+        addExpr(expr.children());
     }
 
     fun codeLine(el : Element) = method.buildCodeLine(code, el)

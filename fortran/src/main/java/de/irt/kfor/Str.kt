@@ -7,8 +7,13 @@ package de.irt.kfor
  * modified by: $Author$
  * modified on: $Date$
  */
+
 interface Str {
     var v : String
+
+    operator fun get(i : Int, j : Int) : String {
+        return v.substring(i, j);
+    }
 
     companion object {
         operator fun invoke(value: String = ""): Str {

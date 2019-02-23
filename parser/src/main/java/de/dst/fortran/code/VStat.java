@@ -44,15 +44,8 @@ public enum VStat {
         return STATS.get(ordinal() | R.ordinal());
     }
 
-    public static VStat read(VStat s) {
-        return s==null ? VStat.R : s.read();
-    }
-
     public VStat write() {
         return set(M).clr(R);
     }
 
-    public static VStat write(VStat s) {
-        return s==null ? VStat.A : s.write();
-    }
 }

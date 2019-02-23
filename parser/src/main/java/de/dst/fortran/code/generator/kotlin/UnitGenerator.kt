@@ -75,7 +75,12 @@ class UnitGenerator(generators : CodeGenerators, val block : CodeElement, classN
         if(name == block.name)
             return retval!!
 
-        return code.variables.find(name)!!
+        val v = code.variables.find(name)!!
+
+        if(v.ref!=null)
+            return v.ref
+        else
+            return v;
     }
 
     fun Variable.isMember(): Boolean = context == null && !isPrimitive() && name != code.name
