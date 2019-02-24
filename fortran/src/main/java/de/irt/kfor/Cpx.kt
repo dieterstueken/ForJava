@@ -59,15 +59,10 @@ data class Cpx(var re : Double, var im : Double) {
     }
 
     fun csqrt() :Cpx {
-        val z = Math.hypot(re, im);
+        val z = cabs()
         return Cpx(sqrt(z+re), kotlin.math.sign(im)*sqrt(z-re))
     }
+
+    fun cabs() : Double = Math.hypot(re, im)
 }
 
-fun toComplex(re : Double, im : Double) = Cpx(re,im)
-
-operator fun Double.plus(v : Cpx) = v+this
-
-operator fun Double.minus(v : Cpx) = Cpx(this-v.re, v.im)
-
-fun csqrt(v : Cpx) : Cpx = v.csqrt()

@@ -45,6 +45,10 @@ public class CodeAnalyzer implements CodeElement {
         return line;
     }
 
+    void setLine(String line) {
+        this.line = line;
+    }
+
     @Override
     public String toString() {
         return block.name + ":" + line;
@@ -133,6 +137,11 @@ public class CodeAnalyzer implements CodeElement {
         return setup(e, var);
     }
 
+    boolean isLocal(String name) {
+        Variable v = block.variables.find(name);
+        return v!=null && v.isLocal();
+    }
+
     Variable blockVariable(Element e) {
          return contextVariable(e, block.variables::get);
     }
@@ -202,7 +211,7 @@ public class CodeAnalyzer implements CodeElement {
                     break;
 
                 case "F":
-                    line = ce.getAttribute("line");
+                    setLine(ce.getAttribute("line"));
                     break;
             }
         });
@@ -321,6 +330,9 @@ public class CodeAnalyzer implements CodeElement {
 
             codeLines(code);
 
+            // may have changed scope
+            locals.getNames().removeIf(name -> !isLocal(name));
+
             if(!locals.isEmpty()) {
 
                 // prepend local variable usage
@@ -391,7 +403,7 @@ public class CodeAnalyzer implements CodeElement {
                     codeBlock(e);
 
                 case "F":
-                    line = e.getAttribute("line");
+                    setLine(e.getAttribute("line"));
                     break;
 
                 default:

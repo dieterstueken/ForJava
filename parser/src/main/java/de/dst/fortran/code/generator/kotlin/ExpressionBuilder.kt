@@ -19,6 +19,14 @@ open class ExpressionBuilder(val method: MethodGenerator) {
         return method.getVariable(name)
     }
 
+    fun isLocal(name : String) : Boolean {
+        val v : Variable? = method.generator.code.variables.find(name)
+        if(v!=null && v.isLocal)
+            return true;
+        else
+            return false;
+    }
+
     fun Variable.asKlass(): KClass<*> = method.generator.getKlass(this.type())
 
     fun targetName(variable : Variable, asReference: Boolean) : String {

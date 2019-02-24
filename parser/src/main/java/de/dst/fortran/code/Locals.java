@@ -43,7 +43,6 @@ public class Locals {
         return vars.keySet();
     }
 
-
     static VStat read(String key, VStat stat) {
         if (stat == null)
             return define(key, VStat.R);
@@ -85,7 +84,7 @@ public class Locals {
                 if (stat.isExpected())
                     context.read(name);
 
-                if (stat.isProvided())
+                if (stat.isProvided() | stat.isModified())
                     context.write(name);
             }
         });

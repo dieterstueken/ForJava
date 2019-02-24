@@ -18,7 +18,10 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : ExpressionBuil
         bel["locals"].all("var").forEach{
             val name = it.name;
             val stat = VStat.of(it.attributes["type"])
-            forwards.put(name, stat)
+
+            // may have changed scope
+            if(isLocal(name))
+                forwards.put(name, stat)
         }
     }
 

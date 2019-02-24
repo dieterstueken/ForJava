@@ -16,9 +16,14 @@ open class Fortran(val units : Units) {
         fun alog(value : Double) = kotlin.math.ln(value)
         fun sqrt(value : Double) = kotlin.math.sqrt(value)
 
+        fun csqrt(v : Cpx) : Cpx = v.csqrt()
+        operator fun Double.plus(v : Cpx) = v+this
+        operator fun Double.minus(v : Cpx) = Cpx(this-v.re, v.im)
+
         fun abs(value : Double) = value.absoluteValue
         fun abs(value : Int) = value.absoluteValue
         fun iabs(value : Int) = value.absoluteValue
+        fun cabs(value : Cpx) = value.cabs()
 
         fun toInt(value : Double) : Int = value.toInt()
         fun toReal(value : Int) : Double = value.toDouble()
