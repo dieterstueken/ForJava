@@ -1,8 +1,8 @@
 package de.dst.fortran.code;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.BiConsumer;
 
 /**
@@ -13,7 +13,7 @@ import java.util.function.BiConsumer;
  */
 public class Locals {
 
-    private final Map<String, VStat> vars = new HashMap<>();
+    private final Map<String, VStat> vars = new TreeMap<>();
 
     public boolean isEmpty() {
         return vars.isEmpty();
@@ -27,12 +27,21 @@ public class Locals {
         return vars.containsKey(name);
     }
 
+    public boolean contains(Map.Entry<String, VStat> entry) {
+        VStat stat = vars.get(entry.getKey());
+        return entry.getValue().equals(stat);
+    }
+
     public void put(String name, VStat stat) {
         vars.put(name, stat);
     }
 
     public void putAll(Locals other) {
         vars.putAll(other.vars);
+    }
+
+    public Set<Map.Entry<String, VStat>> entries() {
+        return vars.entrySet();
     }
 
     public void forEach(BiConsumer<String, VStat> action) {

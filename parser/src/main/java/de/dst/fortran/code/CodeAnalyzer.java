@@ -9,6 +9,7 @@ import org.w3c.dom.NodeList;
 import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 import static de.dst.fortran.code.Analyzer.*;
@@ -276,6 +277,13 @@ public class CodeAnalyzer implements CodeElement {
 
         final Element code;
 
+        final BiConsumer<? super CodeBlock, ? super Element> codeProcessor;
+
+        CodeBlock(Element code, BiConsumer<? super CodeBlock, ? super Element> codeProcessor) {
+            this.code = code;
+            this.codeProcessor = codeProcessor;
+        }
+
         // status of variables used within this block
         Locals locals = new Locals();
 
@@ -283,9 +291,18 @@ public class CodeAnalyzer implements CodeElement {
          * Create nested code block.
          * @param e element to parse
          */
-        void codeBlock(Element e) {
+        void codeBlock(Element e, BiConsumer<CodeBlock, Element> processor) {
 
-            CodeBlock block = new CodeBlock(e);
+            CodeBlock block = new CodeBlock(e, processor) {
+                @Override
+                void saveLocals() {
+
+                    // drop all unchanged entries
+                    locals.entries().removeIf(CodeBlock.this.locals::contains);
+
+                    super.saveLocals();
+                }
+            };
 
             // propagate all variables
             block.locals.putAll(locals);
@@ -294,6 +311,10 @@ public class CodeAnalyzer implements CodeElement {
 
             // analyze / elevate local variables
             block.locals.applyTo(locals);
+        }
+
+        void codeBlock(Element e) {
+            codeBlock(e, CodeBlock::codeLines);
         }
 
         Variable readVariable(Element e) {
@@ -322,16 +343,19 @@ public class CodeAnalyzer implements CodeElement {
             }
         }
 
-        CodeBlock(Element code) {
-            this.code = code;
-        }
-
         CodeBlock process() {
 
-            codeLines(code);
+            codeProcessor.accept(this, code);
 
             // may have changed scope
             locals.getNames().removeIf(name -> !isLocal(name));
+
+            saveLocals();
+
+            return this;
+        }
+
+        void saveLocals() {
 
             if(!locals.isEmpty()) {
 
@@ -352,8 +376,6 @@ public class CodeAnalyzer implements CodeElement {
                     newLine(variables);
                 });
             }
-
-            return this;
         }
 
         void codeLines(Element e) {
@@ -374,7 +396,7 @@ public class CodeAnalyzer implements CodeElement {
                     break;
 
                 case "call":
-                    call(e);
+                    codeBlock(e, CodeBlock::call);
                     break;
 
                 case "read":
@@ -459,7 +481,7 @@ public class CodeAnalyzer implements CodeElement {
 
             List<Element> args = Analyzer.childElements(e, "arg");
 
-            // lookup external argumen types
+            // lookup external argument types
             if (external.arguments.size() != args.size()) {
                 String message = String.format("argument mismatch for %s.%s: got: %d expected: %d",
                         block.name, external.name, args.size(), external.arguments.size());
@@ -523,18 +545,6 @@ public class CodeAnalyzer implements CodeElement {
             }
         }
 
-        void pow(Element pow) {
-            Node prev = pow.getPreviousSibling();
-            Node next = pow.getNextSibling();
-            if (prev != null && next != null) {
-                pow.appendChild(prev);
-                pow.appendChild(createTextNode(","));
-                pow.appendChild(next);
-            } else {
-                throw new IllegalStateException("missing pow rhs");
-            }
-        }
-
         Variable assarr(Element e) {
             Variable arr = blockVariable(e);
 
@@ -573,9 +583,13 @@ public class CodeAnalyzer implements CodeElement {
         }
     }
 
+    /**
+     * Top level code block.
+     * @param code to process
+     */
     private void code(Element code) {
 
-        new CodeBlock(code) {
+        new CodeBlock(code, CodeBlock::codeLines) {
 
             Element functions = null;
 

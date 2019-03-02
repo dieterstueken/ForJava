@@ -65,7 +65,7 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : ExpressionBuil
 
     fun declVariable(v : Variable) {
         val type = if(v.isInt()) Int::class else Double::class
-        code.add("«var %N : %T = ", v.name, type)
+        code.add("«var %N = ", v.name)
         code.add(v.initialize(v.asKlass()))
         code.add("  // generated\n»")
         locals.write(v.name)
@@ -138,10 +138,17 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : ExpressionBuil
     }
 
     fun addCall(args : Element) {
-        var name : String = args.name
-        code.add("«%N(", name)
-        addArgs(args)
-        code.add(")\n»")
+        val block = object : Block(args) {
+            override fun addCode(elem : Element) {
+                var name : String = args.name
+                code.add("«%N(", name)
+                addArgs(args)
+                code.add(")\n»")
+            }
+        }
+
+        block.addCode(args);
+        code.add(block.build())
     }
 
     fun addPrint(args : Element) {
