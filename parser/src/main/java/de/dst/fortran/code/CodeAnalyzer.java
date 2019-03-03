@@ -7,6 +7,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -259,28 +260,60 @@ public class CodeAnalyzer implements CodeElement {
         op(op, "sum");
     }
 
+    private boolean isFill(Node node) {
+        if(node==null)
+            return false;
+
+        String name = node.getNodeName();
+        switch(name) {
+            case "f":
+            case "#text":
+                return true;
+        }
+
+        return false;
+    }
+
     private void op(Element op, String name) {
-        Node prev = op.getPreviousSibling();
-        Node next = op.getNextSibling();
         Node parent = op.getParentNode();
+
+        // operator with surrounding text
+        List<Node> ops = new ArrayList<>();
+
+        Node prev = op.getPreviousSibling();
+
+        while(isFill(prev)) {
+            ops.add(prev);
+            prev = prev.getPreviousSibling();
+        }
+
+        ops.add(op);
+
+        Node next = op.getNextSibling();
+
+        while(isFill(next)) {
+            ops.add(next);
+            next = next.getPreviousSibling();
+        }
 
         if(prev==null || next==null) {
             throw new IllegalStateException("missing mul rhs");
         }
 
         if(prev.getNodeName().equals(name)) {
-            prev.appendChild(op);
+            ops.forEach(prev::appendChild);
             prev.appendChild(next);
         } else {
-            Element prod = createElement(name);
-            parent.insertBefore(prod, op);
-            prod.appendChild(prev);
-            prod.appendChild(op);
-            prod.appendChild(next);
+            Element opel = createElement(name);
+            parent.insertBefore(opel, prev);
+
+            opel.appendChild(prev);
+            ops.forEach(opel::appendChild);
+            opel.appendChild(next);
         }
     }
 
-    private void div(Element mul) {
+    private void debug() {
     }
 
     void cleanupExpr(Element expr) {
@@ -494,7 +527,6 @@ public class CodeAnalyzer implements CodeElement {
 
                 case "if":
                 case "do":
-                    String line = CodeAnalyzer.this.line;
                     codeBlock(e);
                     break;
 

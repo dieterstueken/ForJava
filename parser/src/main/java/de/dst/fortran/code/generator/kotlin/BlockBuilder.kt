@@ -6,7 +6,9 @@ import de.dst.fortran.code.VStat
 import de.dst.fortran.code.Variable
 import org.w3c.dom.Element
 
-open class BlockBuilder(method: MethodGenerator, bel : Element) : ExpressionBuilder(method) {
+open class BlockBuilder(method: MethodGenerator, bel : Element) : CodeBuilder(method) {
+
+    fun CodeBlock.Builder.addExprs(el : Element) : CodeBlock.Builder = this.add(expr().addExprs(el).build())
 
     // forward definition saved by previous scan
     var forwards = Locals()
@@ -89,7 +91,7 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : ExpressionBuil
             variable.isReal() -> code.add("( ")
         }
 
-        code.add(expr().addExprs(el).build())
+        code.addExprs(el)
 
         //addExpr(el.children())
 
@@ -143,9 +145,10 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : ExpressionBuil
         val block = object : Block(args) {
             override fun addCode(elem : Element) {
                 var name : String = args.name
+
                 code.add("«%N(", name)
-                addArgs(args)
-                code.add(")\n»")
+                        .add(expr().addArgs(args).build())
+                        .add(")\n»")
             }
         }
 
@@ -155,23 +158,19 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : ExpressionBuil
 
     fun addPrint(args : Element) {
         code.add("«println(")
-
-        addArgs(args.children(), " + ")
-
-        code.add(")\n»")
+                .add(expr().addArgs(args.children(), " + ").build())
+                .add(")\n»")
     }
 
     fun assArr(el : Element) {
         val variable = getVariable(el.name)
         val target = targetName(variable, true)
         code.add("«$target[", variable.name)
-        addArgs(el["args"])
-        code.add("] = ")
-        addExprel(el["expr"])
-        code.add("\n»")
+                .add(expr().addArgs(el["args"]).build())
+                .add("] = ")
+                .add(expr().addExpr(el["expr"]).build())
+                .add("\n»")
     }
-
-
 
     fun addGoto(el : Element) {
         code.add("/* goto */)")
@@ -186,7 +185,7 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : ExpressionBuil
                 when(tag) {
                     "locals" -> locals(elem)
                     "cond" -> {
-                        addExprs(elem)
+                        code.addExprs(elem)
                         code.beginControlFlow(")")
                     }
                     "then" -> addCodeBlock(elem)
@@ -196,7 +195,7 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : ExpressionBuil
                     }
                     "elif" -> {
                         code.add("⇤} else if(")
-                        addExprs(elem)
+                        code.addExprs(elem)
                         code.beginControlFlow(")")
                     }
                     else -> unknown(elem)
@@ -235,13 +234,13 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : ExpressionBuil
                 var args = expr.all("arg")
 
                 code.add("for(%N in ", expr.name)
-                arg(args[0])
+                code.addExprs(args[0])
                 code.add("..")
-                arg(args[1])
+                code.addExprs(args[1])
 
                 if(args.size>2) {
                     code.add(" step ")
-                    arg(args[2])
+                    code.addExprs(args[2])
                 }
 
                 code.beginControlFlow(")")
@@ -254,7 +253,7 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : ExpressionBuil
                      throw RuntimeException("unexpected $expr.name")
 
                 code.add("while (")
-                addExprs(expr)
+                code.addExprs(expr)
                 code.beginControlFlow(")")
 
                 seen = true
