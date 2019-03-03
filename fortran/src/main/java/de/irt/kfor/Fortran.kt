@@ -58,7 +58,7 @@ open class Fortran(val units : Units) {
         fun tanh(a : Double) : Double = Math.tanh(a)
         fun exp(a : Double) : Double = Math.exp(a)
 
-        fun Double.pow(b: Int) : Double = Math.pow(this, b.toDouble())
-        fun Double.pow(b: Double) : Double = Math.pow(this, b)
+        fun pow(a : Double, b: Int) : Double = Math.pow(a, b.toDouble())
+        fun pow(a : Double, b: Double) : Double = Math.pow(a, b)
     }
 }

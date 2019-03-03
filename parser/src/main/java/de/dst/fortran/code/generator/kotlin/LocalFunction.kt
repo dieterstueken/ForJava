@@ -46,7 +46,7 @@ class LocalFunction(generator : UnitGenerator, val element : Element, type : KCl
         val expr = ExpressionBuilder(this)
 
         expr.code.add("«return ")
-        expr.addExpr(assarr["expr"])
+        expr.addExprel(assarr["expr"])
         expr.code.add("\n»")
 
         function.addCode(expr.build())

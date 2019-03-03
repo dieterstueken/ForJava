@@ -333,6 +333,22 @@ public class CodeAnalyzer implements CodeElement {
                 locals.write(variable.name);
         }
 
+        private void doReturn(Element e) {
+            TypeDef type = block.type();
+            if(type==null)
+                return;
+
+            String name = block.name;
+            Variable variable = block.variables.find(name);
+
+            if(variable==null) {
+                // todo: return 0.0
+                variable = block.variables.get(name);
+            }
+
+            locals.read(variable.name);
+        }
+
         private void readData(Element e) {
             for (Element var : childElements(e, "var")) {
                 Variable variable = blockVariable(var);
@@ -387,7 +403,7 @@ public class CodeAnalyzer implements CodeElement {
             switch (name) {
                 case "assvar":
                     // tag statement functions
-                    parseExpr(childElements(e));
+                    parseExpr(e);
                     assVar(e);
                     break;
 
@@ -410,7 +426,7 @@ public class CodeAnalyzer implements CodeElement {
                 case "elif":
                 case "while":
                 case "cond":
-                    parseExpr(childElements(e));
+                    parseExpr(e);
                     break;
 
                 case "for":
@@ -427,6 +443,9 @@ public class CodeAnalyzer implements CodeElement {
                 case "F":
                     setLine(e.getAttribute("line"));
                     break;
+
+                case "return":
+                    doReturn(e);
 
                 default:
                     name.length();
@@ -517,31 +536,56 @@ public class CodeAnalyzer implements CodeElement {
                     arg.setAttribute("type", "expr");
                     if (returned)
                         arg.setAttribute("returned", "true");
-                    parseExpr(childElements(arg));
+                    parseExpr(arg);
                 }
             }
         }
 
-        private void parseExpr(List<Element> expr) {
+        private void pow(Element pow) {
+            Node prev = pow.getPreviousSibling();
+            Node next = pow.getNextSibling();
 
-            for (Element e : expr) {
-                String name = e.getNodeName();
-                switch (name) {
+            if(prev==null || next==null) {
+                throw new IllegalStateException("missing pow rhs");
+            }
 
-                    case "var":
-                        readVariable(e);
-                        break;
+            pow.appendChild(prev);
+            pow.appendChild(createTextNode(","));
+            pow.appendChild(next);
+        }
 
-                    case "fun":
-                        fun(e);
-                        parseExpr(childElements(e));
-                        break;
+        private void mul(Element mul) {
+        }
 
-                    case "b":
-                    default:
-                        parseExpr(childElements(e));
-                        break;
-                }
+        private void div(Element mul) {
+        }
+
+        private void parseExpr(Element expr) {
+
+            childElements(expr, "pow").forEach(this::pow);
+            childElements(expr, "mul").forEach(this::mul);
+            childElements(expr, "div").forEach(this::div);
+
+            childElements(expr).forEach(this::parseElement);
+        }
+
+        private void parseElement(Element e) {
+            String name = e.getNodeName();
+            switch (name) {
+
+                case "var":
+                    readVariable(e);
+                    break;
+
+                case "fun":
+                    fun(e);
+                    // fallthru
+                case "b":
+
+
+                default:
+                    parseExpr(e);
+                    break;
             }
         }
 
@@ -554,7 +598,7 @@ public class CodeAnalyzer implements CodeElement {
                 // no further parsing, expect local variables only
             } else {
                 // parse arguments and rhs
-                parseExpr(childElements(childElement(e, "expr")));
+                childElements(childElement(e, "expr")).forEach(this::parseElement);
             }
 
             return arr;

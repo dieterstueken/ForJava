@@ -89,7 +89,9 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : ExpressionBuil
             variable.isReal() -> code.add("( ")
         }
 
-        addExpr(el.children())
+        code.add(expr().addExprs(el).build())
+
+        //addExpr(el.children())
 
         when {
             variable.isInt() -> code.add(" ).toInt()\n»")
@@ -165,7 +167,7 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : ExpressionBuil
         code.add("«$target[", variable.name)
         addArgs(el["args"])
         code.add("] = ")
-        addExpr(el["expr"])
+        addExprel(el["expr"])
         code.add("\n»")
     }
 
@@ -184,7 +186,7 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : ExpressionBuil
                 when(tag) {
                     "locals" -> locals(elem)
                     "cond" -> {
-                        addExpr(elem.children())
+                        addExprs(elem)
                         code.beginControlFlow(")")
                     }
                     "then" -> addCodeBlock(elem)
@@ -194,7 +196,7 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : ExpressionBuil
                     }
                     "elif" -> {
                         code.add("⇤} else if(")
-                        addExpr(elem.children())
+                        addExprs(elem)
                         code.beginControlFlow(")")
                     }
                     else -> unknown(elem)
@@ -252,7 +254,7 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : ExpressionBuil
                      throw RuntimeException("unexpected $expr.name")
 
                 code.add("while (")
-                addExpr(expr.children())
+                addExprs(expr)
                 code.beginControlFlow(")")
 
                 seen = true

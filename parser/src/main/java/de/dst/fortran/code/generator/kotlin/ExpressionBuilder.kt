@@ -12,6 +12,9 @@ open class ExpressionBuilder(val method: MethodGenerator) {
 
     open fun build() = code.build()
 
+    // sub expression to evaluate
+    fun expr() = ExpressionBuilder(method)
+
     /**
      * lookup a variable within an expression
      */
@@ -45,56 +48,45 @@ open class ExpressionBuilder(val method: MethodGenerator) {
         return target
     }
 
-    fun addExpr(expr : List<Element>) {
-
-        var add : (Element) -> Unit = this::addExpr
-
-        for (elem in expr) {
-            if(elem.getTagName().equals("pow")) {
-                code.add(".pow")
-                add = {
-                    if (it.getTagName() == "b")
-                        braced(it)
-                    else {
-                        code.add("(")
-                        addExpr(it)
-                        code.add(")")
-                    }
-                    // return to normal procedure
-                    add = this::addExpr
-                }
-            } else
-                add(elem)
-        }
+    // analyze and rearrange an expression
+    fun addExprs(expr : Element) : ExpressionBuilder {
+        return addExpr(expr.children())
     }
 
+    fun addExpr(expr : List<Element>) : ExpressionBuilder {
 
-    fun addExpr(expr : Element) {
+        expr.forEach{el -> addExprel(el)}
 
-        val tag = expr.getTagName()
+        return this
+    }
+
+    // add a single expression element
+    fun addExprel(elem : Element) : ExpressionBuilder {
+
+        val tag = elem.getTagName()
         when(tag) {
-            "F" -> codeLine(expr)
-            "f"  -> contLine(expr)
-            "c" -> comment(expr)
-            "C" -> commentLine(expr)
+            "F" -> codeLine(elem)
+            "f"  -> contLine(elem)
+            "c" -> comment(elem)
+            "C" -> commentLine(elem)
 
-            "b" -> braced(expr)
+            "b" -> braced(elem)
 
-            "expr"-> addExpr(expr.children())
+            "expr"-> addExprs(elem)
 
-            "arg" -> arg(expr)
-            "var" -> variable(expr)
-            "val" -> value(expr)
-            "fun" -> function(expr)
-            "string" -> addString(expr)
-            "cat" -> concat(expr)
+            "arg" -> arg(elem)
+            "var" -> variable(elem)
+            "val" -> value(elem)
+            "fun" -> function(elem)
+            "string" -> addString(elem)
+            "cat" -> concat(elem)
 
             "add" -> code.add("+")
             "sub" -> code.add("-")
             "neg" -> code.add("-")
             "mul" -> code.add("*")
             "div" -> code.add("/")
-            "pow" -> code.add(" pow ")
+            "pow" -> pow(elem)
 
             "eq" -> code.add("==")
             "ne" -> code.add("!=")
@@ -106,14 +98,16 @@ open class ExpressionBuilder(val method: MethodGenerator) {
             "and" -> code.add(" && ")
             "or" -> code.add(" || ")
 
-            else -> unknown(expr)
+            else -> unknown(elem)
         }
+
+        return this
     }
 
-    fun arg(expr : Element) {
+    fun arg(expr : Element)  : ExpressionBuilder {
         // ? assigned function argument
         //val assigned = "true".equals(expr.getAttribute("returned"))
-        return addExpr(expr.children())
+        return addExprs(expr)
     }
 
     fun variable(expr : Element) {
@@ -121,6 +115,12 @@ open class ExpressionBuilder(val method: MethodGenerator) {
         val asReference = expr.attributes["returned"]=="true" || variable.type().type== Type.STR
         val target = targetName(variable, asReference)
         code.add("$target", variable.name)
+    }
+
+    fun pow(expr : Element) {
+        code.add("pow(");
+        addArgs(expr.children())
+        code.add(")")
     }
 
     fun function(expr : Element) {
@@ -162,7 +162,7 @@ open class ExpressionBuilder(val method: MethodGenerator) {
         var s = ""
         for (arg in args) {
             code.add(s)
-            addExpr(arg)
+            addExprel(arg)
             s = sep
         }
     }
@@ -199,7 +199,7 @@ open class ExpressionBuilder(val method: MethodGenerator) {
 
     fun concat(expr : Element) {
         code.add(" + ");
-        addExpr(expr.children());
+        addExprs(expr);
     }
 
     fun codeLine(el : Element) = method.buildCodeLine(code, el)
@@ -220,7 +220,7 @@ open class ExpressionBuilder(val method: MethodGenerator) {
 
     fun braced(expr : Element) {
         code.add("(")
-        addExpr(expr.children())
+        addExprs(expr)
         code.add(")")
     }
 

@@ -23,3 +23,5 @@ operator fun NamedNodeMap?.get(name : String) = this?.getNamedItem(name)?.nodeVa
 
 val Element.name : String get() = this.attributes["name"]
 
+fun Element.appendText(text : String) = this.appendChild(this.ownerDocument.createTextNode(text))
+
