@@ -71,13 +71,15 @@ open class ExpressionBuilder(val method: MethodGenerator) {
             "C" -> commentLine(elem)
 
             "b" -> braced(elem)
-
+            "fun" -> function(elem)
             "expr"-> addExprs(elem)
+
+            "prod" -> addExprs(elem)
+            "sum" -> addExprs(elem)
 
             "arg" -> arg(elem)
             "var" -> variable(elem)
             "val" -> value(elem)
-            "fun" -> function(elem)
             "string" -> addString(elem)
             "cat" -> concat(elem)
 

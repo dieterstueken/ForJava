@@ -214,8 +214,80 @@ public class CodeAnalyzer implements CodeElement {
                 case "F":
                     setLine(ce.getAttribute("line"));
                     break;
+
+                case "data":
+                    cleanupExpr(childElement(ce, "values"));
+
             }
         });
+    }
+
+    private void neg(Element neg) {
+        Node next = neg.getNextSibling();
+        if(next==null) {
+            throw new IllegalStateException("missing pow rhs");
+        }
+
+        // push into value
+        if(next.getNodeName().equals("val")) {
+            next.insertBefore(createTextNode("-"), next.getFirstChild());
+            neg.getParentNode().removeChild(neg);
+        } else {
+            // encapsulate next expression
+            neg.appendChild(next);
+        }
+    }
+
+    private void pow(Element pow) {
+        Node prev = pow.getPreviousSibling();
+        Node next = pow.getNextSibling();
+
+        if(prev==null || next==null) {
+            throw new IllegalStateException("missing pow rhs");
+        }
+
+        pow.appendChild(prev);
+        pow.appendChild(createTextNode(","));
+        pow.appendChild(next);
+    }
+
+    private void prod(Element op) {
+        op(op, "prod");
+    }
+
+    private void sum(Element op) {
+        op(op, "sum");
+    }
+
+    private void op(Element op, String name) {
+        Node prev = op.getPreviousSibling();
+        Node next = op.getNextSibling();
+        Node parent = op.getParentNode();
+
+        if(prev==null || next==null) {
+            throw new IllegalStateException("missing mul rhs");
+        }
+
+        if(prev.getNodeName().equals(name)) {
+            prev.appendChild(op);
+            prev.appendChild(next);
+        } else {
+            Element prod = createElement(name);
+            parent.insertBefore(prod, op);
+            prod.appendChild(prev);
+            prod.appendChild(op);
+            prod.appendChild(next);
+        }
+    }
+
+    private void div(Element mul) {
+    }
+
+    void cleanupExpr(Element expr) {
+        childElements(expr, "neg").forEach(this::neg);
+        childElements(expr, "pow").forEach(this::pow);
+        childElements(expr, "mul", "div").forEach(this::prod);
+        childElements(expr, "add", "sub").forEach(this::sum);
     }
 
     Variable array(Element e, Function<String, Variable> variables) {
@@ -326,6 +398,9 @@ public class CodeAnalyzer implements CodeElement {
         }
         
         void assVar(Element e) {
+            // expression first
+            parseExpr(e);
+
             Variable variable = blockVariable(e);
             variable.isAssigned(true);
 
@@ -403,7 +478,6 @@ public class CodeAnalyzer implements CodeElement {
             switch (name) {
                 case "assvar":
                     // tag statement functions
-                    parseExpr(e);
                     assVar(e);
                     break;
 
@@ -420,6 +494,7 @@ public class CodeAnalyzer implements CodeElement {
 
                 case "if":
                 case "do":
+                    String line = CodeAnalyzer.this.line;
                     codeBlock(e);
                     break;
 
@@ -434,6 +509,7 @@ public class CodeAnalyzer implements CodeElement {
                     Variable index = blockVariable(e);
                     index.isAssigned(true);
                     locals.write(index.name);
+                    parseElements(e);
                     break;
 
                 case "then":
@@ -491,6 +567,10 @@ public class CodeAnalyzer implements CodeElement {
             // intrinsic function
             block.functions.add(name);
             e.setAttribute("scope", "intrinsic");
+
+            for (Element arg : childElements(e, "arg")) {
+                parseExpr(arg);
+            }
         }
 
         private void args(Code external, Element e) {
@@ -541,32 +621,15 @@ public class CodeAnalyzer implements CodeElement {
             }
         }
 
-        private void pow(Element pow) {
-            Node prev = pow.getPreviousSibling();
-            Node next = pow.getNextSibling();
-
-            if(prev==null || next==null) {
-                throw new IllegalStateException("missing pow rhs");
-            }
-
-            pow.appendChild(prev);
-            pow.appendChild(createTextNode(","));
-            pow.appendChild(next);
-        }
-
-        private void mul(Element mul) {
-        }
-
-        private void div(Element mul) {
-        }
-
         private void parseExpr(Element expr) {
+            parseElements(expr);
+            cleanupExpr(expr);
+        }
 
-            childElements(expr, "pow").forEach(this::pow);
-            childElements(expr, "mul").forEach(this::mul);
-            childElements(expr, "div").forEach(this::div);
-
-            childElements(expr).forEach(this::parseElement);
+        private void parseElements(Element els) {
+            for (Element ce : childElements(els)) {
+                parseElement(ce);
+            }
         }
 
         private void parseElement(Element e) {
@@ -579,10 +642,9 @@ public class CodeAnalyzer implements CodeElement {
 
                 case "fun":
                     fun(e);
-                    // fallthru
+                    break;
+
                 case "b":
-
-
                 default:
                     parseExpr(e);
                     break;
@@ -595,11 +657,10 @@ public class CodeAnalyzer implements CodeElement {
             if (!arr.isArray()) {
                 arr.context(Context.FUNCTION);
                 e.setAttribute("scope", "function");
-                // no further parsing, expect local variables only
-            } else {
-                // parse arguments and rhs
-                childElements(childElement(e, "expr")).forEach(this::parseElement);
             }
+
+            parseElements(childElement(e, "args"));
+            parseExpr(childElement(e, "expr"));
 
             return arr;
         }

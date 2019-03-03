@@ -1,5 +1,6 @@
 package de.dst.fortran.code.generator.kotlin
 
+import de.dst.fortran.XmlWriter
 import de.dst.fortran.code.Analyzer
 import de.dst.fortran.code.Code
 import de.dst.fortran.code.Common
@@ -33,13 +34,17 @@ class CodeGenerators(val root : File, val packageRoot : String) {
 fun main(args: Array<String>) {
 
     val document = Analyzer.parse(*args)
-    val analyzer = Analyzer.analyze(document)
+    try {
+        val analyzer = Analyzer.analyze(document)
 
-    val root = File("irt3d/src/main/kotlin")
-    val generator = CodeGenerators(root, "de.irt.kfor.irt3d")
+        val root = File("irt3d/src/main/kotlin")
+        val generator = CodeGenerators(root, "de.irt.kfor.irt3d")
 
-    analyzer.commons().forEach(generator.commons::add)
-    analyzer.units().forEach(generator.units::add)
+        analyzer.commons().forEach(generator.commons::add)
+        analyzer.units().forEach(generator.units::add)
 
-    generator.generate();
+        generator.generate()
+    } finally {
+        XmlWriter.writeDocument(document, File("parsed.xml"))
+    }
 }

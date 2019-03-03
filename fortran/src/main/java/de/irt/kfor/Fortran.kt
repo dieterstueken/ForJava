@@ -15,6 +15,7 @@ open class Fortran(val units : Units) {
         fun alog10(value : Double) = kotlin.math.log10(value)
         fun alog(value : Double) = kotlin.math.ln(value)
         fun sqrt(value : Double) = kotlin.math.sqrt(value)
+        fun dsqrt(value : Double) = kotlin.math.sqrt(value)
 
         fun csqrt(v : Cpx) : Cpx = v.csqrt()
         operator fun Double.plus(v : Cpx) = v+this
@@ -26,6 +27,8 @@ open class Fortran(val units : Units) {
         fun cabs(value : Cpx) = value.cabs()
 
         fun toInt(value : Double) : Int = value.toInt()
+        fun idint(value : Double) : Int = value.toInt()
+        fun ifix(value : Double) : Int = value.toInt()
         fun toReal(value : Int) : Double = value.toDouble()
         fun dble(value : Int) : Double = value.toDouble()
         fun dble(value : Double) : Double = value.toDouble()
@@ -54,6 +57,7 @@ open class Fortran(val units : Units) {
         fun sin(a : Double) : Double = Math.sin(a)
         fun cos(a : Double) : Double = Math.cos(a)
         fun atan2(a : Double, b: Double) : Double = Math.atan2(a,b)
+        fun datan2(a : Double, b: Double) : Double = Math.atan2(a,b)
         fun atan(a : Double) : Double = Math.atan(a)
         fun tanh(a : Double) : Double = Math.tanh(a)
         fun exp(a : Double) : Double = Math.exp(a)
