@@ -2,13 +2,31 @@ package de.dst.fortran.code.generator.kotlin
 
 import com.squareup.kotlinpoet.CodeBlock
 import de.dst.fortran.code.Locals
+import de.dst.fortran.code.Type
 import de.dst.fortran.code.VStat
 import de.dst.fortran.code.Variable
 import org.w3c.dom.Element
 
 open class BlockBuilder(method: MethodGenerator, bel : Element) : CodeBuilder(method) {
 
-    fun CodeBlock.Builder.addExprs(el : Element) : CodeBlock.Builder = this.add(expr().addExprs(el).build())
+    fun CodeBlock.Builder.addExprs(el : Element) : CodeBlock.Builder {
+        val expr = expr()
+        expr.addExprs(el)
+        return this.add(expr.build())
+    }
+
+    fun addExprs(el : Element) : Type {
+        val expr = expr()
+        val type = expr.addExprs(el)
+        code.add(expr.build())
+        return type
+    }
+
+    fun CodeBlock.Builder.addArgs(el : Element) : CodeBlock.Builder {
+        val expr = expr()
+        expr.addArgs(el)
+        return this.add(expr.build())
+    }
 
     // forward definition saved by previous scan
     var forwards = Locals()
@@ -73,13 +91,37 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : CodeBuilder(me
         locals.write(v.name)
     }
 
+    fun CodeBlock.Builder.addExprs(el : Element, type : Type) : CodeBlock.Builder {
+        val expr = expr()
+        val xtype = expr.addExprs(el)
+
+        val trail = when {
+            type.isInt() && (xtype==null || !xtype.isInt())
+            -> ".toInt()"
+
+            type.isReal() && (xtype==null || !xtype.isReal())
+            -> ".toDouble()"
+
+            else -> ""
+        }
+
+        val build = expr.build();
+
+        if(trail.isNotEmpty()) {
+            when(el.children()[0].name) {
+                "sum", "prod" -> add("(").add(build).add(")").add(trail)
+                else -> add(build).add(trail)
+            }
+        } else
+            this.add(build)
+
+        return this
+    }
+
     fun assVar(el : Element) {
         val variable = getVariable(el.name)
         var name = variable.name
         val target = targetName(variable, false)
-
-        if(method.generator.block.line=="649")
-            variable.isInt()
 
         when {
             !variable.isLocal() -> code.add("«$target = ", name)
@@ -88,40 +130,20 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : CodeBuilder(me
             else -> code.add("«val $target = ", name)
         }
 
-        val expr = expr().addExprs(el)
-        val xtype = expr.type
-        val vtype = variable.type().type
-
-        val trail = when {
-            vtype.isInt() && (xtype==null || !xtype.isInt())
-                    -> ".toInt()"
-
-            vtype.isReal() && (xtype==null || !xtype.isReal())
-                -> ".toDouble()"
-
-            else -> ""
-        }
-
-        if(trail.isNotEmpty()) {
-            when(el.children()[0].name) {
-                "sum", "prod" -> code.add("(").add(expr.build()).add(")").add(trail)
-                else -> code.add(expr.build()).add(trail)
-            }
-        } else
-            code.add(expr.build())
-
-        code.add("\n»")
+        code.addExprs(el, variable.type().type)
+            .add("\n»")
 
         locals.write(variable.name)
     }
-    
+
     fun assArr(el : Element) {
         val variable = getVariable(el.name)
         val target = targetName(variable, true)
+        val type = variable.type
         code.add("«$target[", variable.name)
-                .add(expr().addArgs(el["args"]).build())
+                .addArgs(el["args"])
                 .add("] = ")
-                .add(expr().addExpr(el["expr"]).build())
+                .addExprs(el["expr"], type)
                 .add("\n»")
     }
 
@@ -168,7 +190,7 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : CodeBuilder(me
                 var name : String = args.name
 
                 code.add("«%N(", name)
-                        .add(expr().addArgs(args).build())
+                        .addArgs(args)
                         .add(")\n»")
             }
         }
@@ -179,7 +201,10 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : CodeBuilder(me
 
     fun addPrint(args : Element) {
         code.add("«println(")
-                .add(expr().addArgs(args.children(), " + ").build())
+
+        val expr = expr();
+        expr.addArgs(args.children(), " + ")
+        code.add(expr.build())
                 .add(")\n»")
     }
 
@@ -280,7 +305,7 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : CodeBuilder(me
         }
 
         block.addCode(el.children())
-        
+
         code.add(block.build())
     }
 

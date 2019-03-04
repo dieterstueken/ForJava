@@ -11,7 +11,7 @@ fun KClass<*>.isMutable(): Boolean {
     return String::class == this || this.javaPrimitiveType != null
 }
 
-fun typeOf(klass : KClass<*>) : Type? = when(klass) {
+fun typeOf(klass : KClass<*>) : Type = when(klass) {
         Boolean::class -> Type.L
         Byte::class -> Type.CH
         Char::class -> Type.CH
@@ -22,15 +22,10 @@ fun typeOf(klass : KClass<*>) : Type? = when(klass) {
         Double::class -> Type.R8
         String::class -> Type.STR
         Cplx::class -> Type.CPX
-        else -> null
+        else -> Type.NONE
 }
 
-fun Type?.or(other : Type?) : Type? = when {
-    this==null -> other
-    other==null -> this
-    this.ordinal > other.ordinal -> this
-    else -> other
-}
+operator fun Type.times(that : Type) : Type = this.or(that)
 
 class Types : TypeMap<KClass<*>>() {
 

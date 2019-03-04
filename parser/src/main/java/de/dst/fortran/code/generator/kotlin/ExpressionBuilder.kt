@@ -5,68 +5,55 @@ import org.w3c.dom.Element
 
 open class ExpressionBuilder(method: MethodGenerator) : CodeBuilder(method) {
 
-    var type : Type? = null
+    fun addExprs(expr : Element) = addExprs(expr.children())
 
-    fun updateType(other : Type?) {
-        type = type.or(other)
-    }
+    fun addExprs(expr : List<Element>) : Type {
 
-    fun popType() : Type? {
-        val tmp = type
-        type = null;
-        return tmp
-    }
-
-    fun addExprs(expr : Element) : ExpressionBuilder {
-        return addExprs(expr.children())
-    }
-
-    fun addExprs(expr : List<Element>) : ExpressionBuilder {
-
-        type = popType()
+        var type = Type.NONE
 
         for (el in expr) {
-            addExpr(el)
+            type = type.or(addExpr(el))
         }
 
-        updateType(type)
-
-        return this
+        return type
     }
 
     // add a single expression element
-    fun addExpr(elem : Element) : ExpressionBuilder {
+    fun addExpr(elem : Element) : Type {
 
         val tag = elem.getTagName()
+
+        var type = Type.NONE
+
         when(tag) {
             "F" -> codeLine(elem)
             "f"  -> contLine(elem)
             "c" -> comment(elem)
             "C" -> commentLine(elem)
 
-            "b" -> braced(elem)
-            "fun" -> function(elem)
-            "expr"-> addExprs(elem)
+            "b" -> type = braced(elem)
+            "fun" -> type = function(elem)
+            "expr"-> type = addExprs(elem)
 
             "neg" -> {
                 code.add("-")
-                addExprs(elem)
+                type = addExprs(elem)
             }
             
-            "prod" -> addExprs(elem)
-            "sum" -> addExprs(elem)
+            "prod" -> type = addExprs(elem)
+            "sum" -> type = addExprs(elem)
 
-            "arg" -> arg(elem)
-            "var" -> variable(elem)
-            "val" -> value(elem)
-            "string" -> addString(elem)
-            "cat" -> concat(elem)
+            "arg" -> type = arg(elem)
+            "var" -> type = variable(elem)
+            "val" -> type = value(elem)
+            "string" -> type = addString(elem)
+            "cat" -> type = concat(elem)
 
             "add" -> code.add("+")
             "sub" -> code.add("-")
             "mul" -> code.add("*")
             "div" -> code.add("/")
-            "pow" -> pow(elem)
+            "pow" -> type = pow(elem)
 
             "eq" -> code.add("==")
             "ne" -> code.add("!=")
@@ -81,33 +68,33 @@ open class ExpressionBuilder(method: MethodGenerator) : CodeBuilder(method) {
             else -> unknown(elem)
         }
 
-        return this
+        return type
     }
 
-    fun arg(expr : Element)  : ExpressionBuilder {
+    fun arg(expr : Element)  : Type {
         // ? assigned function argument
         //val assigned = "true".equals(expr.getAttribute("returned"))
         return addExprs(expr)
     }
 
-    fun variable(expr : Element) {
+    fun variable(expr : Element) : Type {
         val variable = method.getVariable(expr)
         val asReference = expr.attributes["returned"]=="true" || variable.type().type== Type.STR
         val target = targetName(variable, asReference)
-        code.add("$target", variable.name)
+        code.add(target, variable.name)
 
-        updateType(variable.type().type)
+        return variable.type().type
     }
 
-    fun pow(expr : Element) {
+    fun pow(expr : Element) : Type {
         code.add("pow(");
         addArgs(expr.children())
         code.add(")")
 
-        updateType(Type.R8)
+        return Type.R8
     }
 
-    fun function(element : Element) {
+    fun function(element : Element) : Type {
 
         var name : String = element.name
 
@@ -115,8 +102,6 @@ open class ExpressionBuilder(method: MethodGenerator) : CodeBuilder(method) {
             val variable = getVariable(name)
             name = variable.name
             val target = targetName(variable, true)
-
-            val type = popType()
 
             if(element.attributes["ref"]=="true") {
                 code.add("$target(", name)
@@ -128,7 +113,7 @@ open class ExpressionBuilder(method: MethodGenerator) : CodeBuilder(method) {
                 code.add("]")
             }
 
-            this.type = type.or(variable.type)
+            return variable.type
         } else {
 
             // conversions
@@ -139,42 +124,38 @@ open class ExpressionBuilder(method: MethodGenerator) : CodeBuilder(method) {
             }
 
             val expr = expr()
+            var type = expr.addArgs(element)
 
             code.add("%N(", name)
-            code.add(expr.addArgs(element).build())
-            code.add(")")
+                    .add(expr.build())
+                    .add(")")
 
-            val type = when {
-                name.equals("min") || name.equals("max") -> expr.type
+            return when {
+                name.equals("min") || name.equals("max") -> type
                 name.startsWith('c') -> Type.CPX
                 else -> Type.intrinsic(name)
             }
-
-            updateType(type)
         }
     }
 
-    fun addArgs(args : Element) : ExpressionBuilder {
+    fun addArgs(args : Element) : Type {
         return addArgs(args.all("arg"))
     }
 
-    fun addArgs(args : List<Element>, sep : String = ", ") : ExpressionBuilder {
+    fun addArgs(args : List<Element>, sep : String = ", ") : Type {
 
         // join all types
-        var type : Type? = null
+        var type : Type = Type.NONE
 
         var s = ""
         for (arg in args) {
             code.add(s)
-            this.type = null
             addExpr(arg)
-            type = type.or(this.type)
+            type *= addExpr(arg)
             s = sep
         }
 
-        this.type = type
-
-        return this;
+        return type;
     }
 
     fun toValue(expr : Element) : Any {
@@ -199,35 +180,35 @@ open class ExpressionBuilder(method: MethodGenerator) : CodeBuilder(method) {
     /**
      * parse a constant value
      */
-    fun value(expr : Element) {
-        var value = toValue(expr)
+    fun value(expr : Element) : Type {
+        val value = toValue(expr)
         code.add("%L", value)
-        updateType(typeOf(value::class))
+        return typeOf(value::class)
     }
 
-    fun addString(expr : Element) {
+    fun addString(expr : Element) : Type {
         val text = expr.textContent
         if(text.length==1) {
             code.add("'%L'", text[0])
-            updateType(Type.CH)
+            return Type.CH
         } else {
             code.add("%S", text)
-            updateType(Type.STR)
+            return Type.STR
         }
     }
 
-    fun concat(expr : Element) {
+    fun concat(expr : Element) : Type {
         code.add(" + ")
         addExprs(expr)
-        updateType(Type.STR)
+        return Type.STR
     }
 
 
-    fun braced(expr : Element) {
+    fun braced(expr : Element)  : Type {
         code.add("(")
-        addExprs(expr)
+        val type = addExprs(expr)
         code.add(")")
+
+        return type
     }
-
-
 }

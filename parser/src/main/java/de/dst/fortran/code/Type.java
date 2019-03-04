@@ -13,11 +13,11 @@ import static de.dst.fortran.code.Value.Kind.*;
  */
 public enum Type {
 
-    L, CH, I2, I4, R4, R8, CPX, STR;
+    NONE, L, CH, I2, I4, R4, R8, CPX, STR;
 
     public static Type parse(String token) {
         if(token==null || token.isEmpty())
-            return null;
+            return NONE;
 
         switch(token) {
             case "character*1": return CH;
@@ -49,6 +49,10 @@ public enum Type {
             return I4;
 
         return R8;
+    }
+
+    public Type or(Type that) {
+        return this.ordinal() > that.ordinal() ? this : that;
     }
 
     public TypeDef kind(Value.Kind kind) {
