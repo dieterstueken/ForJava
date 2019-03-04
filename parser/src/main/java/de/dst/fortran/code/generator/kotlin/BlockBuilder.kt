@@ -78,30 +78,51 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : CodeBuilder(me
         var name = variable.name
         val target = targetName(variable, false)
 
+        if(method.generator.block.line=="649")
+            variable.isInt()
+
         when {
-            variable.isCpx -> code.add("«$target assign ", name)
             !variable.isLocal() -> code.add("«$target = ", name)
             locals.isDefined(variable.name) -> code.add("«$target = ", name)
             forwards.isModified(variable.name) -> code.add("«var $target = ", name)
             else -> code.add("«val $target = ", name)
         }
 
-        when {
-            variable.isInt() -> code.add("( ")
-            variable.isReal() -> code.add("( ")
+        val expr = expr().addExprs(el)
+        val xtype = expr.type
+        val vtype = variable.type().type
+
+        val trail = when {
+            vtype.isInt() && (xtype==null || !xtype.isInt())
+                    -> ".toInt()"
+
+            vtype.isReal() && (xtype==null || !xtype.isReal())
+                -> ".toDouble()"
+
+            else -> ""
         }
 
-        code.addExprs(el)
+        if(trail.isNotEmpty()) {
+            when(el.children()[0].name) {
+                "sum", "prod" -> code.add("(").add(expr.build()).add(")").add(trail)
+                else -> code.add(expr.build()).add(trail)
+            }
+        } else
+            code.add(expr.build())
 
-        //addExpr(el.children())
-
-        when {
-            variable.isInt() -> code.add(" ).toInt()\n»")
-            variable.isReal() -> code.add(" ).toDouble()\n»")
-            else -> code.add("\n»")
-        }
+        code.add("\n»")
 
         locals.write(variable.name)
+    }
+    
+    fun assArr(el : Element) {
+        val variable = getVariable(el.name)
+        val target = targetName(variable, true)
+        code.add("«$target[", variable.name)
+                .add(expr().addArgs(el["args"]).build())
+                .add("] = ")
+                .add(expr().addExpr(el["expr"]).build())
+                .add("\n»")
     }
 
     fun addCode(elements : Iterable<Element>) : BlockBuilder {
@@ -160,16 +181,6 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : CodeBuilder(me
         code.add("«println(")
                 .add(expr().addArgs(args.children(), " + ").build())
                 .add(")\n»")
-    }
-
-    fun assArr(el : Element) {
-        val variable = getVariable(el.name)
-        val target = targetName(variable, true)
-        code.add("«$target[", variable.name)
-                .add(expr().addArgs(el["args"]).build())
-                .add("] = ")
-                .add(expr().addExpr(el["expr"]).build())
-                .add("\n»")
     }
 
     fun addGoto(el : Element) {

@@ -32,7 +32,7 @@ public class Types extends TypeMap<Class<?>> {
         define(Type.CH, Byte.TYPE, I1.class, I1Arr.class, I1Mat.class);
         define(Type.I2, Short.TYPE, I2.class, I2Arr.class, I2Mat.class, I2Cub.class);
         define(Type.I4, Integer.TYPE, I4.class, I4Arr.class, I4Cub.class, I4Mat.class);
-        define(Type.L4, Boolean.TYPE, L4.class);
+        define(Type.L, Boolean.TYPE, L4.class);
         define(Type.R4, Float.TYPE, R4.class, R4Arr.class, R4Mat.class, R4Cub.class);
         define(Type.R8, Double.TYPE, R8.class, R8Arr.class, R8Mat.class, R8Cub.class);
         define(Type.CPX, Complex.class);

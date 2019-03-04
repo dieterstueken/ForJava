@@ -13,7 +13,7 @@ import static de.dst.fortran.code.Value.Kind.*;
  */
 public enum Type {
 
-    STR, CH, I2, I4, L4, R4, R8, CPX;
+    L, CH, I2, I4, R4, R8, CPX, STR;
 
     public static Type parse(String token) {
         if(token==null || token.isEmpty())
@@ -24,8 +24,11 @@ public enum Type {
             case "integer": return I2;
             case "integer*2": return I2;
             case "integer*4": return I4;
-            case "logical*4": return L4;
-            case "real": return R8;
+            case "logical": return L;
+            case "logical*1": return L;
+            case "logical*2": return L;
+            case "logical*4": return L;
+            case "real": return R4;
             case "real*4": return R4;
             case "real*8": return R8;
             case "complex": return CPX;
@@ -40,7 +43,12 @@ public enum Type {
     }
 
     public static Type intrinsic(String name) {
-        return "ijklmn".indexOf(Character.toLowerCase(name.charAt(0)))>=0 ? I4 : R8;
+        char c = Character.toLowerCase(name.charAt(0));
+
+        if("ijklmn".indexOf(c)>=0)
+            return I4;
+
+        return R8;
     }
 
     public TypeDef kind(Value.Kind kind) {

@@ -5,15 +5,31 @@ import org.w3c.dom.Element
 
 open class ExpressionBuilder(method: MethodGenerator) : CodeBuilder(method) {
 
+    var type : Type? = null
+
+    fun updateType(other : Type?) {
+        type = type.or(other)
+    }
+
+    fun popType() : Type? {
+        val tmp = type
+        type = null;
+        return tmp
+    }
+
     fun addExprs(expr : Element) : ExpressionBuilder {
         return addExprs(expr.children())
     }
 
     fun addExprs(expr : List<Element>) : ExpressionBuilder {
 
+        type = popType()
+
         for (el in expr) {
             addExpr(el)
         }
+
+        updateType(type)
 
         return this
     }
@@ -32,6 +48,11 @@ open class ExpressionBuilder(method: MethodGenerator) : CodeBuilder(method) {
             "fun" -> function(elem)
             "expr"-> addExprs(elem)
 
+            "neg" -> {
+                code.add("-")
+                addExprs(elem)
+            }
+            
             "prod" -> addExprs(elem)
             "sum" -> addExprs(elem)
 
@@ -43,7 +64,6 @@ open class ExpressionBuilder(method: MethodGenerator) : CodeBuilder(method) {
 
             "add" -> code.add("+")
             "sub" -> code.add("-")
-            "neg" -> code.add("-")
             "mul" -> code.add("*")
             "div" -> code.add("/")
             "pow" -> pow(elem)
@@ -75,42 +95,62 @@ open class ExpressionBuilder(method: MethodGenerator) : CodeBuilder(method) {
         val asReference = expr.attributes["returned"]=="true" || variable.type().type== Type.STR
         val target = targetName(variable, asReference)
         code.add("$target", variable.name)
+
+        updateType(variable.type().type)
     }
 
     fun pow(expr : Element) {
         code.add("pow(");
         addArgs(expr.children())
         code.add(")")
+
+        updateType(Type.R8)
     }
 
-    fun function(expr : Element) {
+    fun function(element : Element) {
 
-        var name : String = expr.name
+        var name : String = element.name
 
-        // conversions
-        when(name) {
-            "float" -> name = "toReal"
-            "int" -> name = "toInt"
-            "cmplx" -> name = "Cpx"
-        }
-
-        if(expr.attributes["scope"] == "array") {
+        if(element.attributes["scope"] == "array") {
             val variable = getVariable(name)
             name = variable.name
             val target = targetName(variable, true)
-            if(expr.attributes["ref"]=="true") {
+
+            val type = popType()
+
+            if(element.attributes["ref"]=="true") {
                 code.add("$target(", name)
-                addArgs(expr)
+                addArgs(element)
                 code.add(")")
             } else {
                 code.add("$target[", name)
-                addArgs(expr)
+                addArgs(element)
                 code.add("]")
             }
+
+            this.type = type.or(variable.type)
         } else {
+
+            // conversions
+            when(name) {
+                "float" -> name = "real"
+                "int" -> name = "intg"
+                "cmplx" -> name = "cplx"
+            }
+
+            val expr = expr()
+
             code.add("%N(", name)
-            addArgs(expr)
+            code.add(expr.addArgs(element).build())
             code.add(")")
+
+            val type = when {
+                name.equals("min") || name.equals("max") -> expr.type
+                name.startsWith('c') -> Type.CPX
+                else -> Type.intrinsic(name)
+            }
+
+            updateType(type)
         }
     }
 
@@ -119,49 +159,67 @@ open class ExpressionBuilder(method: MethodGenerator) : CodeBuilder(method) {
     }
 
     fun addArgs(args : List<Element>, sep : String = ", ") : ExpressionBuilder {
+
+        // join all types
+        var type : Type? = null
+
         var s = ""
         for (arg in args) {
             code.add(s)
+            this.type = null
             addExpr(arg)
+            type = type.or(this.type)
             s = sep
         }
 
+        this.type = type
+
         return this;
+    }
+
+    fun toValue(expr : Element) : Any {
+        var text = expr.textContent
+
+        return when(text) {
+            "true" -> true
+            "false" -> false
+            else -> {
+                if(text.contains('.')) {
+                    if(text.contains('d')) {
+                        text = text.replace('d', 'E')
+                        text.toDouble()
+                    } else
+                        text.toFloat()
+                } else
+                    text.toInt()
+            }
+        }
     }
 
     /**
      * parse a constant value
      */
     fun value(expr : Element) {
-        var value = expr.textContent
-
-        when(value) {
-            "true" -> code.add("%L", true)
-            "false" -> code.add("%L", false)
-            else -> {
-                if(value.contains('.')) {
-                    if(value.contains('d')) {
-                        value = value.replace('d', 'E')
-                        code.add("%L", value.toDouble())
-                    } else
-                        code.add("%L", value.toFloat())
-                } else
-                    code.add("%L", value.toInt())
-            }
-        }
+        var value = toValue(expr)
+        code.add("%L", value)
+        updateType(typeOf(value::class))
     }
 
     fun addString(expr : Element) {
         val text = expr.textContent
-        if(text.length==1)
+        if(text.length==1) {
             code.add("'%L'", text[0])
-        else
+            updateType(Type.CH)
+        } else {
             code.add("%S", text)
+            updateType(Type.STR)
+        }
     }
 
     fun concat(expr : Element) {
-        code.add(" + ");
-        addExprs(expr);
+        code.add(" + ")
+        addExprs(expr)
+        updateType(Type.STR)
     }
 
 

@@ -17,21 +17,23 @@ open class Fortran(val units : Units) {
         fun sqrt(value : Double) = kotlin.math.sqrt(value)
         fun dsqrt(value : Double) = kotlin.math.sqrt(value)
 
-        fun csqrt(v : Cpx) : Cpx = v.csqrt()
-        operator fun Double.plus(v : Cpx) = v+this
-        operator fun Double.minus(v : Cpx) = Cpx(this-v.re, v.im)
+        fun csqrt(v : Cplx) : Cplx = v.csqrt()
+        operator fun Double.plus(v : Cplx) = v+this
+        operator fun Double.minus(v : Cplx) = Cplx(this-v.re, v.im)
 
+        fun iabs(value : Int) : Int = value.absoluteValue
         fun abs(value : Double) = value.absoluteValue
-        fun abs(value : Int) = value.absoluteValue
-        fun iabs(value : Int) = value.absoluteValue
-        fun cabs(value : Cpx) = value.cabs()
+        fun abs(value : Int) : Double = value.absoluteValue.toDouble()
+        fun cabs(value : Cplx) = value.cabs()
 
-        fun toInt(value : Double) : Int = value.toInt()
         fun idint(value : Double) : Int = value.toInt()
         fun ifix(value : Double) : Int = value.toInt()
-        fun toReal(value : Int) : Double = value.toDouble()
+
+        fun intg(value : Double) : Int = value.toInt()
+        fun real(value : Int) : Double = value.toDouble()
         fun dble(value : Int) : Double = value.toDouble()
         fun dble(value : Double) : Double = value.toDouble()
+        fun cplx(re : Double, im : Double) = Cplx(re, im)
 
         fun nint(value : Double) : Int = value.roundToInt()
         fun sign(a : Double, b: Double) : Double {
@@ -43,13 +45,13 @@ open class Fortran(val units : Units) {
 
         fun min(a : Double, b: Double) : Double = kotlin.math.min(a,b)
         fun min0(a : Int, b: Int) : Int = kotlin.math.min(a,b)
-        fun amin0(a : Int, b: Int) : Int = kotlin.math.min(a,b)
+        fun amin0(a : Int, b: Int) : Double = kotlin.math.min(a,b).toDouble()
         fun amin1(a : Double, b: Double) : Double = kotlin.math.min(a,b)
 
         fun max(a : Double, b: Double) : Double = kotlin.math.max(a,b)
         fun max(a : Double, b: Double, c:Double) : Double = kotlin.math.max(kotlin.math.max(a,b), c)
         fun max0(a : Int, b: Int) : Int = kotlin.math.max(a,b)
-        fun amax0(a : Int, b: Int) : Int = kotlin.math.max(a,b)
+        fun amax0(a : Int, b: Int) : Double = kotlin.math.max(a,b).toDouble()
         fun amax1(a : Double, b: Double) : Double = kotlin.math.max(a,b)
 
         fun len_trim(s : Str) : Int = s.v.trim().length

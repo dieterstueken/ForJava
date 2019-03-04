@@ -28,7 +28,7 @@ fun TypeDef.baseType() : KClass<*> =
             Type.I2 -> I2::class
             Type.CH -> Ch::class
             Type.STR -> Str::class
-            Type.CPX -> Cpx::class
+            Type.CPX -> Cplx::class
             else ->
                 throw RuntimeException(this.toString())
         }
@@ -40,6 +40,7 @@ fun Variable.initialize(klass : KClass<*>) = when(klass) {
     Char::class -> CodeBlock.of("' '")
     String::class -> CodeBlock.of("\"\"")
     Boolean::class -> CodeBlock.of("false")
+    CRef::class -> CodeBlock.of("%T()", klass)
     else -> {
         val type = this.type().baseType()
         if(this.props.contains(Variable.Prop.ALLOCATABLE))
@@ -70,7 +71,7 @@ abstract class ClassGenerator(val generators : CodeGenerators, val className : C
 
     fun Variable.asProperty() : PropertySpec {
         val klass = getKlass(type())
-
+        
         val isAllocated = props.contains(Variable.Prop.ALLOCATABLE)
 
         //var typeName = klass.asTypeName()

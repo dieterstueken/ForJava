@@ -47,7 +47,7 @@ open class CodeBuilder(val method: MethodGenerator) {
 
         target += "%N"
 
-        if(!asReference && variable.isProperty() && !variable.isCpx())
+        if(!asReference && variable.isProperty())
             target += ".v"
 
         return target
