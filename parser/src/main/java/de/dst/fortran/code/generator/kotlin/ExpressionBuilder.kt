@@ -12,7 +12,7 @@ open class ExpressionBuilder(method: MethodGenerator) : CodeBuilder(method) {
         var type = Type.NONE
 
         for (el in expr) {
-            type = type.or(addExpr(el))
+            type *= addExpr(el)
         }
 
         return type
@@ -79,11 +79,11 @@ open class ExpressionBuilder(method: MethodGenerator) : CodeBuilder(method) {
 
     fun variable(expr : Element) : Type {
         val variable = method.getVariable(expr)
-        val asReference = expr.attributes["returned"]=="true" || variable.type().type== Type.STR
+        val asReference = expr.attributes["returned"]=="true" || variable.typeDef().type== Type.STR
         val target = targetName(variable, asReference)
         code.add(target, variable.name)
 
-        return variable.type().type
+        return variable.typeDef().type
     }
 
     fun pow(expr : Element) : Type {
@@ -150,7 +150,6 @@ open class ExpressionBuilder(method: MethodGenerator) : CodeBuilder(method) {
         var s = ""
         for (arg in args) {
             code.add(s)
-            addExpr(arg)
             type *= addExpr(arg)
             s = sep
         }

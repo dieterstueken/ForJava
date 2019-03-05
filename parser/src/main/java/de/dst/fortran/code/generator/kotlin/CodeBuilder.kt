@@ -35,7 +35,7 @@ open class CodeBuilder(val method: MethodGenerator) {
             return false;
     }
 
-    fun Variable.asKlass(): KClass<*> = method.generator.getKlass(this.type())
+    fun Variable.asKlass(): KClass<*> = method.generator.getKlass(this.typeDef())
 
     fun targetName(variable : Variable, asReference: Boolean) : String {
         var target = ""

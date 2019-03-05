@@ -98,7 +98,7 @@ public class MethodGenerator {
     }
 
     JVar param(Variable var) {
-        JVar param = jmethod.param(JMod.FINAL, codeGenerator.typeOf(var.type()), var.name);
+        JVar param = jmethod.param(JMod.FINAL, codeGenerator.typeOf(var.typeDef()), var.name);
         variables.put(var.name, param);
         return param;
     }

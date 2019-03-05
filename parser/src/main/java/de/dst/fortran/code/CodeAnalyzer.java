@@ -59,10 +59,7 @@ public class CodeAnalyzer implements CodeElement {
     CodeAnalyzer(Analyzer analyzer, Element be) {
         this.analyzer = analyzer;
         this.be = be;
-        block = new Code(be.getAttribute("name"));
-        block.type = be.getNodeName();
-        block.returnType = parseType(be.getAttribute("type"), Value.Kind.PRIMITIVE);
-        block.path = Analyzer.getPath(be);
+        block = new Code(Analyzer.getPath(be), be);
         be.setAttribute("path", block.path);
 
         System.out.format("  define %s:%s\n", block.path, block.name);
@@ -442,8 +439,8 @@ public class CodeAnalyzer implements CodeElement {
         }
 
         private void doReturn(Element e) {
-            TypeDef type = block.type();
-            if(type==null)
+            Type type = block.getReturnType();
+            if(type==Type.NONE)
                 return;
 
             String name = block.name;

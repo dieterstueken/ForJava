@@ -29,14 +29,14 @@ operator fun Type.times(that : Type) : Type = this.or(that)
 
 class Types : TypeMap<KClass<*>>() {
 
-    override fun get(type: TypeDef?): KClass<*> {
-        return if (type == null)
+    override fun get(definition: TypeDef?): KClass<*> {
+        return if (definition == null || definition.type==Type.NONE)
             Unit::class
         else {
-            val resolve = super.get(type)
+            val resolve = super.get(definition)
 
             if(resolve==null)
-                throw NullPointerException("invalid type: $type")
+                throw NullPointerException("invalid type: $definition")
 
             return resolve
         }

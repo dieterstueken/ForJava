@@ -121,7 +121,7 @@ class UnitGenerator extends MethodGenerator {
         Element assarr = childElement(fun, "assarr");
 
         MethodGenerator method = new MethodGenerator(codeGenerator, jclass);
-        method.method(JMod.PUBLIC|JMod.STATIC, var.type(), name);
+        method.method(JMod.PUBLIC|JMod.STATIC, var.typeDef(), name);
         method.jmethod.mods();
 
         Entities<Variable> arguments = new Entities<>(Variable::new);
@@ -156,7 +156,7 @@ class UnitGenerator extends MethodGenerator {
 
     void body() {
 
-        method(JMod.PUBLIC, element.code().type(), "call");
+        method(JMod.PUBLIC, element.code().getReturnType().primitive(), "call");
 
         header(childElement(element.getElement(), "decl"));
 
@@ -201,7 +201,7 @@ class UnitGenerator extends MethodGenerator {
         for (Variable var : element.code().variables) {
             if (var.context == null && var.isPrimitive()) {
 
-                final Class<?> type = codeGenerator.typeOf(var.type());
+                final Class<?> type = codeGenerator.typeOf(var.typeDef());
                 AbstractJType jType = codeGenerator.codeModel._ref(type);
                 IJExpression init = Boolean.class.isAssignableFrom(type) ? JExpr.FALSE : JExpr.lit(0);
                 JVar jvar = jbody.decl(jType, var.name, init);

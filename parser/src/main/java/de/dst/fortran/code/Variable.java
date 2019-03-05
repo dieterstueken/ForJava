@@ -17,7 +17,7 @@ public class Variable extends Entity implements Value {
 
     public final Set<Prop> props = EnumSet.noneOf(Prop.class);
 
-    public Type type = null;
+    Type type = null;
 
     public List<Value> dim = Collections.emptyList();
 
@@ -76,8 +76,7 @@ public class Variable extends Entity implements Value {
         return props.contains(MODIFIED);
     }
 
-
-    public TypeDef type() {
+    public TypeDef typeDef() {
         Type type = this.type != null ? this.type : Type.intrinsic(name);
 
         if(isPrimitive()) {
@@ -88,16 +87,20 @@ public class Variable extends Entity implements Value {
         return tmp;
     }
 
+    public Type getType() {
+        return typeDef().getType();
+    }
+
     public boolean isInt() {
-        return type().getType().isInt();
+        return getType().isInt();
     }
 
     public boolean isReal() {
-        return type().getType().isReal();
+        return getType().isReal();
     }
 
     public boolean isCpx() {
-        return type().getType().equals(Type.CPX);
+        return getType().equals(Type.CPX);
     }
 
     public String getRefName() {
@@ -111,7 +114,7 @@ public class Variable extends Entity implements Value {
         if(toString==null) {
             StringBuffer buffer = new StringBuffer();
 
-            buffer.append(type());
+            buffer.append(typeDef());
             buffer.append(" ");
 
             if (context != null)

@@ -24,7 +24,7 @@ class LocalFunction(generator : UnitGenerator, val element : Element, type : KCl
                 throw IllegalArgumentException("undefined function: ${element.name}")
 
             // ask generator
-            val type = generator.getKlass(variable.type())
+            val type = generator.getKlass(variable.typeDef())
 
             return LocalFunction(generator, element, type)
         }

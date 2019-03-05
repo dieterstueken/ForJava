@@ -16,7 +16,7 @@ import kotlin.reflect.KClass
  */
 
 fun Variable?.isProperty() : Boolean {
-    val type = this?.type()
+    val type = this?.typeDef()
     return type?.kind == Value.Kind.PROPERTY
 }
 
@@ -42,7 +42,7 @@ fun Variable.initialize(klass : KClass<*>) = when(klass) {
     Boolean::class -> CodeBlock.of("false")
     CRef::class -> CodeBlock.of("%T()", klass)
     else -> {
-        val type = this.type().baseType()
+        val type = this.typeDef().baseType()
         if(this.props.contains(Variable.Prop.ALLOCATABLE))
             when (this.dim.size) {
                 1 -> CodeBlock.of("%T.arr()", type)
@@ -70,7 +70,7 @@ abstract class ClassGenerator(val generators : CodeGenerators, val className : C
     fun getKlass(type : TypeDef?) : KClass<*> = generators.types.get(type)
 
     fun Variable.asProperty() : PropertySpec {
-        val klass = getKlass(type())
+        val klass = getKlass(typeDef())
         
         val isAllocated = props.contains(Variable.Prop.ALLOCATABLE)
 

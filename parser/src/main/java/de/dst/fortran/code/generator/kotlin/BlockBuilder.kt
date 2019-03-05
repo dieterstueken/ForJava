@@ -108,7 +108,8 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : CodeBuilder(me
         val build = expr.build();
 
         if(trail.isNotEmpty()) {
-            when(el.children()[0].name) {
+            val tag  = (el.firstChild as? Element)?.tagName
+            when(tag) {
                 "sum", "prod" -> add("(").add(build).add(")").add(trail)
                 else -> add(build).add(trail)
             }
@@ -130,7 +131,7 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : CodeBuilder(me
             else -> code.add("«val $target = ", name)
         }
 
-        code.addExprs(el, variable.type().type)
+        code.addExprs(el, variable.typeDef().type)
             .add("\n»")
 
         locals.write(variable.name)

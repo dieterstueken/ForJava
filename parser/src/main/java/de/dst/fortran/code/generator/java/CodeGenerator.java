@@ -86,7 +86,7 @@ public class CodeGenerator {
     }
 
     JFieldVar defineVariable(JDefinedClass jc, Variable var, int mod) {
-        Class<?> type = typeOf(var.type());
+        Class<?> type = typeOf(var.typeDef());
 
         IJExpression expr = null;
 

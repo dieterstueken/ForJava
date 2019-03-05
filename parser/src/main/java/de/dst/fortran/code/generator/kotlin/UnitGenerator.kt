@@ -49,24 +49,21 @@ class UnitGenerator(generators : CodeGenerators, val block : CodeElement, classN
 
     fun setLineNumber(line : String?) {
         lineNumber = if(line==null || line.isEmpty()) 0 else line.toInt()
-        //debug(lineNumber)
+        debug(block.name, lineNumber)
     }
 
-    fun debug(linenum : Int) : Boolean {
-        if(block.name == "corfa" && lineNumber==42)
-            return true
-        else
-            return false
+    fun debug(name : String, line : Int) {
+
     }
 
     val code = block.code()
 
-    val type : KClass<*> = getKlass(code.type())
+    val type : KClass<*> = getKlass(code.getReturnType().primitive())
 
     // variable
     val retval : Variable? = if(Unit::class==type) null else
         Variable(block.name)
-                .type(code.type().type)
+                .type(code.getReturnType())
                 .prop(Variable.Prop.ASSIGNED)
                 .prop(Variable.Prop.RETURNED)
 

@@ -42,6 +42,14 @@ public enum Type {
         throw new IllegalArgumentException(token);
     }
 
+    // parse or fallback to intrinsic
+    public static Type parse(String token, String name) {
+        if(token==null || token.isEmpty())
+            return intrinsic(name);
+        else
+            return Type.parse(token);
+    }
+
     public static Type intrinsic(String name) {
         char c = Character.toLowerCase(name.charAt(0));
 

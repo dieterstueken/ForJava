@@ -1,5 +1,7 @@
 package de.dst.fortran.code;
 
+import org.w3c.dom.Element;
+
 import java.util.HashSet;
 import java.util.Set;
 
@@ -11,17 +13,25 @@ import java.util.Set;
  */
 public class Code extends Entity {
 
-    public String path = null;
+    public final String path;
 
-    String type = null;
+    final String unitType;
 
-    TypeDef returnType = null;
+    final Type returnType;
 
-    public TypeDef type() {
-        if(!this.type.equals("function"))
-            return null;  // subroutine
+    public Code(String path, Element be) {
+        super(be.getAttribute("name"));
+        this.path = path;
+        unitType = be.getNodeName();
 
-        return this.returnType != null ? this.returnType : Type.intrinsic(name).primitive();
+        if(unitType.equals("function"))
+            returnType = Type.parse(be.getAttribute("type"), name);
+        else
+            returnType = Type.NONE;
+    }
+
+    public Type getReturnType() {
+        return this.returnType;
     }
 
     public final Entities<Variable> variables = new Entities<>(Variable::new);
@@ -34,17 +44,13 @@ public class Code extends Entity {
 
     public final Entities<CommonAnalyzer> commons = new Entities<>(this::newCommon);
 
-    public Code(String name) {
-        super(name);
-    }
-
     private CommonAnalyzer newCommon(String name) {
         return new CommonAnalyzer(name, variables::get);
     }
 
     public void dump() {
 
-        System.out.format("%s %s\n", name, type);
+        System.out.format("%s %s\n", name, unitType);
 
         arguments.forEach(v ->
                 System.out.format("%s %s\n", v.isAssigned() ? "*":" ", v)
