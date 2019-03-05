@@ -51,6 +51,9 @@ open class ExpressionBuilder(method: MethodGenerator) : CodeBuilder(method) {
             "string" -> type = addString(elem)
             "cat" -> type = concat(elem)
 
+            "cycle" -> code.add("continue")
+            "exit" -> code.add("break")
+
             "add" -> code.add("+")
             "sub" -> code.add("-")
             "mul" -> code.add("*")
@@ -143,6 +146,7 @@ open class ExpressionBuilder(method: MethodGenerator) : CodeBuilder(method) {
 
             return when {
                 MIN_MAX.matches(name) -> type
+                name=="cos" -> Type.R8
                 name.startsWith('c') -> Type.CPX
                 else -> Type.intrinsic(name)
             }
