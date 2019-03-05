@@ -14,6 +14,11 @@ open class Fortran(val units : Units) {
     companion object {
         fun alog10(value : Double) = kotlin.math.log10(value)
         fun alog(value : Double) = kotlin.math.ln(value)
+        fun dlog10(value : Double) = kotlin.math.log10(value)
+        fun dlog(value : Double) = kotlin.math.ln(value)
+        fun exp(a : Double) : Double = Math.exp(a)
+        fun dexp(a : Double) : Double = Math.exp(a)
+
         fun sqrt(value : Double) = kotlin.math.sqrt(value)
         fun dsqrt(value : Double) = kotlin.math.sqrt(value)
 
@@ -43,28 +48,40 @@ open class Fortran(val units : Units) {
                 return b.absoluteValue
         }
 
+        fun min(a : Int, b: Int) : Int = kotlin.math.min(a,b)
         fun min(a : Double, b: Double) : Double = kotlin.math.min(a,b)
         fun min0(a : Int, b: Int) : Int = kotlin.math.min(a,b)
-        fun amin0(a : Int, b: Int) : Double = kotlin.math.min(a,b).toDouble()
+        fun amin0(a : Int, b: Int) : Int = kotlin.math.min(a,b)
         fun amin1(a : Double, b: Double) : Double = kotlin.math.min(a,b)
 
         fun max(a : Double, b: Double) : Double = kotlin.math.max(a,b)
         fun max(a : Double, b: Double, c:Double) : Double = kotlin.math.max(kotlin.math.max(a,b), c)
         fun max0(a : Int, b: Int) : Int = kotlin.math.max(a,b)
-        fun amax0(a : Int, b: Int) : Double = kotlin.math.max(a,b).toDouble()
+        fun amax0(a : Int, b: Int) : Int = kotlin.math.max(a,b)
+        fun amax0(vararg a : Int) : Int {
+            var m = a[0]
+            for (i in 1 until a.size)
+                m = amax0(m, a[i])
+
+            return m
+        }
+
         fun amax1(a : Double, b: Double) : Double = kotlin.math.max(a,b)
 
         fun len_trim(s : Str) : Int = s.v.trim().length
         
         fun sin(a : Double) : Double = Math.sin(a)
         fun cos(a : Double) : Double = Math.cos(a)
+        fun tan(a : Double) : Double = Math.tan(a)
         fun atan2(a : Double, b: Double) : Double = Math.atan2(a,b)
         fun datan2(a : Double, b: Double) : Double = Math.atan2(a,b)
+        fun asin(a : Double) : Double = Math.asin(a)
+        fun acos(a : Double) : Double = Math.acos(a)
         fun atan(a : Double) : Double = Math.atan(a)
         fun tanh(a : Double) : Double = Math.tanh(a)
-        fun exp(a : Double) : Double = Math.exp(a)
 
         fun pow(a : Double, b: Int) : Double = Math.pow(a, b.toDouble())
+        fun pow(a : Int, b: Int) : Double = Math.pow(a.toDouble(), b.toDouble())
         fun pow(a : Double, b: Double) : Double = Math.pow(a, b)
     }
 }

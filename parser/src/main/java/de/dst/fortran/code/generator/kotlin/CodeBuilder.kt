@@ -1,6 +1,7 @@
 package de.dst.fortran.code.generator.kotlin
 
 import com.squareup.kotlinpoet.CodeBlock
+import de.dst.fortran.code.Type
 import de.dst.fortran.code.Variable
 import org.w3c.dom.Element
 import kotlin.reflect.KClass
@@ -37,6 +38,12 @@ open class CodeBuilder(val method: MethodGenerator) {
 
     fun Variable.asKlass(): KClass<*> = method.generator.getKlass(this.typeDef())
 
+    fun asType(name : String) : Type =
+        if(name.isNotEmpty())
+            Type.valueOf(name)
+        else
+            Type.NONE
+
     fun targetName(variable : Variable, asReference: Boolean) : String {
         var target = ""
 
@@ -60,7 +67,7 @@ open class CodeBuilder(val method: MethodGenerator) {
     fun comment(expr : Element) {
         var text : String? = expr.getTextContent()
         if(text!=null && text.isNotEmpty()) {
-            code.add("//%L\n", text)
+            code.add("// %L\n", text.trim())
         } else
             code.add("\n");
     }

@@ -105,7 +105,7 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : CodeBuilder(me
             else -> ""
         }
 
-        val build = expr.build();
+        val build = expr.build()
 
         if(trail.isNotEmpty()) {
             val tag  = (el.firstChild as? Element)?.tagName

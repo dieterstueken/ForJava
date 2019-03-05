@@ -3,6 +3,8 @@ package de.dst.fortran.code.generator.kotlin
 import de.dst.fortran.code.Type
 import org.w3c.dom.Element
 
+val MIN_MAX = Regex( "a?(min|max)\\d?")
+
 open class ExpressionBuilder(method: MethodGenerator) : CodeBuilder(method) {
 
     fun addExprs(expr : Element) = addExprs(expr.children())
@@ -130,8 +132,17 @@ open class ExpressionBuilder(method: MethodGenerator) : CodeBuilder(method) {
                     .add(expr.build())
                     .add(")")
 
+            // possible local function
+            val lf = method.generator.functions.get(name)
+            if(lf!=null)
+                return lf.variable.type
+
+            val rtype = asType(element.attributes["type"])
+            if(rtype!=Type.NONE)
+                return rtype;
+
             return when {
-                name.equals("min") || name.equals("max") -> type
+                MIN_MAX.matches(name) -> type
                 name.startsWith('c') -> Type.CPX
                 else -> Type.intrinsic(name)
             }

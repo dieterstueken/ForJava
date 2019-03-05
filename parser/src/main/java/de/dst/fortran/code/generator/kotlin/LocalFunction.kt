@@ -13,7 +13,7 @@ import kotlin.reflect.KClass
  * Date: 19.01.19
  * Time: 13:16
  */
-class LocalFunction(generator : UnitGenerator, val element : Element, type : KClass<*>)
+class LocalFunction(generator : UnitGenerator, val element : Element, val variable : Variable, type : KClass<*>)
     : MethodGenerator(generator, element.name, type) {
 
     companion object {
@@ -26,7 +26,7 @@ class LocalFunction(generator : UnitGenerator, val element : Element, type : KCl
             // ask generator
             val type = generator.getKlass(variable.typeDef())
 
-            return LocalFunction(generator, element, type)
+            return LocalFunction(generator, element, variable, type)
         }
     }
 

@@ -589,6 +589,7 @@ public class CodeAnalyzer implements CodeElement {
                 Code external = analyzer.block(name);
                 if (external != null) {
                     args(external, e);
+                    e.setAttribute("type", external.returnType.name());
                     return;
                 }
             }
@@ -597,9 +598,6 @@ public class CodeAnalyzer implements CodeElement {
             block.functions.add(name);
             e.setAttribute("scope", "intrinsic");
 
-            for (Element arg : childElements(e, "arg")) {
-                parseExpr(arg);
-            }
         }
 
         private void args(Code external, Element e) {
@@ -671,6 +669,11 @@ public class CodeAnalyzer implements CodeElement {
 
                 case "fun":
                     fun(e);
+
+                    for (Element arg : childElements(e, "arg")) {
+                        parseExpr(arg);
+                    }
+
                     break;
 
                 case "b":
@@ -747,7 +750,7 @@ public class CodeAnalyzer implements CodeElement {
                     Element functions = functions();
 
                     Element function = createElement("function");
-                    function.setAttribute("name", e.getAttribute("name"));
+                    function.setAttribute("name", name);
 
                     newLine(functions);
                     functions.appendChild(function);

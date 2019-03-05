@@ -67,6 +67,8 @@ class UnitGenerator(generators : CodeGenerators, val block : CodeElement, classN
                 .prop(Variable.Prop.ASSIGNED)
                 .prop(Variable.Prop.RETURNED)
 
+    val functions = mutableMapOf<String, LocalFunction>()
+
     fun getVariable(name: String) : Variable {
 
         if(name == block.name)
@@ -129,7 +131,11 @@ class UnitGenerator(generators : CodeGenerators, val block : CodeElement, classN
         return this;
     }
 
-    fun localFunction(func: Element) = LocalFunction(this, func).build();
+    fun localFunction(func: Element) : FunSpec {
+        val lf = LocalFunction(this, func)
+        functions.put(lf.element.name, lf)
+        return lf.build()
+    }
 
     fun mainFunction() = MainFunction(this).build()
 }
