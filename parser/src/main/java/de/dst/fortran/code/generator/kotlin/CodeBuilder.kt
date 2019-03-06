@@ -46,7 +46,7 @@ open class CodeBuilder(val method: MethodGenerator) {
 
     fun targetName(variable : Variable, asReference: Boolean) : String {
         var target = ""
-
+        
         if(variable.context!=null) {
             if(variable.context!=method.generator.code)
                 target = "${variable.context.name}."

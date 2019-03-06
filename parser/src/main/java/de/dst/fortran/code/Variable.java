@@ -2,7 +2,8 @@ package de.dst.fortran.code;
 
 import java.util.*;
 
-import static de.dst.fortran.code.Variable.Prop.MODIFIED;
+import static de.dst.fortran.code.Type.I4;
+import static de.dst.fortran.code.Variable.Prop.*;
 
 /**
  * version:     $Revision$
@@ -13,7 +14,9 @@ import static de.dst.fortran.code.Variable.Prop.MODIFIED;
  */
 public class Variable extends Entity implements Value {
 
-    public enum Prop {EXPLICIT, ARGUMENT, ASSIGNED, MODIFIED, REFERENCED, RETURNED, ALLOCATABLE}
+    public enum Prop {EXPLICIT, ARGUMENT, ASSIGNED, MODIFIED, REFERENCED, RETURNED, INDEX, ALLOCATABLE}
+
+    public static final List<String> INDEX_NAMES = List.of("ni", "nj", "nk");
 
     public final Set<Prop> props = EnumSet.noneOf(Prop.class);
 
@@ -51,7 +54,6 @@ public class Variable extends Entity implements Value {
         return false;
     }
 
-
     public boolean isPrimitive() {
         if(isArray())
             return false;
@@ -74,6 +76,21 @@ public class Variable extends Entity implements Value {
 
     public boolean isModified() {
         return props.contains(MODIFIED);
+    }
+
+    public boolean isIndex() {
+        return props.contains(INDEX);
+    }
+
+    // was used to allocate an array
+    public boolean wasIndex() {
+        return isIndex() || (ref!=null && ref.isIndex());
+    }
+
+    public int getIndex() {
+        if(isIndex() && ref!=null)
+            return ref.dim.indexOf(this);
+        return -1;
     }
 
     public TypeDef typeDef() {
@@ -160,9 +177,15 @@ public class Variable extends Entity implements Value {
     }
 
     public Variable isAssigned(boolean assigned) {
-        if(assigned)
-            if(!props.add(Prop.ASSIGNED))
+        if(assigned) {
+            if(isIndex()) {
+                System.err.format("index assignment: %s\n", name);
+                //throw new IllegalStateException("assign to index");
+            }
+            
+            if (!props.add(Prop.ASSIGNED))
                 props.add(MODIFIED);
+        }
 
         return this;
     }
@@ -183,14 +206,46 @@ public class Variable extends Entity implements Value {
         return props.contains(Prop.REFERENCED);
     }
 
+    // add dimension
     public Variable dim(Value dim) {
         if(this.dim==null || this.dim.isEmpty())
             this.dim=new ArrayList<>();
 
-        this.dim.add(dim);
+        return dim(this.dim.size(), dim);
+    }
+
+    // set/allocate dimension
+    public Variable dim(int i, Value dim) {
+
+        if(i<this.dim.size())
+            this.dim.set(i, dim);
+        else
+            this.dim.add(dim);
+
+        if(dim instanceof Variable) {
+            ((Variable)dim).asIndexOf(this, i);
+        }
+
         this.toString = null;
 
         return this;
+    }
+
+    // setup index reference
+    void asIndexOf(Variable arr, int dim) {
+        if(ref!=null) {
+            // is already index ...
+            if(!ref.isIndex()) // should be an array, too
+                throw new IllegalArgumentException("dimension mismatch)");
+        } else {
+            String name = INDEX_NAMES.get(dim);
+            this.ref = new Variable(name, arr).prop(INDEX).type(I4);
+
+            // allocatable index is not propagated
+            // this will stay a normal variable which was used to dimension an array
+            if(!arr. props.contains(ALLOCATABLE))
+                this.prop(INDEX);
+        }
     }
 
     public Variable type(Type type) {

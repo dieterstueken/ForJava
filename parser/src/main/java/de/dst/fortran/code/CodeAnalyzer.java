@@ -111,19 +111,26 @@ public class CodeAnalyzer implements CodeElement {
         });
 
         // finally refresh arguments again
-        //childElements(be, "args").findFirst().ifPresent(this::prepareArgs);
+        childElements(childElement(be, "args"), "arg").forEach(this::setupArg);
     }
 
-    //void prepareArgs(Element args) {
-    //    variables(args, define(block.arguments::get));
-    //}
+    void setupArg(Element arg) {
+        arg = childElement(arg, "var");
+        String name = arg.getAttribute("name");
+        Variable v = block.arguments.find(name);
+        if(v==null || !v.isArgument())
+            throw new IllegalStateException("missing arg " + name);
+
+        setup(arg, v);
+
+    }
 
     private void args(Element args) {
         Analyzer.childElements(args, "arg").stream()
                 .flatMap(ce-> Analyzer.childElements(ce, "var").stream())
                 .forEach(this::arg);
 
-        block.arguments.size();
+        //block.arguments.size();
     }
 
     Variable contextVariable(Element e, Function<String, Variable> variables) {
@@ -148,14 +155,11 @@ public class CodeAnalyzer implements CodeElement {
     Variable setup(Element e, Variable v) {
         Context context = v.context;
 
-//        if(context instanceof Variable) {
-//            Variable a = (Variable) context;
-//            e.setAttribute("of", a.getName());
-//            int n = a.dim().indexOf(v);
-//            if(n>=0)
-//                e.setAttribute("dim", Integer.toString(n));
-//            context = a.context;
-//        }
+        if(v.isIndex()) {
+            Variable ref = v.ref;
+            e.setAttribute("index", ref.getName());
+            e.setAttribute("of", ref.context.getName());
+        }
 
         if (context instanceof CommonAnalyzer) {
             e.setAttribute("common", context.getName());
@@ -168,6 +172,9 @@ public class CodeAnalyzer implements CodeElement {
         if (v.type != null) {
             e.setAttribute("type", v.type.toString());
         }
+
+        if(!v.dim.isEmpty())
+            e.setAttribute("dim", Integer.toString(v.dim.size()));
 
         return v;
     }
@@ -310,9 +317,6 @@ public class CodeAnalyzer implements CodeElement {
         }
     }
 
-    private void debug() {
-    }
-
     void cleanupExpr(Element expr) {
         childElements(expr, "neg").forEach(this::neg);
         childElements(expr, "pow").forEach(this::pow);
@@ -320,10 +324,11 @@ public class CodeAnalyzer implements CodeElement {
         childElements(expr, "add", "sub").forEach(this::sum);
     }
 
+    // dim array
     Variable array(Element e, Function<String, Variable> variables) {
         Variable arr = contextVariable(e, variables);
 
-        Analyzer.childElements(e, "arg").stream()
+        childElements(e, "arg").stream()
                 .flatMap(ce -> childElements(ce).stream())
                 .forEach(ce -> {
                     String name = ce.getNodeName();
@@ -341,6 +346,25 @@ public class CodeAnalyzer implements CodeElement {
                 });
 
         return arr;
+    }
+
+    void allocate(Element e) {
+
+        Variable arr = blockVariable(e);
+
+        List<Element> childElements = childElements(e);
+        for (int i = 0; i < childElements.size(); i++) {
+            Element ce = childElements.get(i);
+            String name = ce.getNodeName();
+            if ("var".equals(name)) {
+                Variable v = readVariable(ce);
+                arr.dim(i, v);
+                setup(ce, arr);
+            } else if ("val".equals(name)) {
+                Integer n = Integer.decode(ce.getTextContent());
+                arr.dim(i, new Constant(n));
+            }
+        }
     }
 
     private void common(Element e) {
@@ -506,6 +530,10 @@ public class CodeAnalyzer implements CodeElement {
         void codeLine(Element e) {
             String name = e.getNodeName();
             switch (name) {
+                case "allocate":
+                    allocate(childElement(e, "arr"));
+                    break;
+
                 case "assvar":
                     // tag statement functions
                     assVar(e);
@@ -596,8 +624,7 @@ public class CodeAnalyzer implements CodeElement {
 
             // intrinsic function
             block.functions.add(name);
-            e.setAttribute("scope", "intrinsic");
-
+            e.setAttribute("scope", "local");
         }
 
         private void args(Code external, Element e) {
@@ -615,18 +642,42 @@ public class CodeAnalyzer implements CodeElement {
             }
 
             for (int i = 0; i < args.size(); ++i) {
-                Variable vex = external.arguments.get(i);
-
-                boolean returned = vex.isAssigned() || vex.isReferenced();
 
                 Element arg = args.get(i);
+                Variable vex = external.arguments.get(i);
+                arg.setAttribute("name", vex.getName());
+
                 Element var = getVariableElement(arg);
+
+                if(vex.isIndex()) {
+                    Variable ref = vex.ref;
+                    arg.setAttribute("index", ref.getName());
+                    arg.setAttribute("of", ref.context.getName());
+                }
+
+                boolean returned = vex.isAssigned() || vex.isReferenced();
 
                 if (var != null) {
                     Variable v = blockVariable(var);
 
+                    if(vex.isIndex() && !v.wasIndex()) {
+                        throw new IllegalArgumentException("index mismatch");
+                    }
+
                     if (vex.isAssigned()) {
                         v.isAssigned(true);
+                    }
+
+                    if(v.isIndex()) {
+                        Variable ref = v.ref;
+                        var.setAttribute("index", ref.getName());
+                        var.setAttribute("of", ref.context.getName());
+                    }
+
+                    int index = vex.getIndex();
+                    if(index>=0) {
+                        arg.setAttribute("index", Integer.toString(index));
+                        arg.setAttribute("of", vex.ref.getName());
                     }
 
                     if (returned) {

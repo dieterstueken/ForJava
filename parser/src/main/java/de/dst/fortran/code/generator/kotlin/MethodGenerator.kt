@@ -46,9 +46,13 @@ open class MethodGenerator(val generator : UnitGenerator, val function : FunSpec
 
         for (arg in el.all("arg")) {
             val param = getParameter(arg["var"]!!.name)
-            val type = generator.getKlass(param.typeDef())
-            val spec = ParameterSpec.builder(param.getName(), type).build()
-            function.addParameter(spec)
+
+            // skip pure index variables
+            if(!param.isIndex()) {
+                val type = generator.getKlass(param.typeDef())
+                val spec = ParameterSpec.builder(param.getName(), type).build()
+                function.addParameter(spec)
+            }
         }
 
         return this;

@@ -2,8 +2,13 @@ package de.dst.fortran.code.generator.kotlin
 
 import de.dst.fortran.code.Type
 import org.w3c.dom.Element
+import java.util.function.Predicate
 
 val MIN_MAX = Regex( "a?(min|max)\\d?")
+
+val IS_ARG : Predicate<Element> = Predicate {it.tagName=="arg"}
+
+val NOT_AN_INDEX : Predicate<Element> = Predicate{it.tagName=="arg" && it.attributes["index"].isEmpty() }
 
 open class ExpressionBuilder(method: MethodGenerator) : CodeBuilder(method) {
 
@@ -102,8 +107,9 @@ open class ExpressionBuilder(method: MethodGenerator) : CodeBuilder(method) {
     fun function(element : Element) : Type {
 
         var name : String = element.name
+        val scope = element.attributes["scope"]
 
-        if(element.attributes["scope"] == "array") {
+        if(scope == "array") {
             val variable = getVariable(name)
             name = variable.name
             val target = targetName(variable, true)
@@ -128,8 +134,11 @@ open class ExpressionBuilder(method: MethodGenerator) : CodeBuilder(method) {
                 "cmplx" -> name = "cplx"
             }
 
+            var filter = if(scope==method.generator.block.name) NOT_AN_INDEX else IS_ARG
+
             val expr = expr()
-            var type = expr.addArgs(element)
+            val args = element.all(filter)
+            var type = expr.addArgs(args)
 
             code.add("%N(", name)
                     .add(expr.build())
@@ -153,6 +162,12 @@ open class ExpressionBuilder(method: MethodGenerator) : CodeBuilder(method) {
                 else -> Type.intrinsic(name)
             }
         }
+    }
+
+    fun addfArgs(element : Element) : ExpressionBuilder {
+        val args = element.all(NOT_AN_INDEX)
+        addArgs(args)
+        return this
     }
 
     fun addArgs(args : Element) : Type {

@@ -171,6 +171,8 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : CodeBuilder(me
 
             "call" -> addCall(elem)
             "print" -> addPrint(elem)
+            "write" -> addWrite(elem)
+
             "goto" -> addGoto(elem)
 
             "if" -> addIf(elem)
@@ -181,23 +183,35 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : CodeBuilder(me
 
             "return" -> addReturn()
 
+
             else -> unknown(elem)
         }
     }
 
-    fun addCall(args : Element) {
-        val block = object : Block(args) {
+    fun addCall(call : Element) {
+
+        val block = object : Block(call) {
             override fun addCode(elem : Element) {
-                var name : String = args.name
+                var name : String = call.name
 
                 code.add("«%N(", name)
-                        .addArgs(args)
+                        .add(expr().addfArgs(elem).build())
                         .add(")\n»")
             }
         }
+        block.addCode(call)
 
-        block.addCode(args);
         code.add(block.build())
+    }
+
+
+    fun addWrite(args : Element) {
+        code.add("«// write(")
+
+        //val expr = expr();
+        //expr.addArgs(args.all(Predicate {it.tagName!="io"}), ", ")
+        //code.add(expr.build())
+                .add(")\n»")
     }
 
     fun addPrint(args : Element) {

@@ -3,6 +3,7 @@ package de.dst.fortran.code.generator.kotlin
 import de.dst.fortran.code.Analyzer
 import org.w3c.dom.Element
 import org.w3c.dom.NamedNodeMap
+import java.util.function.Predicate
 
 /**
  * version:     $Revision$
@@ -16,6 +17,7 @@ operator fun Element.get(name : String) = Analyzer.childElement(this, name)
 
 fun Element.children() : MutableList<Element> = Analyzer.childElements(this)
 
+fun Element?.all(predicate : Predicate<in Element>) = Analyzer.childElements(this, predicate)
 fun Element?.all(name : String) = Analyzer.childElements(this, name)
 
 // node.attributes[name]

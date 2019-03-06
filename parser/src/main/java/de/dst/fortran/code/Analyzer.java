@@ -78,7 +78,7 @@ public class Analyzer {
         return name.toLowerCase();
     }
 
-    static Element getNextElement(Node node, Predicate<Element> filter) {
+    static Element getNextElement(Node node, Predicate<? super Element> filter) {
 
         while(node!=null) {
             if(node instanceof Element) {
@@ -92,7 +92,7 @@ public class Analyzer {
         return null;
     }
 
-    public static List<Element> childElements(Element e, Predicate<Element> filter) {
+    public static List<Element> childElements(Element e, Predicate<? super Element> filter) {
         if(e==null)
             return Collections.emptyList();
 
