@@ -29,7 +29,7 @@ open class Fortran(val units : Units) {
         fun iabs(value : Int) : Int = value.absoluteValue
         fun abs(value : Double) = value.absoluteValue
         fun abs(value : Int) : Double = value.absoluteValue.toDouble()
-        fun cabs(value : Cplx) = value.cabs()
+        fun cabs(value : Cplx) :Double = value.cabs()
 
         fun idint(value : Double) : Int = value.toInt()
         fun ifix(value : Double) : Int = value.toInt()

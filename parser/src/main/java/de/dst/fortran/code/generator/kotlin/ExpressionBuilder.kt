@@ -146,7 +146,9 @@ open class ExpressionBuilder(method: MethodGenerator) : CodeBuilder(method) {
 
             return when {
                 MIN_MAX.matches(name) -> type
+                // some non complex exceptions
                 name=="cos" -> Type.R8
+                name=="cabs" -> Type.R8
                 name.startsWith('c') -> Type.CPX
                 else -> Type.intrinsic(name)
             }
