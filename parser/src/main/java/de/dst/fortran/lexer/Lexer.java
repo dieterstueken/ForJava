@@ -578,19 +578,6 @@ public class Lexer {
 
                 break;
 
-            case ALLOCATE:
-                label().start("allocate").start("arr").lattribute("name", token.get(0));
-                braced(tokens);
-                processIO(tokens);
-                out.end();
-                break;
-
-            case DEALLOCATE:
-                label().start("deallocate").start("arr").lattribute("name", token.get(0)).end();
-                processIO(tokens);
-                out.end();
-                break;
-
             case FIO:
                 label().start(token.get(0).toLowerCase()).start("io");
                 processIO(tokens);  // contains closing brace
@@ -624,6 +611,22 @@ public class Lexer {
                 label().start("stop");
                 processExpr(tokens);
                 out.end();
+                break;
+
+            case ALLOCATE:
+                label().start("allocate").lattribute("name", token.get(0));
+                out.start("args");
+                args(tokens);
+                processIO(tokens);
+                out.end();
+                out.end();
+                break;
+
+            case DEALLOCATE:
+                label().start("deallocate").lattribute("name", token.get(0));
+                processIO(tokens);
+                out.end();
+
                 break;
 
             default:

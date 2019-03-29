@@ -23,6 +23,8 @@ interface R4 {
         override fun set(i : Int, v : Double) {
             arr[index(i)] = v.toFloat()
         }
+
+        override fun allocate(ni : Int) = if(this.len==ni) this else Arr(ni)
     }
 
     data class Mat (override val ni : Int, override val nj : Int) : RMat {

@@ -10,6 +10,7 @@ package de.irt.kfor
 interface IMat : Mat {
     operator fun get(i : Int, j : Int) : Int
     operator fun set(i : Int, j : Int, v : Int)
+    fun allocate(ni : Int, nj : Int) : IMat
 
     /**
      * matrix element by reference

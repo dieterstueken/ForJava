@@ -28,6 +28,12 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : CodeBuilder(me
         return this.add(expr.build())
     }
 
+    fun CodeBlock.Builder.addArgs(args : List<Element>, sep : String = ", ") : CodeBlock.Builder {
+        val expr = expr()
+        expr.addArgs(args, sep)
+        return this.add(expr.build())
+    }
+
     // forward definition saved by previous scan
     var forwards = Locals()
 
@@ -148,6 +154,14 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : CodeBuilder(me
                 .add("\n»")
     }
 
+    fun alloc(el : Element) {
+        val variable = getVariable(el.name)
+        val target = targetName(variable, true)
+        code.add("«$target = $target.allocate(", variable.name, variable.name)
+                .addArgs(el["args"])
+                .add(")\n»")
+    }
+
     fun addCode(elements : Iterable<Element>) : BlockBuilder {
 
         for (child in elements) {
@@ -168,6 +182,8 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : CodeBuilder(me
 
             "assvar" -> assVar(elem)
             "assarr" -> assArr(elem)
+            "allocate" -> alloc(elem)
+            "deallocate" -> code.add("// deallocate ${elem.name}\\n")
 
             "call" -> addCall(elem)
             "print" -> addPrint(elem)
@@ -228,6 +244,14 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : CodeBuilder(me
     }
 
     fun addIf(el : Element) {
+
+        if(el.get("cond")?.get("var")?.name == "ierr") {
+            val  v = method.generator.code.variables.find("ierr")
+            if(v.props.isEmpty()) {
+                code.add("// if(err)\n")
+                return
+            }
+        }
 
         val block = object : Block(el) {
 

@@ -34,6 +34,8 @@ interface I2 {
         override fun set(i : Int, j : Int, v : Int) {
             arr[index(i, j)] = v.toShort()
         }
+
+        override fun allocate(ni : Int, nj : Int) = if(this.ni==ni&&this.nj==nj) this else Mat(ni, nj)
     }
 
     data class Cub (override val ni : Int, override val nj : Int, override val nk : Int) : ICub {

@@ -37,18 +37,18 @@ interface Ch {
         fun allocate(ni : Int) = if(this.len==ni) this else Arr(ni)
     }
 
-    data class Mat (val ni : Int, val nj : Int) {
+    data class Mat (override val ni : Int, override val nj : Int) : de.irt.kfor.Mat {
         val arr = CharArray(ni*nj)
-        fun index(i : Int, j : Int) = i-1 + ni*(j-1)
         operator fun get(i : Int, j : Int) = arr[index(i, j)]
         operator fun set(i : Int, j : Int, v : Char) {
             arr[index(i, j)] = v
         }
+
+        fun allocate(ni : Int, nj : Int) = if(this.ni==ni&&this.nj==nj) this else Mat(ni, nj)
     }
 
-    data class Cub (val nx : Int, val ny : Int, val nz : Int) {
-        val arr = CharArray(nx*ny*nz)
-        fun index(i : Int, j : Int, k : Int) = i-1 + nx*((j) + ny*(k-1))
+    data class Cub (override val ni : Int, override val nj : Int, override val nk : Int) : de.irt.kfor.Cub {
+        val arr = CharArray(ni*nj*nk)
         operator fun get(i : Int, j : Int, k : Int) = arr[index(i,j,k)]
         operator fun set(i : Int, j : Int, k : Int, v : Char) {
             arr[index(i,j,k)] = v

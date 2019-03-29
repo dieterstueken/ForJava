@@ -10,6 +10,7 @@ package de.irt.kfor
 interface RArr : Arr {
     operator fun get(i : Int) : Double
     operator fun set(i : Int, v : Double)
+    fun allocate(ni : Int) : RArr
 
     operator fun invoke(i : Int) : Ref {
         return object : Ref {
