@@ -245,11 +245,11 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : CodeBuilder(me
 
     fun addIf(el : Element) {
 
+
         if(el.get("cond")?.get("var")?.name == "ierr") {
-            val  v = method.generator.code.variables.find("ierr")
-            if(v.props.isEmpty()) {
-                code.add("// if(err)\n")
-                return
+            if(el.get("then")?.get("deallocate")!=null) {
+                code.add("// if(ierr!=0)\n")
+                return;
             }
         }
 

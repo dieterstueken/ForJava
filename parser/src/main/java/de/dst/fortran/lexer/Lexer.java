@@ -613,6 +613,7 @@ public class Lexer {
                 out.end();
                 break;
 
+
             case ALLOCATE:
                 label().start("allocate").lattribute("name", token.get(0));
                 out.start("args");

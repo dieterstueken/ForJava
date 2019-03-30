@@ -352,17 +352,19 @@ public class CodeAnalyzer implements CodeElement {
 
         Variable arr = blockVariable(e);
 
-        List<Element> childElements = childElements(e);
-        for (int i = 0; i < childElements.size(); i++) {
-            Element ce = childElements.get(i);
-            String name = ce.getNodeName();
-            if ("var".equals(name)) {
-                Variable v = readVariable(ce);
-                arr.dim(i, v);
-                setup(ce, arr);
-            } else if ("val".equals(name)) {
-                Integer n = Integer.decode(ce.getTextContent());
-                arr.dim(i, new Constant(n));
+        List<Element> args = childElements(childElement(e, "args"), "arg");
+        for (int i = 0; i < args.size(); i++) {
+            Element arg = args.get(i);
+            for(Element ce:childElements(arg, "var", "val")) {
+                String name = ce.getNodeName();
+                if ("var".equals(name)) {
+                    Variable v = readVariable(ce);
+                    arr.dim(i, v);
+                    setup(ce, arr);
+                } else if ("val".equals(name)) {
+                    Integer n = Integer.decode(ce.getTextContent());
+                    arr.dim(i, new Constant(n));
+                }
             }
         }
     }
@@ -531,7 +533,7 @@ public class CodeAnalyzer implements CodeElement {
             String name = e.getNodeName();
             switch (name) {
                 case "allocate":
-                    allocate(childElement(e, "arr"));
+                    allocate(e);
                     break;
 
                 case "assvar":
