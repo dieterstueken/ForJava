@@ -23,7 +23,7 @@ class MainFunction(generator : UnitGenerator)
 
     override fun build(): FunSpec {
 
-        val el = generator.block.element
+        val el = block.element
 
         addParameters(el["args"])
 

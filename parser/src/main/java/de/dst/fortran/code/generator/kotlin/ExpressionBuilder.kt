@@ -10,7 +10,7 @@ val IS_ARG : Predicate<Element> = Predicate {it.tagName=="arg"}
 
 val NOT_AN_INDEX : Predicate<Element> = Predicate{it.tagName=="arg" && it.attributes["index"].isEmpty() }
 
-open class ExpressionBuilder(method: MethodGenerator) : CodeBuilder(method) {
+open class ExpressionBuilder(method: Generator) : CodeBuilder(method) {
 
     fun addExprs(expr : Element) = addExprs(expr.children())
 
@@ -134,7 +134,7 @@ open class ExpressionBuilder(method: MethodGenerator) : CodeBuilder(method) {
                 "cmplx" -> name = "cplx"
             }
 
-            var filter = if(scope==method.generator.block.name) NOT_AN_INDEX else IS_ARG
+            var filter = if(scope==method.block.name) NOT_AN_INDEX else IS_ARG
 
             val expr = expr()
             val args = element.all(filter)
@@ -145,7 +145,7 @@ open class ExpressionBuilder(method: MethodGenerator) : CodeBuilder(method) {
                     .add(")")
 
             // possible local function
-            val lf = method.generator.functions.get(name)
+            val lf = method.localFunction(name)
             if(lf!=null)
                 return lf.variable.type
 

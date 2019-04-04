@@ -7,7 +7,7 @@ import de.dst.fortran.code.VStat
 import de.dst.fortran.code.Variable
 import org.w3c.dom.Element
 
-open class BlockBuilder(method: MethodGenerator, bel : Element) : CodeBuilder(method) {
+open class BlockBuilder(method: Generator, bel : Element) : CodeBuilder(method) {
 
     fun CodeBlock.Builder.addExprs(el : Element) : CodeBlock.Builder {
         val expr = expr()
@@ -358,7 +358,7 @@ open class BlockBuilder(method: MethodGenerator, bel : Element) : CodeBuilder(me
     }
 
     fun addReturn() {
-        val retval = method.generator.retval
+        val retval = method.retval
         if(retval==null)
             code.addStatement("return")
         else

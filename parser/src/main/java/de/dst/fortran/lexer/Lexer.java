@@ -338,7 +338,7 @@ public class Lexer {
             Token token = tokens.remove(0);
             switch (token.item) {
                 case NAME:
-                    out.text("name", token.get(0));
+                    out.start("var").lattribute("name", token.get(0)).end();
                     break;
                 case APPLY:
                     out.start("arr").lattribute("name", token.get(0));

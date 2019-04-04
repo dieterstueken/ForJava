@@ -5,6 +5,7 @@ import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.TypeSpec
 import de.dst.fortran.code.CodeElement
+import de.dst.fortran.code.TypeDef
 import de.dst.fortran.code.Variable
 import de.irt.kfor.Fortran
 import de.irt.kfor.Units
@@ -29,8 +30,8 @@ fun CodeElement.camelName(): String {
     return c.toUpperCase() + name.substring(1)
 }
 
-class UnitGenerator(generators : CodeGenerators, val block : CodeElement, className : ClassName)
-    : ClassGenerator(generators, "function", className) {
+class UnitGenerator(generators : CodeGenerators, override val block : CodeElement, className : ClassName)
+    : ClassGenerator(generators, "function", className), Generator {
 
     companion object {
         fun create(generators: CodeGenerators, element: CodeElement): UnitGenerator {
@@ -44,6 +45,7 @@ class UnitGenerator(generators : CodeGenerators, val block : CodeElement, classN
             }
         }
     }
+    override val generator = this
 
     var lineNumber : Int = block.line.toInt()
 
@@ -56,12 +58,28 @@ class UnitGenerator(generators : CodeGenerators, val block : CodeElement, classN
 
     }
 
-    val code = block.code()
+    override fun getKlass(type : TypeDef?) : KClass<*> = generators.types.get(type)
 
     val type : KClass<*> = getKlass(code.getReturnType().primitive())
 
+    override fun targetName(variable : Variable, asReference: Boolean) : String {
+        var target = ""
+
+        if(variable.context!=null) {
+            if(variable.context!=code)
+                target = "${variable.context.name}."
+        }
+
+        target += "%N"
+
+        if(!asReference && variable.isProperty())
+            target += ".v"
+
+        return target
+    }
+
     // variable
-    val retval : Variable? = if(Unit::class==type) null else
+    override val retval = if(Unit::class==type) null else
         Variable(block.name)
                 .type(code.getReturnType())
                 .prop(Variable.Prop.ASSIGNED)
@@ -69,7 +87,8 @@ class UnitGenerator(generators : CodeGenerators, val block : CodeElement, classN
 
     val functions = mutableMapOf<String, LocalFunction>()
 
-    fun getVariable(name: String) : Variable {
+
+    override fun getVariable(name: String) : Variable {
 
         if(name == block.name)
             return retval!!
@@ -132,9 +151,34 @@ class UnitGenerator(generators : CodeGenerators, val block : CodeElement, classN
             addFunction(localFunction(func))
         }
 
+        for(data in block.element["decl"].all("data")) {
+            addInitializerBlock(dataBlock(data));
+        }
+
         addFunction(mainFunction())
 
         return this;
+    }
+
+    private fun dataBlock(data: Element) : CodeBlock {
+
+        val code = CodeBlock.builder()
+
+        val names = data.all("name")
+        var values = data["values"].children()
+
+        for(name in names) {
+            val variable = getVariable(name.name)
+            val target = targetName(variable, false)
+
+            code.add("«val $target.init(", target)
+            //when(variable.dim.size) {
+            //    0 ->
+            //}
+            code.add(")\n»")
+        }
+
+        return code.build();
     }
 
     fun localFunction(func: Element) : FunSpec {

@@ -12,6 +12,12 @@ interface IArr : Arr {
     operator fun set(i : Int, v : Int)
     fun allocate(ni : Int) : IArr
 
+    fun assign(vararg values : Int) : Unit {
+        for(i in 1 .. values.size) {
+            set(i, values[i-1])
+        }
+    }
+
     /**
      * array element by reference
      */

@@ -1,6 +1,5 @@
 package de.dst.fortran.code.generator.kotlin
 
-import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.ParameterSpec
 import de.dst.fortran.code.Variable
@@ -15,23 +14,17 @@ import kotlin.reflect.KClass
  * modified on: $Date$
  */
 
-open class MethodGenerator(val generator : UnitGenerator, val function : FunSpec.Builder) {
+open class MethodGenerator(override val generator : UnitGenerator, val function : FunSpec.Builder)
+    : Generator {
 
     constructor(generator : UnitGenerator, name : String, type : KClass<*>)
             : this(generator, FunSpec.builder(name).returns(type))
 
     open fun build() = function.build()
 
-    open fun buildCodeLine(builder : CodeBlock.Builder, el : Element) {
-        generator.setLineNumber(el.getAttribute("line"))
-    }
 
-    /**
-     * lookup a variable within an expression
-     */
-    open fun getVariable(name : String) : Variable {
-        return generator.getVariable(name)
-    }
+    override fun targetName(variable: Variable, asReference: Boolean): String = generator.targetName(variable, asReference)
+
 
     /**
      * Lookup variable as function argument
@@ -40,7 +33,7 @@ open class MethodGenerator(val generator : UnitGenerator, val function : FunSpec
         return generator.getVariable(name)
     }
 
-    fun getVariable(el : Element) = getVariable(el.name)
+    override fun localFunction(name : String) = generator.functions.get(name)
 
     fun addParameters(el : Element?) : MethodGenerator {
 

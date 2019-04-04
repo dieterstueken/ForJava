@@ -67,8 +67,6 @@ abstract class ClassGenerator(val generators : CodeGenerators, val className : C
                                         .initializer("$type(%T::class)", className)
                                         .build())
 
-    fun getKlass(type : TypeDef?) : KClass<*> = generators.types.get(type)
-
     fun Variable.asProperty() : PropertySpec {
         val klass = getKlass(typeDef())
         
@@ -84,6 +82,8 @@ abstract class ClassGenerator(val generators : CodeGenerators, val className : C
 
         return builder.build()
     }
+
+    open fun getKlass(type : TypeDef?) : KClass<*> = generators.types.get(type)
 
     open fun generate() {
 

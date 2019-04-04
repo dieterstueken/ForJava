@@ -12,6 +12,12 @@ interface RArr : Arr {
     operator fun set(i : Int, v : Double)
     fun allocate(ni : Int) : RArr
 
+    fun assign(vararg values : Double) : Unit {
+        for(i in 1 .. values.size) {
+            set(i, values[i-1])
+        }
+    }
+
     operator fun invoke(i : Int) : Ref {
         return object : Ref {
             override var v: Double

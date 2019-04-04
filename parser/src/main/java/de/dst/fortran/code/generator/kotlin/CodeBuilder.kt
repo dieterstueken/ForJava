@@ -12,7 +12,7 @@ import kotlin.reflect.KClass
  * Date: 03.03.19
  * Time: 20:55
  */
-open class CodeBuilder(val method: MethodGenerator) {
+open class CodeBuilder(val method: Generator) {
 
     val code = CodeBlock.builder()
 
@@ -29,14 +29,14 @@ open class CodeBuilder(val method: MethodGenerator) {
     }
 
     fun isLocal(name : String) : Boolean {
-        val v : Variable? = method.generator.code.variables.find(name)
+        val v : Variable? = method.code.variables.find(name)
         if(v!=null && v.isLocal)
             return true;
         else
             return false;
     }
 
-    fun Variable.asKlass(): KClass<*> = method.generator.getKlass(this.typeDef())
+    fun Variable.asKlass(): KClass<*> = method.getKlass(this.typeDef())
 
     fun asType(name : String) : Type =
         if(name.isNotEmpty())
@@ -44,21 +44,8 @@ open class CodeBuilder(val method: MethodGenerator) {
         else
             Type.NONE
 
-    fun targetName(variable : Variable, asReference: Boolean) : String {
-        var target = ""
-        
-        if(variable.context!=null) {
-            if(variable.context!=method.generator.code)
-                target = "${variable.context.name}."
-        }
-
-        target += "%N"
-
-        if(!asReference && variable.isProperty())
-            target += ".v"
-
-        return target
-    }
+    fun targetName(variable : Variable, asReference: Boolean)
+            = method.targetName(variable, asReference)
 
     fun codeLine(el : Element) = method.buildCodeLine(code, el)
 
