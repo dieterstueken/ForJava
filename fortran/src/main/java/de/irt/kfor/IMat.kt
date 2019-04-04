@@ -12,6 +12,26 @@ interface IMat : Mat {
     operator fun set(i : Int, j : Int, v : Int)
     fun allocate(ni : Int, nj : Int) : IMat
 
+    operator fun invoke(i : Int) : IArr {
+        return object : IArr {
+
+            override fun allocate(ni: Int): IArr {
+                return this
+            }
+
+            override val ni: Int
+                get() = nj
+
+            override fun set(j: Int, v: Int) {
+                set(i, j, v)
+            }
+
+            override fun get(j: Int): Int {
+                return get(i, j)
+            }
+
+        }
+    }
     /**
      * matrix element by reference
      */

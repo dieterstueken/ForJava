@@ -182,8 +182,16 @@ open class ExpressionBuilder(method: Generator) : CodeBuilder(method) {
         var s = ""
         for (arg in args) {
             code.add(s)
-            type *= addExpr(arg)
-            s = sep
+            val t = addExpr(arg)
+
+            if(t==Type.NONE) {
+                // no value added
+                s = "";
+            }
+            else {
+                type *= t
+                s = sep
+            }
         }
 
         return type;

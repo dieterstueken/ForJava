@@ -19,6 +19,8 @@ class MainFunction(generator : UnitGenerator)
             function.returns(generator.type)
     }
 
+    override val retval = generator.retval
+
     override fun getVariable(name: String) = generator.getVariable(name)
 
     override fun build(): FunSpec {

@@ -10,6 +10,10 @@ package de.irt.kfor
 interface Ref {
     var v : Double
 
+    fun assign(value : Double) : Unit {
+        v = value;
+    }
+
     companion object {
         operator fun invoke(value : Double) = object : Ref {
             override var v = value

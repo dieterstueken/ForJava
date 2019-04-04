@@ -18,6 +18,12 @@ interface RArr : Arr {
         }
     }
 
+    fun assign(vararg values : Int) : Unit {
+        for(i in 1 .. values.size) {
+            set(i, values[i-1].toDouble())
+        }
+    }
+
     operator fun invoke(i : Int) : Ref {
         return object : Ref {
             override var v: Double

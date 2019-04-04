@@ -160,22 +160,64 @@ class UnitGenerator(generators : CodeGenerators, override val block : CodeElemen
         return this;
     }
 
-    private fun dataBlock(data: Element) : CodeBlock {
+    private fun dataBlock(el: Element) : CodeBlock {
 
-        val code = CodeBlock.builder()
+        val code = object : CodeBuilder(this) {
+            init {
+                val names = el.all("var")
+                var values : List<Element> = el["values"].children()
 
-        val names = data.all("name")
-        var values = data["values"].children()
+                for(name in names) {
+                    val variable = getVariable(name.name)
 
-        for(name in names) {
-            val variable = getVariable(name.name)
-            val target = targetName(variable, false)
+                    when(variable.dim.size) {
+                        0 -> values = initVar(variable, values)
+                        1 -> values = initArr(variable, values)
+                        2 -> values = initMat(variable, values)
+                    }
+                }
+            }
 
-            code.add("«val $target.init(", target)
-            //when(variable.dim.size) {
-            //    0 ->
-            //}
-            code.add(")\n»")
+            private fun initMat(variable: Variable, values: List<Element>): List<Element> {
+                var args = values
+                val target = targetName(variable, false)
+                val ni = variable.dim[0].toInt()
+                val nj = variable.dim[1].toInt()
+                for(ni in 1 .. ni) {
+                    code.add("«$target($ni).assign(", variable.name)
+                    args = initArr(nj, values)
+                }
+                return args
+            }
+
+            private fun initArr(variable: Variable, values: List<Element>): List<Element> {
+                val target = targetName(variable, false)
+                code.add("«$target.assign(", variable.name)
+                val dim = variable.dim[0].toInt()
+                return initArr(dim, values)
+            }
+
+            private fun initArr(dim : Int, values: List<Element>): List<Element> {
+
+                var expr = expr()
+                expr.addArgs(values.subList(0, dim))
+                code.add(expr.build())
+                code.add(")\n»")
+
+                return values.subList(dim, values.size)
+            }
+
+            private fun initVar(variable: Variable, values: List<Element>): List<Element> {
+                val target = targetName(variable, false)
+                code.add("«$target = ", variable.name)
+                val arg = values[0]
+                var expr = expr()
+                expr.addExpr(arg)
+                code.add(expr.build())
+                code.add("\n»")
+
+                return values.subList(1, values.size)
+            }
         }
 
         return code.build();

@@ -1,6 +1,8 @@
 package de.dst.fortran.code.generator.kotlin
 
 import de.dst.fortran.code.Analyzer
+import de.dst.fortran.code.Constant
+import de.dst.fortran.code.Value
 import org.w3c.dom.Element
 import org.w3c.dom.NamedNodeMap
 import java.util.function.Predicate
@@ -27,3 +29,4 @@ val Element.name : String get() = this.attributes["name"]
 
 fun Element.appendText(text : String) = this.appendChild(this.ownerDocument.createTextNode(text))
 
+fun Value.toInt() : Int = if(this is Constant) this.value.toInt() else -1
