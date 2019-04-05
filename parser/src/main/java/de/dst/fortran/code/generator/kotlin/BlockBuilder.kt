@@ -260,12 +260,11 @@ open class BlockBuilder(method: Generator, bel : Element) : CodeBuilder(method) 
                 when(tag) {
                     "locals" -> locals(elem)
                     "if" -> {
+                        code.add("if(")
                         code.addExprs(elem)
                         code.beginControlFlow(")")
                     }
-                    "then" -> addCodeBlock(elem)
-                    "else" -> {
-                        code.nextControlFlow(" else ")
+                    "then" -> {
                         addCodeBlock(elem)
                     }
                     "elif" -> {
@@ -273,12 +272,16 @@ open class BlockBuilder(method: Generator, bel : Element) : CodeBuilder(method) 
                         code.addExprs(elem)
                         code.beginControlFlow(")")
                     }
+                    "else" -> {
+                        code.nextControlFlow(" else ")
+                        addCodeBlock(elem)
+                    }
+
                     else -> unknown(elem)
                 }
             }
         }
 
-        block.code.add("if(")
         block.addCode(el.children())
         block.code.add("\n")
         block.code.endControlFlow()
