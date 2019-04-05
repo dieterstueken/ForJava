@@ -151,10 +151,16 @@ class UnitGenerator(generators : CodeGenerators, override val block : CodeElemen
             addFunction(localFunction(func))
         }
 
-        for(data in block.element["decl"].all("data")) {
-            addInitializerBlock(dataBlock(data));
-        }
+        val datas = block.element["decl"].all("data")
 
+        if(datas.isNotEmpty()) {
+            val initializers = CodeBlock.builder()
+            for(data in datas) {
+                initializers.add(dataBlock(data))
+            }
+            addInitializerBlock(initializers.build())
+        }
+        
         addFunction(mainFunction())
 
         return this;
@@ -165,58 +171,75 @@ class UnitGenerator(generators : CodeGenerators, override val block : CodeElemen
         val code = object : CodeBuilder(this) {
             init {
                 val names = el.all("var")
-                var values : List<Element> = el["values"].children()
+                var values : MutableList<Element> = el["values"].children()
 
                 for(name in names) {
                     val variable = getVariable(name.name)
 
                     when(variable.dim.size) {
-                        0 -> values = initVar(variable, values)
-                        1 -> values = initArr(variable, values)
-                        2 -> values = initMat(variable, values)
+                        0 -> initVar(variable, values)
+                        1 -> initArr(variable, values)
+                        2 -> initMat(variable, values)
                     }
+
+                    code.add("\n")
                 }
+
+                if(values.isNotEmpty())
+                    throw RuntimeException("remaining data values")
             }
 
-            private fun initMat(variable: Variable, values: List<Element>): List<Element> {
-                var args = values
-                val target = targetName(variable, false)
-                val ni = variable.dim[0].toInt()
-                val nj = variable.dim[1].toInt()
-                for(ni in 1 .. ni) {
-                    code.add("«$target($ni).assign(", variable.name)
-                    args = initArr(nj, values)
-                }
-                return args
-            }
-
-            private fun initArr(variable: Variable, values: List<Element>): List<Element> {
-                val target = targetName(variable, false)
-                code.add("«$target.assign(", variable.name)
-                val dim = variable.dim[0].toInt()
-                return initArr(dim, values)
-            }
-
-            private fun initArr(dim : Int, values: List<Element>): List<Element> {
-
-                var expr = expr()
-                expr.addArgs(values.subList(0, dim))
-                code.add(expr.build())
-                code.add(")\n»")
-
-                return values.subList(dim, values.size)
-            }
-
-            private fun initVar(variable: Variable, values: List<Element>): List<Element> {
+            private fun initVar(variable: Variable, values: MutableList<Element>) {
                 val target = targetName(variable, false)
                 code.add("«$target = ", variable.name)
-                val arg = values[0]
-                var expr = expr()
-                expr.addExpr(arg)
-                code.add(expr.build())
-                code.add("\n»")
+                code.add(getValues(values, 1))
+                code.add("»")
+                endLine(values)
+            }
 
-                return values.subList(1, values.size)
+            private fun initArr(variable: Variable, values: MutableList<Element>) {
+                val target = targetName(variable, false)
+                code.add("«$target.assign(\n", variable.name)
+                val dim = variable.dim[0].toInt()
+                code.add(getValues(values, dim))
+                code.add(")»")
+                endLine(values)
+            }
+
+            private fun initMat(variable: Variable, values: MutableList<Element>) {
+                val target = targetName(variable, false)
+
+                val nj = variable.dim[1].toInt()
+                val ni = variable.dim[0].toInt()
+
+                for(i in 1 .. nj) {
+                    code.add("«$target($i).assign(\n", variable.name)
+                    code.add(getValues(values, ni))
+                    code.add(")»")
+                    endLine(values)
+                }
+            }
+
+            private fun getValues(values: MutableList<Element>, dim : Int) : CodeBlock {
+                return expr().addValues(values, dim).build()
+            }
+
+            fun endLine(values: MutableList<Element>) {
+
+                // pending comments etc.
+                v@while(values.isNotEmpty()) {
+                    val elem = values.get(0)
+                    when(elem.getTagName()) {
+                        "F" -> codeLine(elem)
+                        "f"  -> contLine(elem)
+                        "c" -> comment(elem)
+                        "C" -> commentLine(elem)
+                        else -> {
+                            break@v
+                        }
+                    }
+                    values.removeAt(0)
+                }
             }
         }
 

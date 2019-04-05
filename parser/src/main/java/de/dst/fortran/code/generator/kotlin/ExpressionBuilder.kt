@@ -181,7 +181,9 @@ open class ExpressionBuilder(method: Generator) : CodeBuilder(method) {
 
         var s = ""
         for (arg in args) {
-            code.add(s)
+            if(s.isNotEmpty())
+                code.add(s)
+
             val t = addExpr(arg)
 
             if(t==Type.NONE) {
@@ -195,6 +197,36 @@ open class ExpressionBuilder(method: Generator) : CodeBuilder(method) {
         }
 
         return type;
+    }
+
+    /**
+     * Extract dim values from list
+     */
+    fun addValues(values : MutableList<Element>, dim : Int) : ExpressionBuilder {
+        var s = ""
+        var n = 0
+        while(n<dim && values.isNotEmpty()) {
+
+            if(s.isNotEmpty())
+                code.add(s)
+
+            val value = values.removeAt(0)
+            val t = addExpr(value)
+
+            if(t== Type.NONE) {
+                // no value added
+                s = "";
+            }
+            else {
+                s = ", "
+                ++n;
+            }
+        }
+
+        if(n<dim)
+            throw RuntimeException("data values underflow: ${dim-n}")
+
+        return this
     }
 
     fun toValue(expr : Element) : Any {

@@ -179,8 +179,8 @@ public class Variable extends Entity implements Value {
     public Variable isAssigned(boolean assigned) {
         if(assigned) {
             if(isIndex()) {
-                System.err.format("index assignment: %s\n", name);
-                //throw new IllegalStateException("assign to index");
+                //System.err.format("index assignment: %s\n", name);
+                throw new IllegalStateException("assign to index");
             }
             
             if (!props.add(Prop.ASSIGNED))

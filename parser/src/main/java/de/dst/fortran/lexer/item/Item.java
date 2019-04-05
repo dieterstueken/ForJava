@@ -79,7 +79,7 @@ public enum Item {
             return token(text.substring(1, text.length()-1));
         }
     },
-    CONST(expr("((?:\\.\\d+)|(?:\\d+(?:\\.\\d*)?))([de]-?\\d+)?")),
+    CONST(expr("((?:\\.\\d+)|(?:\\d+(?:\\.\\d*)?))(?:[de](-?\\d+))?")),
     BOOLEAN(expr("\\.(true|false)\\.")),
     ASSIGN("="),
 

@@ -47,20 +47,31 @@ open class CodeBuilder(val method: Generator) {
     fun targetName(variable : Variable, asReference: Boolean)
             = method.targetName(variable, asReference)
 
-    fun codeLine(el : Element) = method.buildCodeLine(code, el)
-
-    fun contLine(el : Element) = code.add("\n    ")
-
-    fun comment(expr : Element) {
-        var text : String? = expr.getTextContent()
-        if(text!=null && text.isNotEmpty()) {
-            code.add("// %L\n", text.trim())
-        } else
-            code.add("\n");
+    fun codeLine(el : Element){
+        method.buildCodeLine(code, el)
+        code.add("\n")
     }
 
-    fun commentLine(expr : Element) {
-        return comment(expr)
+    fun contLine(el : Element) = code.add("\n")
+
+    fun comment(expr : Element) : CodeBuilder {
+        var text : String? = expr.getTextContent()
+        if(text!=null && text.isNotEmpty()) {
+            text = text.trim()
+            text = text.replace(' ','·')
+            text = text.replace("%","%%")
+
+            code.add("//·$text")
+        }// else
+         //   code.add("\n")
+
+        return this;
+    }
+
+    fun commentLine(expr : Element) : CodeBuilder {
+        comment(expr)
+        code.add("\n")
+        return this
     }
 
     fun unknown(expr : Element) {

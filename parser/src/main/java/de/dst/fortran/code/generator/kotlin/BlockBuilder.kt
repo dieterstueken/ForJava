@@ -93,7 +93,7 @@ open class BlockBuilder(method: Generator, bel : Element) : CodeBuilder(method) 
         val type = if(v.isInt()) Int::class else Double::class
         code.add("«var %N = ", v.name)
         code.add(v.initialize(v.asKlass()))
-        code.add("  // generated\n»")
+        code.add("  // generated»\n")
         locals.write(v.name)
     }
 
@@ -138,7 +138,7 @@ open class BlockBuilder(method: Generator, bel : Element) : CodeBuilder(method) 
         }
 
         code.addExprs(el, variable.typeDef().type)
-            .add("\n»")
+            .add("»")
 
         locals.write(variable.name)
     }
@@ -151,7 +151,7 @@ open class BlockBuilder(method: Generator, bel : Element) : CodeBuilder(method) 
                 .addArgs(el["args"])
                 .add("] = ")
                 .addExprs(el["expr"], type)
-                .add("\n»")
+                .add("»")
     }
 
     fun alloc(el : Element) {
@@ -159,7 +159,7 @@ open class BlockBuilder(method: Generator, bel : Element) : CodeBuilder(method) 
         val target = targetName(variable, true)
         code.add("«$target = $target.allocate(", variable.name, variable.name)
                 .addArgs(el["args"])
-                .add(")\n»")
+                .add(")»")
     }
 
     fun addCode(elements : Iterable<Element>) : BlockBuilder {
@@ -212,7 +212,7 @@ open class BlockBuilder(method: Generator, bel : Element) : CodeBuilder(method) 
 
                 code.add("«%N(", name)
                         .add(expr().addfArgs(elem).build())
-                        .add(")\n»")
+                        .add(")»")
             }
         }
         block.addCode(call)
@@ -227,7 +227,7 @@ open class BlockBuilder(method: Generator, bel : Element) : CodeBuilder(method) 
         //val expr = expr();
         //expr.addArgs(args.all(Predicate {it.tagName!="io"}), ", ")
         //code.add(expr.build())
-                .add(")\n»")
+                .add(")»")
     }
 
     fun addPrint(args : Element) {
@@ -236,7 +236,7 @@ open class BlockBuilder(method: Generator, bel : Element) : CodeBuilder(method) 
         val expr = expr();
         expr.addArgs(args.children(), " + ")
         code.add(expr.build())
-                .add(")\n»")
+                .add(")»")
     }
 
     fun addGoto(el : Element) {
@@ -280,6 +280,7 @@ open class BlockBuilder(method: Generator, bel : Element) : CodeBuilder(method) 
 
         block.code.add("if(")
         block.addCode(el.children())
+        block.code.add("\n")
         block.code.endControlFlow()
 
         code.add(block.build())

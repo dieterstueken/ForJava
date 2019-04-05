@@ -697,8 +697,11 @@ public class Lexer {
                     break;
 
                 case BOOLEAN:
-                case CONST:
                     out.ltext("val", token.get(0));
+                    break;
+
+                case CONST:
+                    out.ltext("val", number(token));
                     break;
 
                 case NAME:
@@ -749,6 +752,21 @@ public class Lexer {
         // silently push back
         tokens.add(0, token);
         return false;
+    }
+
+    private String number(Token token) {
+        String digits = token.get(0);
+
+        if(token.size()>1) {
+            String exponent = token.get(1);
+            if (digits.endsWith("."))
+                digits += "0";
+
+            if (exponent != null)
+                digits += "e" + exponent;
+        }
+
+        return digits;
     }
 
     private int getBinop(List<Token> tokens) {
