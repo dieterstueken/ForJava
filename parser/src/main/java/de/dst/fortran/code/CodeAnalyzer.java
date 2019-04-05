@@ -552,14 +552,14 @@ public class CodeAnalyzer implements CodeElement {
                 case "read":
                     readData(e);
 
-                case "if":
+                case "ifblock":
                 case "do":
                     codeBlock(e);
                     break;
 
                 case "elif":
                 case "while":
-                case "cond":
+                case "if":
                     parseExpr(e);
                     break;
 

@@ -191,7 +191,7 @@ open class BlockBuilder(method: Generator, bel : Element) : CodeBuilder(method) 
 
             "goto" -> addGoto(elem)
 
-            "if" -> addIf(elem)
+            "ifblock" -> addIf(elem)
             "do"->  addDo(elem)
 
             "cycle" -> addCycle()
@@ -246,7 +246,7 @@ open class BlockBuilder(method: Generator, bel : Element) : CodeBuilder(method) 
     fun addIf(el : Element) {
 
 
-        if(el.get("cond")?.get("var")?.name == "ierr") {
+        if(el.get("if")?.get("var")?.name == "ierr") {
             if(el.get("then")?.get("deallocate")!=null) {
                 code.add("// if(ierr!=0)\n")
                 return;
@@ -259,7 +259,7 @@ open class BlockBuilder(method: Generator, bel : Element) : CodeBuilder(method) 
                 val tag = elem.getTagName()
                 when(tag) {
                     "locals" -> locals(elem)
-                    "cond" -> {
+                    "if" -> {
                         code.addExprs(elem)
                         code.beginControlFlow(")")
                     }

@@ -132,7 +132,7 @@ public class MethodGenerator {
             case "goto":
                 return _goto(code);
 
-            case "if":
+            case "ifblock":
                 return _if(code);
 
             case "do":
@@ -180,7 +180,7 @@ public class MethodGenerator {
             if("locals".equals(type))
                 continue;   // skip
 
-            if (!"cond".equals(cond.getTagName()))
+            if (!"if".equals(cond.getTagName()))
                 throw new IllegalArgumentException("condition expected, got: " + cond.getTagName());
 
             return _if(expr(childElements(cond)), elements);

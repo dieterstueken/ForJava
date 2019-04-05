@@ -493,7 +493,7 @@ public class Lexer {
                 break;
 
             case IF:
-                label().start("if").start("cond");
+                label().start("ifblock").start("if");
                 processIf(tokens);
                 break;
 
